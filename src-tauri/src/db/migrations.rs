@@ -1,0 +1,75 @@
+use rusqlite::Connection;
+
+const MIGRATIONS: &[(u32, &str)] = &[(1, include_str!("../../migrations/001_initial.sql"))];
+
+pub fn apply(connection: &mut Connection) -> Result<(), String> {
+    let current_version = current_schema_version(connection)?;
+    let mut previous_version = 0;
+
+    for (version, sql) in MIGRATIONS {
+        if *version <= previous_version {
+            return Err(format!("Migration v{version} is out of order."));
+        }
+
+        previous_version = *version;
+
+        if current_version >= *version {
+            continue;
+        }
+
+        let transaction = connection
+            .transaction()
+            .map_err(|error| format!("Failed to start migration v{version}: {error}"))?;
+
+        transaction
+            .execute_batch(sql)
+            .map_err(|error| format!("Failed to apply migration v{version}: {error}"))?;
+
+        transaction
+            .pragma_update(None, "user_version", version)
+            .map_err(|error| format!("Failed to update schema version to v{version}: {error}"))?;
+
+        transaction
+            .commit()
+            .map_err(|error| format!("Failed to commit migration v{version}: {error}"))?;
+    }
+
+    Ok(())
+}
+
+fn current_schema_version(connection: &Connection) -> Result<u32, String> {
+    connection
+        .query_row("PRAGMA user_version", [], |row| row.get(0))
+        .map_err(|error| format!("Failed to read schema version: {error}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn applies_pending_migrations() {
+        let mut connection = Connection::open_in_memory().expect("open in-memory database");
+
+        apply(&mut connection).expect("apply migrations");
+
+        let version: u32 = connection
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .expect("read schema version");
+        let todos_table_count: u32 = connection
+            .query_row(
+                "
+                SELECT COUNT(*)
+                FROM sqlite_schema
+                WHERE type = 'table'
+                  AND name = 'todos'
+                ",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read todos table count");
+
+        assert_eq!(version, 1);
+        assert_eq!(todos_table_count, 1);
+    }
+}

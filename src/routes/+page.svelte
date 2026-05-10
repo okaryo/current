@@ -1,14 +1,10 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { createTodo, listTodos, toggleTodo, type Todo } from "$lib/api/todos";
+
   type Section = {
     title: string;
     shortcut: string;
-  };
-
-  type Task = {
-    title: string;
-    depth: number;
-    completed?: boolean;
-    current?: boolean;
   };
 
   type LogEntry = {
@@ -22,20 +18,87 @@
     { title: "Log", shortcut: "⌘3" },
   ];
 
-  const tasks: Task[] = [
-    { title: "Current の基本レイアウトを整える", depth: 0, current: true },
-    { title: "ポモドーロの状態設計を決める", depth: 1 },
-    { title: "Todo の最小操作を整理する", depth: 1 },
-    { title: "作業ログの入力体験を考える", depth: 0 },
-    { title: "永続化の候補を比較する", depth: 0, completed: true },
-  ];
-
   const logs: LogEntry[] = [
     { time: "09:15", text: "アプリの構成を確認" },
     { time: "09:32", text: "初期レイアウトの方向性を整理" },
     { time: "10:05", text: "3つの領域に分けて画面を構成" },
     { time: "10:40", text: "次に実装する単位を小さく分ける" },
   ];
+
+  let todos = $state<Todo[]>([]);
+  let todoInput = $state("");
+  let todoError = $state<string | null>(null);
+  let isLoadingTodos = $state(true);
+  let isCreatingTodo = $state(false);
+
+  onMount(() => {
+    void loadTodos();
+  });
+
+  async function loadTodos() {
+    isLoadingTodos = true;
+    todoError = null;
+
+    try {
+      todos = await listTodos();
+    } catch (error) {
+      todoError = errorMessage(error);
+    } finally {
+      isLoadingTodos = false;
+    }
+  }
+
+  async function submitTodo(event: SubmitEvent) {
+    event.preventDefault();
+
+    if (isCreatingTodo) {
+      return;
+    }
+
+    const title = todoInput.trim();
+
+    if (!title) {
+      return;
+    }
+
+    isCreatingTodo = true;
+    todoError = null;
+
+    try {
+      const todo = await createTodo(title);
+      todos = [...todos, todo].sort(compareTodos);
+      todoInput = "";
+    } catch (error) {
+      todoError = errorMessage(error);
+    } finally {
+      isCreatingTodo = false;
+    }
+  }
+
+  async function toggleTodoCompletion(id: number) {
+    todoError = null;
+
+    try {
+      const updatedTodo = await toggleTodo(id);
+      todos = todos
+        .map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo))
+        .sort(compareTodos);
+    } catch (error) {
+      todoError = errorMessage(error);
+    }
+  }
+
+  function compareTodos(a: Todo, b: Todo) {
+    if (a.completed !== b.completed) {
+      return Number(a.completed) - Number(b.completed);
+    }
+
+    return a.id - b.id;
+  }
+
+  function errorMessage(error: unknown) {
+    return error instanceof Error ? error.message : String(error);
+  }
 </script>
 
 <svelte:head>
@@ -100,25 +163,40 @@
       <h2 id="todo-title" class="sr-only">Todo</h2>
 
       <ul class="task-list" aria-label="Todo list">
-        {#each tasks as task (task.title)}
-          <li
-            class:task-current={task.current}
-            class:task-completed={task.completed}
-            style={`--depth: ${task.depth}`}
-          >
-            <span class="checkbox" aria-hidden="true"></span>
-            <span class="task-title">{task.title}</span>
-            {#if task.current}
-              <span class="now-badge">Now</span>
-            {/if}
-          </li>
-        {/each}
+        {#if isLoadingTodos}
+          <li class="task-empty">Loading todos...</li>
+        {:else if todos.length === 0}
+          <li class="task-empty">No todos yet.</li>
+        {:else}
+          {#each todos as todo (todo.id)}
+            <li class:task-completed={todo.completed}>
+              <button
+                class="task-check"
+                type="button"
+                aria-label={todo.completed
+                  ? `Mark "${todo.title}" as incomplete`
+                  : `Mark "${todo.title}" as complete`}
+                onclick={() => toggleTodoCompletion(todo.id)}
+              ></button>
+              <span class="task-title">{todo.title}</span>
+            </li>
+          {/each}
+        {/if}
       </ul>
 
-      <label class="quick-input">
+      <form class="quick-input" onsubmit={submitTodo}>
         <span aria-hidden="true">+</span>
-        <input type="text" placeholder="Add a new task... (Enter to confirm)" />
-      </label>
+        <input
+          type="text"
+          placeholder="Add a new task... (Enter to confirm)"
+          bind:value={todoInput}
+          disabled={isCreatingTodo}
+        />
+      </form>
+
+      {#if todoError}
+        <p class="todo-error" role="alert">{todoError}</p>
+      {/if}
     </section>
 
     <section class="panel log" aria-labelledby="log-title">
@@ -410,21 +488,17 @@
 
   .task-list li {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 0.75rem;
     min-height: 2.75rem;
-    padding: 0.45rem 0.8rem 0.45rem calc(0.8rem + var(--depth) * 1.75rem);
+    padding: 0.45rem 0.8rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     color: #e4e8ef;
   }
 
   .task-list li:last-child {
     border-bottom: 0;
-  }
-
-  .task-current {
-    background: rgba(68, 209, 107, 0.08);
   }
 
   .task-completed {
@@ -435,15 +509,20 @@
     text-decoration: line-through;
   }
 
-  .checkbox {
+  .task-check {
     width: 1rem;
     height: 1rem;
     border: 1px solid #8c95a4;
     border-radius: 4px;
+    padding: 0;
     background: rgba(0, 0, 0, 0.15);
   }
 
-  .task-completed .checkbox {
+  .task-check:hover {
+    border-color: #44d16b;
+  }
+
+  .task-completed .task-check {
     border-color: #44d16b;
     background: #44d16b;
   }
@@ -454,13 +533,9 @@
     white-space: nowrap;
   }
 
-  .now-badge {
-    border: 1px solid rgba(68, 209, 107, 0.35);
-    border-radius: 999px;
-    padding: 0.1rem 0.5rem;
-    color: #78e596;
-    font-size: 0.76rem;
-    font-weight: 650;
+  .task-empty {
+    grid-template-columns: 1fr;
+    color: #858d9a;
   }
 
   .quick-input,
@@ -484,6 +559,10 @@
     color: #e8ecf2;
     background: transparent;
     resize: none;
+  }
+
+  .quick-input input:disabled {
+    opacity: 0.65;
   }
 
   .quick-input input::placeholder,
@@ -519,6 +598,12 @@
   .log-input span {
     color: #5b8ff9;
     font-weight: 700;
+  }
+
+  .todo-error {
+    margin: 0.55rem 0 0;
+    color: #ff8a93;
+    font-size: 0.88rem;
   }
 
   .sr-only {

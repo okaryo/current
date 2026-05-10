@@ -7,7 +7,7 @@
 - [x] Setup linting and formatting
 - [ ] Decide project structure
 - [ ] Setup state management
-- [ ] Setup local database or storage layer
+- [x] Setup local database or storage layer
 - [ ] Setup keyboard shortcut handling
 - [x] Setup basic window configuration
 
@@ -30,13 +30,13 @@
 
 ### Basic TODO
 
-- [ ] Create TODO item model
-- [ ] Create TODO list UI
-- [ ] Add TODO item
+- [x] Create TODO item model
+- [x] Create TODO list UI
+- [x] Add TODO item
 - [ ] Edit TODO item
 - [ ] Delete TODO item
-- [ ] Toggle TODO completion
-- [ ] Persist TODO data locally
+- [x] Toggle TODO completion
+- [x] Persist TODO data locally
 
 ### TODO UX
 
