@@ -13,8 +13,10 @@
     "windows": [
       {
         "title": "Current",
-        "width": 800,
-        "height": 600
+        "width": 1120,
+        "height": 760,
+        "minWidth": 720,
+        "minHeight": 560
       }
     ],
     "security": {

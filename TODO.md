@@ -2,23 +2,23 @@
 
 ## Phase 1 — Project Setup
 
-- [ ] Create Tauri + Svelte project
-- [ ] Setup TypeScript
+- [x] Create Tauri + Svelte project
+- [x] Setup TypeScript
 - [ ] Setup linting and formatting
 - [ ] Decide project structure
 - [ ] Setup state management
 - [ ] Setup local database or storage layer
 - [ ] Setup keyboard shortcut handling
-- [ ] Setup basic window configuration
+- [x] Setup basic window configuration
 
 ---
 
 ## Phase 2 — Basic Layout
 
-- [ ] Create main application layout
-- [ ] Create Pomodoro section
-- [ ] Create TODO section
-- [ ] Create Work Log section
+- [x] Create main application layout
+- [x] Create Pomodoro section
+- [x] Create TODO section
+- [x] Create Work Log section
 - [ ] Add resizable section layout if needed
 - [ ] Add focus state UI for active section
 - [ ] Add keyboard navigation between sections

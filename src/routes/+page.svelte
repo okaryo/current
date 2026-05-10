@@ -1,156 +1,567 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  type Section = {
+    title: string;
+    shortcut: string;
+  };
 
-  let name = $state("");
-  let greetMsg = $state("");
+  type Task = {
+    title: string;
+    depth: number;
+    completed?: boolean;
+    current?: boolean;
+  };
 
-  async function greet(event: Event) {
-    event.preventDefault();
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    greetMsg = await invoke("greet", { name });
-  }
+  type LogEntry = {
+    time: string;
+    text: string;
+  };
+
+  const sections: Section[] = [
+    { title: "Pomodoro", shortcut: "⌘1" },
+    { title: "Todo", shortcut: "⌘2" },
+    { title: "Log", shortcut: "⌘3" }
+  ];
+
+  const tasks: Task[] = [
+    { title: "Current の基本レイアウトを整える", depth: 0, current: true },
+    { title: "ポモドーロの状態設計を決める", depth: 1 },
+    { title: "Todo の最小操作を整理する", depth: 1 },
+    { title: "作業ログの入力体験を考える", depth: 0 },
+    { title: "永続化の候補を比較する", depth: 0, completed: true }
+  ];
+
+  const logs: LogEntry[] = [
+    { time: "09:15", text: "アプリの構成を確認" },
+    { time: "09:32", text: "初期レイアウトの方向性を整理" },
+    { time: "10:05", text: "3つの領域に分けて画面を構成" },
+    { time: "10:40", text: "次に実装する単位を小さく分ける" }
+  ];
+
 </script>
 
-<main class="container">
-  <h1>Welcome to Tauri + Svelte</h1>
+<svelte:head>
+  <title>Current</title>
+</svelte:head>
 
-  <div class="row">
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte-kit" alt="SvelteKit Logo" />
-    </a>
+<main class="app-shell" aria-label="Current">
+  <div class="workspace">
+    <section class="panel pomodoro" aria-label="Pomodoro">
+      <header class="panel-header">
+        <div class="title-row">
+          <p class="section-label section-label-focus">{sections[0].title}</p>
+          <kbd>{sections[0].shortcut}</kbd>
+        </div>
+      </header>
+
+      <div class="timer-layout">
+        <div class="timer-ring" aria-label="25 minutes remaining">
+          <span class="time">25:00</span>
+          <span class="mode">Focus</span>
+        </div>
+
+        <div class="timer-details">
+          <p class="session">Today's sessions <strong>2 / 4</strong></p>
+          <div class="timer-actions" aria-label="Pomodoro controls">
+            <button class="primary-button" type="button">Start</button>
+            <button type="button">Pause</button>
+            <button type="button">Reset</button>
+          </div>
+        </div>
+
+        <dl class="shortcut-list" aria-label="Pomodoro shortcuts">
+          <div>
+            <dt><kbd>⌘P</kbd></dt>
+            <dd>Start / Pause</dd>
+          </div>
+          <div>
+            <dt><kbd>⌘R</kbd></dt>
+            <dd>Reset</dd>
+          </div>
+          <div>
+            <dt><kbd>⌘L</kbd></dt>
+            <dd>Log completed session</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="panel todo" aria-labelledby="todo-title">
+      <header class="panel-header inline-header">
+        <div class="title-row">
+          <p class="section-label section-label-todo">{sections[1].title}</p>
+          <kbd>{sections[1].shortcut}</kbd>
+        </div>
+        <div class="hint-row" aria-label="Todo shortcuts">
+          <span><kbd>Enter</kbd>Add</span>
+          <span><kbd>Space</kbd>Complete</span>
+          <span><kbd>J</kbd>/<kbd>K</kbd>Move</span>
+        </div>
+      </header>
+
+      <h2 id="todo-title" class="sr-only">Todo</h2>
+
+      <ul class="task-list" aria-label="Todo list">
+        {#each tasks as task}
+          <li
+            class:task-current={task.current}
+            class:task-completed={task.completed}
+            style={`--depth: ${task.depth}`}
+          >
+            <span class="checkbox" aria-hidden="true"></span>
+            <span class="task-title">{task.title}</span>
+            {#if task.current}
+              <span class="now-badge">Now</span>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+
+      <label class="quick-input">
+        <span aria-hidden="true">+</span>
+        <input type="text" placeholder="Add a new task... (Enter to confirm)" />
+      </label>
+    </section>
+
+    <section class="panel log" aria-labelledby="log-title">
+      <header class="panel-header inline-header">
+        <div class="title-row">
+          <p class="section-label section-label-log">{sections[2].title}</p>
+          <kbd>{sections[2].shortcut}</kbd>
+        </div>
+        <div class="hint-row" aria-label="Log shortcuts">
+          <span><kbd>Enter</kbd>Submit</span>
+          <span><kbd>Shift</kbd> + <kbd>Enter</kbd>New line</span>
+        </div>
+      </header>
+
+      <h2 id="log-title" class="sr-only">Work Log</h2>
+
+      <ol class="log-list" aria-label="Work log">
+        {#each logs as log}
+          <li>
+            <time>{log.time}</time>
+            <span>{log.text}</span>
+          </li>
+        {/each}
+      </ol>
+
+      <label class="log-input">
+        <span aria-hidden="true">&gt;</span>
+        <textarea rows="2" placeholder="Write a work log... (Enter to submit)"></textarea>
+      </label>
+    </section>
   </div>
-  <p>Click on the Tauri, Vite, and SvelteKit logos to learn more.</p>
-
-  <form class="row" onsubmit={greet}>
-    <input id="greet-input" placeholder="Enter a name..." bind:value={name} />
-    <button type="submit">Greet</button>
-  </form>
-  <p>{greetMsg}</p>
 </main>
 
 <style>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
-
-.logo.svelte-kit:hover {
-  filter: drop-shadow(0 0 2em #ff3e00);
-}
-
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
+  :global(*) {
+    box-sizing: border-box;
   }
 
-  a:hover {
-    color: #24c8db;
+  :global(html) {
+    color: #e8ecf2;
+    background: #0b0d10;
+    font-family:
+      Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
 
+  :global(body) {
+    min-width: 360px;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  button,
   input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
+  textarea {
+    font: inherit;
   }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
 
+  button {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #e8ecf2;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05));
+    cursor: pointer;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid rgba(91, 143, 249, 0.95);
+    outline-offset: 2px;
+  }
+
+  kbd {
+    display: inline-flex;
+    min-width: 1.65rem;
+    height: 1.35rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 5px;
+    padding: 0 0.38rem;
+    color: #c8ced8;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    font-size: 0.76rem;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .app-shell {
+    min-height: 100vh;
+    padding: 0.8rem;
+    background:
+      radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), transparent 28rem),
+      #0b0d10;
+  }
+
+  .workspace {
+    display: grid;
+    grid-template-rows: auto minmax(11rem, 1fr) minmax(9rem, 0.75fr);
+    gap: 0.75rem;
+    width: min(100%, 104rem);
+    min-height: calc(100vh - 1.6rem);
+    margin: 0 auto;
+  }
+
+  .panel {
+    min-width: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.85rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .inline-header {
+    align-items: center;
+  }
+
+  .title-row,
+  .hint-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+  }
+
+  .hint-row {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    color: #9ba3b0;
+    font-size: 0.86rem;
+  }
+
+  .hint-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .section-label {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .section-label-focus {
+    color: #ff5965;
+  }
+
+  .section-label-todo {
+    color: #44d16b;
+  }
+
+  .section-label-log {
+    color: #5b8ff9;
+  }
+
+  .timer-layout {
+    display: grid;
+    grid-template-columns: auto minmax(14rem, 1fr) minmax(13rem, auto);
+    align-items: center;
+    gap: 1.4rem;
+    min-height: 7.4rem;
+    padding: 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    background: rgba(9, 12, 16, 0.28);
+  }
+
+  .timer-ring {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    width: clamp(6.4rem, 12vw, 7.6rem);
+    aspect-ratio: 1;
+    border: 0.3rem solid #f05260;
+    border-radius: 999px;
+    box-shadow:
+      0 0 0 0.35rem rgba(240, 82, 96, 0.08),
+      inset 0 0 2rem rgba(0, 0, 0, 0.22);
+  }
+
+  .time {
+    font-size: clamp(1.8rem, 3.6vw, 2.25rem);
+    font-weight: 650;
+    line-height: 1;
+  }
+
+  .mode {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: #ff5965;
+    font-weight: 600;
+  }
+
+  .session {
+    margin: 0 0 0.75rem;
+    color: #c7cdd6;
+    font-size: 1rem;
+  }
+
+  .session strong {
+    margin-left: 0.5rem;
+    color: #ffffff;
+  }
+
+  .timer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .timer-actions button {
+    min-width: 5.5rem;
+    min-height: 2.45rem;
+    padding: 0 0.85rem;
+    font-weight: 650;
+  }
+
+  .timer-actions .primary-button {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: linear-gradient(180deg, #ff6670, #df3745);
+    color: #ffffff;
+  }
+
+  .shortcut-list {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    color: #aeb5c1;
+  }
+
+  .shortcut-list div {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .shortcut-list dt,
+  .shortcut-list dd {
+    margin: 0;
+  }
+
+  .task-list,
+  .log-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .task-list {
+    overflow: auto;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+  }
+
+  .task-list li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.75rem;
+    padding: 0.45rem 0.8rem 0.45rem calc(0.8rem + var(--depth) * 1.75rem);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: #e4e8ef;
+  }
+
+  .task-list li:last-child {
+    border-bottom: 0;
+  }
+
+  .task-current {
+    background: rgba(68, 209, 107, 0.08);
+  }
+
+  .task-completed {
+    color: #7f8794;
+  }
+
+  .task-completed .task-title {
+    text-decoration: line-through;
+  }
+
+  .checkbox {
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid #8c95a4;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  .task-completed .checkbox {
+    border-color: #44d16b;
+    background: #44d16b;
+  }
+
+  .task-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .now-badge {
+    border: 1px solid rgba(68, 209, 107, 0.35);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    color: #78e596;
+    font-size: 0.76rem;
+    font-weight: 650;
+  }
+
+  .quick-input,
+  .log-input {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.7rem;
+    margin-top: 0.7rem;
+    border: 1px solid rgba(68, 209, 107, 0.65);
+    border-radius: 8px;
+    padding: 0.65rem 0.8rem;
+    background: rgba(4, 8, 12, 0.28);
+    color: #7f8794;
+  }
+
+  .quick-input input,
+  .log-input textarea {
+    min-width: 0;
+    border: 0;
+    color: #e8ecf2;
+    background: transparent;
+    resize: none;
+  }
+
+  .quick-input input::placeholder,
+  .log-input textarea::placeholder {
+    color: #858d9a;
+  }
+
+  .log-list {
+    min-height: 8rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    background: rgba(9, 12, 16, 0.28);
+  }
+
+  .log-list li {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: 0.9rem;
+    color: #d7dce4;
+  }
+
+  .log-list time {
+    color: #a8b0be;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .log-input {
+    border-color: rgba(91, 143, 249, 0.72);
+    align-items: start;
+  }
+
+  .log-input span {
+    color: #5b8ff9;
+    font-weight: 700;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 860px) {
+    .workspace {
+      grid-template-rows: auto auto auto;
+      min-height: auto;
+    }
+
+    .timer-layout {
+      grid-template-columns: 1fr;
+      justify-items: start;
+      gap: 1.25rem;
+    }
+
+    .shortcut-list {
+      width: 100%;
+    }
+
+    .inline-header {
+      align-items: start;
+      flex-direction: column;
+    }
+
+    .hint-row {
+      justify-content: flex-start;
+    }
+
+  }
+
+  @media (max-width: 560px) {
+    .app-shell {
+      padding: 0;
+    }
+
+    .workspace {
+      padding: 0.55rem;
+    }
+
+    .panel {
+      padding: 0.8rem;
+    }
+
+    .timer-actions {
+      width: 100%;
+    }
+
+    .timer-actions button {
+      flex: 1 1 8rem;
+    }
+
+    .task-title {
+      white-space: normal;
+    }
+  }
 </style>
