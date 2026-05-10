@@ -4,7 +4,7 @@
 
 - [x] Create Tauri + Svelte project
 - [x] Setup TypeScript
-- [ ] Setup linting and formatting
+- [x] Setup linting and formatting
 - [ ] Decide project structure
 - [ ] Setup state management
 - [ ] Setup local database or storage layer

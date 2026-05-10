@@ -19,7 +19,7 @@
   const sections: Section[] = [
     { title: "Pomodoro", shortcut: "⌘1" },
     { title: "Todo", shortcut: "⌘2" },
-    { title: "Log", shortcut: "⌘3" }
+    { title: "Log", shortcut: "⌘3" },
   ];
 
   const tasks: Task[] = [
@@ -27,16 +27,15 @@
     { title: "ポモドーロの状態設計を決める", depth: 1 },
     { title: "Todo の最小操作を整理する", depth: 1 },
     { title: "作業ログの入力体験を考える", depth: 0 },
-    { title: "永続化の候補を比較する", depth: 0, completed: true }
+    { title: "永続化の候補を比較する", depth: 0, completed: true },
   ];
 
   const logs: LogEntry[] = [
     { time: "09:15", text: "アプリの構成を確認" },
     { time: "09:32", text: "初期レイアウトの方向性を整理" },
     { time: "10:05", text: "3つの領域に分けて画面を構成" },
-    { time: "10:40", text: "次に実装する単位を小さく分ける" }
+    { time: "10:40", text: "次に実装する単位を小さく分ける" },
   ];
-
 </script>
 
 <svelte:head>
@@ -101,7 +100,7 @@
       <h2 id="todo-title" class="sr-only">Todo</h2>
 
       <ul class="task-list" aria-label="Todo list">
-        {#each tasks as task}
+        {#each tasks as task (task.title)}
           <li
             class:task-current={task.current}
             class:task-completed={task.completed}
@@ -137,7 +136,7 @@
       <h2 id="log-title" class="sr-only">Work Log</h2>
 
       <ol class="log-list" aria-label="Work log">
-        {#each logs as log}
+        {#each logs as log (log.time)}
           <li>
             <time>{log.time}</time>
             <span>{log.text}</span>
@@ -147,7 +146,8 @@
 
       <label class="log-input">
         <span aria-hidden="true">&gt;</span>
-        <textarea rows="2" placeholder="Write a work log... (Enter to submit)"></textarea>
+        <textarea rows="2" placeholder="Write a work log... (Enter to submit)"
+        ></textarea>
       </label>
     </section>
   </div>
@@ -162,7 +162,13 @@
     color: #e8ecf2;
     background: #0b0d10;
     font-family:
-      Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
     font-size: 16px;
     line-height: 1.5;
     text-rendering: optimizeLegibility;
@@ -185,7 +191,11 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     color: #e8ecf2;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05));
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.11),
+      rgba(255, 255, 255, 0.05)
+    );
     cursor: pointer;
   }
 
@@ -217,7 +227,11 @@
     min-height: 100vh;
     padding: 0.8rem;
     background:
-      radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), transparent 28rem),
+      radial-gradient(
+        circle at top left,
+        rgba(255, 255, 255, 0.05),
+        transparent 28rem
+      ),
       #0b0d10;
   }
 
@@ -235,7 +249,11 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     padding: 0.85rem;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.02)
+    );
   }
 
   .panel-header {
@@ -536,7 +554,6 @@
     .hint-row {
       justify-content: flex-start;
     }
-
   }
 
   @media (max-width: 560px) {
