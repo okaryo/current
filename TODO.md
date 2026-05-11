@@ -46,11 +46,15 @@
 - [x] Add shortcut for deleting TODO
 - [x] Add shortcut for moving selection
 - [x] Add add-input focus behavior for new TODOs
+- [ ] Add shortcut for indenting TODOs
+- [ ] Add shortcut for outdenting TODOs
 
 Keyboard decisions:
 
 - `i`: focus the add input
 - `j` / `k` and `ArrowDown` / `ArrowUp`: move selection
+- `Tab`: indent the selected TODO
+- `Shift+Tab`: outdent the selected TODO
 - `Space`: toggle completion for the selected TODO
 - `e`: edit the selected TODO
 - `Enter`: set/unset the selected TODO as Now
@@ -61,6 +65,19 @@ Keyboard decisions:
 - Focusing the add input clears TODO selection.
 - Creating a TODO keeps focus on the add input and does not select the created TODO.
 - Focused text inputs should avoid native blue outlines and use caret/container border emphasis instead.
+
+### Nested TODO
+
+- [ ] Support nested TODO items
+- [ ] Persist TODO parent-child relationships
+- [ ] Preserve TODO order within each level
+- [ ] Define completion behavior for parent and child TODOs
+
+Nested TODO decisions:
+
+- `Tab`: indent the selected TODO under the previous TODO when possible.
+- `Shift+Tab`: outdent the selected TODO when possible.
+- Nested TODOs should stay lightweight and should not turn the app into a project management tool.
 
 ### Completed TODO Behavior
 
