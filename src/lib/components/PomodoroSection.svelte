@@ -294,7 +294,7 @@
   }
 
   .time {
-    font-size: clamp(1.8rem, 3.6vw, 2.25rem);
+    font-size: clamp(1.55rem, 3vw, 1.95rem);
     font-weight: 650;
     line-height: 1;
   }
