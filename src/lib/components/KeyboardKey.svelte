@@ -4,21 +4,47 @@
     label?: string;
   };
 
-  let { value, label = value }: Props = $props();
+  let { value, label }: Props = $props();
 
   const symbolValues = new Set(["⌘", "⇧", "⌥", "⌃"]);
-  const isSymbolOnly = $derived(symbolValues.has(value));
+  const displayValue = $derived(formatKeyboardValue(value));
+  const displayLabel = $derived(label ?? describeKeyboardValue(value));
+  const isSymbolOnly = $derived(symbolValues.has(displayValue));
   const hasSymbol = $derived(
-    [...symbolValues].some((symbol) => value.includes(symbol)),
+    [...symbolValues].some((symbol) => displayValue.includes(symbol)),
   );
+
+  function formatKeyboardValue(value: string) {
+    if (/^[a-z]$/.test(value)) {
+      return value.toUpperCase();
+    }
+
+    if (/^[A-Z]$/.test(value)) {
+      return `⇧${value}`;
+    }
+
+    return value;
+  }
+
+  function describeKeyboardValue(value: string) {
+    if (/^[a-z]$/.test(value)) {
+      return value.toUpperCase();
+    }
+
+    if (/^[A-Z]$/.test(value)) {
+      return `Shift ${value}`;
+    }
+
+    return value.replace("⇧", "Shift ");
+  }
 </script>
 
 <kbd
   class:symbol-only={isSymbolOnly}
   class:has-symbol={hasSymbol}
-  aria-label={label}
+  aria-label={displayLabel}
 >
-  {value}
+  {displayValue}
 </kbd>
 
 <style>

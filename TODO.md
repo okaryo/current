@@ -62,6 +62,7 @@ Layout decisions:
 Keyboard decisions:
 
 - TODO shortcuts are scoped to the active TODO section.
+- Keyboard key labels use uppercase letters; shortcuts that require uppercase letters use `Shift+Letter` notation.
 - `i`: focus the add input
 - `j` / `k` and `ArrowDown` / `ArrowUp`: move selection
 - `Tab`: indent the selected TODO
@@ -69,7 +70,7 @@ Keyboard decisions:
 - `Space`: toggle completion for the selected TODO
 - `e`: edit the selected TODO
 - `Enter`: set/unset the selected TODO as Now
-- `D` (`Shift+d`): delete the selected TODO immediately
+- `Shift+D`: delete the selected TODO immediately
 - `Escape`: cancel edit or clear selection
 - Delete intentionally does not use plain `d`.
 - Delete does not have undo for now.
