@@ -10,17 +10,21 @@
   } from "$lib/api/todos";
   import { createWorkLog, listWorkLogs, type WorkLog } from "$lib/api/workLogs";
 
+  type SectionId = "pomodoro" | "todo" | "log";
+
   type Section = {
+    id: SectionId;
     title: string;
     shortcut: string;
   };
 
   const sections: Section[] = [
-    { title: "Pomodoro", shortcut: "⌘1" },
-    { title: "Todo", shortcut: "⌘2" },
-    { title: "Log", shortcut: "⌘3" },
+    { id: "pomodoro", title: "Pomodoro", shortcut: "⌘1" },
+    { id: "todo", title: "Todo", shortcut: "⌘2" },
+    { id: "log", title: "Log", shortcut: "⌘3" },
   ];
 
+  let activeSection = $state<SectionId>("todo");
   let todos = $state<Todo[]>([]);
   let todoInput = $state("");
   let todoError = $state<string | null>(null);
@@ -38,6 +42,7 @@
   let workLogError = $state<string | null>(null);
   let isLoadingWorkLogs = $state(true);
   let isCreatingWorkLog = $state(false);
+  let workLogInputElement = $state<HTMLTextAreaElement>();
 
   onMount(() => {
     void loadTodos();
@@ -87,6 +92,7 @@
   }
 
   async function toggleTodoCompletion(id: number) {
+    setActiveSection("todo", { preserveFocus: true });
     todoError = null;
 
     try {
@@ -184,6 +190,14 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    const sectionShortcut = sectionFromShortcut(event);
+
+    if (sectionShortcut) {
+      event.preventDefault();
+      setActiveSection(sectionShortcut);
+      return;
+    }
+
     if (isTextInputTarget(event.target)) {
       if (event.key === "Escape") {
         (event.target as HTMLElement).blur();
@@ -192,6 +206,17 @@
       return;
     }
 
+    switch (activeSection) {
+      case "todo":
+        handleTodoSectionKeydown(event);
+        break;
+      case "log":
+        handleLogSectionKeydown(event);
+        break;
+    }
+  }
+
+  function handleTodoSectionKeydown(event: KeyboardEvent) {
     if (editingTodoId !== null) {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -252,6 +277,13 @@
     }
   }
 
+  function handleLogSectionKeydown(event: KeyboardEvent) {
+    if (event.key === "i") {
+      event.preventDefault();
+      focusWorkLogInput();
+    }
+  }
+
   async function deleteSelectedTodo() {
     if (selectedTodoId === null) {
       return;
@@ -293,6 +325,7 @@
   }
 
   function selectTodo(id: number) {
+    setActiveSection("todo", { preserveFocus: true });
     selectedTodoId = id;
   }
 
@@ -351,9 +384,49 @@
   }
 
   async function focusAddTodoInput() {
+    setActiveSection("todo", { preserveFocus: true });
     clearTodoSelection();
     await tick();
     addTodoInput?.focus();
+  }
+
+  async function focusWorkLogInput() {
+    setActiveSection("log", { preserveFocus: true });
+    clearTodoSelection();
+    await tick();
+    workLogInputElement?.focus();
+  }
+
+  function setActiveSection(
+    section: SectionId,
+    options: { preserveFocus?: boolean } = {},
+  ) {
+    activeSection = section;
+
+    if (section !== "todo") {
+      cancelEdit();
+    }
+
+    if (!options.preserveFocus && isTextInputTarget(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+    }
+  }
+
+  function sectionFromShortcut(event: KeyboardEvent): SectionId | null {
+    if (!event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+      return null;
+    }
+
+    switch (event.key) {
+      case "1":
+        return "pomodoro";
+      case "2":
+        return "todo";
+      case "3":
+        return "log";
+      default:
+        return null;
+    }
   }
 
   function clearTodoSelection() {
@@ -423,7 +496,11 @@
 
 <main class="app-shell" aria-label="Current">
   <div class="workspace">
-    <section class="panel pomodoro" aria-label="Pomodoro">
+    <section
+      class="panel pomodoro"
+      class:panel-active={activeSection === "pomodoro"}
+      aria-label="Pomodoro"
+    >
       <header class="panel-header">
         <div class="title-row">
           <p class="section-label section-label-focus">{sections[0].title}</p>
@@ -440,9 +517,34 @@
         <div class="timer-details">
           <p class="session">Today's sessions <strong>2 / 4</strong></p>
           <div class="timer-actions" aria-label="Pomodoro controls">
-            <button class="primary-button" type="button">Start</button>
-            <button type="button">Pause</button>
-            <button type="button">Reset</button>
+            <button
+              class="primary-button"
+              type="button"
+              onfocus={() =>
+                setActiveSection("pomodoro", { preserveFocus: true })}
+              onclick={() =>
+                setActiveSection("pomodoro", { preserveFocus: true })}
+            >
+              Start
+            </button>
+            <button
+              type="button"
+              onfocus={() =>
+                setActiveSection("pomodoro", { preserveFocus: true })}
+              onclick={() =>
+                setActiveSection("pomodoro", { preserveFocus: true })}
+            >
+              Pause
+            </button>
+            <button
+              type="button"
+              onfocus={() =>
+                setActiveSection("pomodoro", { preserveFocus: true })}
+              onclick={() =>
+                setActiveSection("pomodoro", { preserveFocus: true })}
+            >
+              Reset
+            </button>
           </div>
         </div>
 
@@ -463,16 +565,22 @@
       </div>
     </section>
 
-    <section class="panel todo" aria-labelledby="todo-title">
+    <section
+      class="panel todo"
+      class:panel-active={activeSection === "todo"}
+      aria-labelledby="todo-title"
+    >
       <header class="panel-header inline-header">
         <div class="title-row">
           <p class="section-label section-label-todo">{sections[1].title}</p>
           <kbd>{sections[1].shortcut}</kbd>
         </div>
-        <div class="hint-row" aria-label="Todo shortcuts">
-          <span><kbd>i</kbd>Focus Add</span>
-          <span><kbd>j</kbd>/<kbd>k</kbd>Move</span>
-        </div>
+        {#if activeSection === "todo"}
+          <div class="hint-row" aria-label="Todo shortcuts">
+            <span><kbd>i</kbd>Focus Add</span>
+            <span><kbd>j</kbd>/<kbd>k</kbd>Move</span>
+          </div>
+        {/if}
       </header>
 
       <h2 id="todo-title" class="sr-only">Todo</h2>
@@ -485,7 +593,8 @@
         {:else}
           {#each todos as todo (todo.id)}
             <li
-              class:task-selected={selectedTodoId === todo.id}
+              class:task-selected={activeSection === "todo" &&
+                selectedTodoId === todo.id}
               class:task-now={nowTodoId === todo.id}
               class:task-dimmed={nowTodoId !== null &&
                 nowTodoId !== todo.id &&
@@ -546,7 +655,7 @@
                 {#if nowTodoId === todo.id}
                   <span class="now-badge">Now</span>
                 {/if}
-                {#if selectedTodoId === todo.id && editingTodoId !== todo.id}
+                {#if activeSection === "todo" && selectedTodoId === todo.id && editingTodoId !== todo.id}
                   <div
                     class="task-actions"
                     aria-label="Selected todo shortcuts"
@@ -581,7 +690,10 @@
           bind:value={todoInput}
           bind:this={addTodoInput}
           disabled={isCreatingTodo}
-          onfocus={clearTodoSelection}
+          onfocus={() => {
+            setActiveSection("todo", { preserveFocus: true });
+            clearTodoSelection();
+          }}
         />
       </form>
 
@@ -590,16 +702,23 @@
       {/if}
     </section>
 
-    <section class="panel log" aria-labelledby="log-title">
+    <section
+      class="panel log"
+      class:panel-active={activeSection === "log"}
+      aria-labelledby="log-title"
+    >
       <header class="panel-header inline-header">
         <div class="title-row">
           <p class="section-label section-label-log">{sections[2].title}</p>
           <kbd>{sections[2].shortcut}</kbd>
         </div>
-        <div class="hint-row" aria-label="Log shortcuts">
-          <span><kbd>Enter</kbd>Submit</span>
-          <span><kbd>Shift</kbd> + <kbd>Enter</kbd>New line</span>
-        </div>
+        {#if activeSection === "log"}
+          <div class="hint-row" aria-label="Log shortcuts">
+            <span><kbd>i</kbd>Focus Input</span>
+            <span><kbd>Enter</kbd>Submit</span>
+            <span><kbd>Shift</kbd> + <kbd>Enter</kbd>New line</span>
+          </div>
+        {/if}
       </header>
 
       <h2 id="log-title" class="sr-only">Work Log</h2>
@@ -631,7 +750,9 @@
           rows="2"
           placeholder="Write a work log... (Enter to submit)"
           bind:value={workLogInput}
+          bind:this={workLogInputElement}
           disabled={isCreatingWorkLog}
+          onfocus={() => setActiveSection("log", { preserveFocus: true })}
           onkeydown={handleWorkLogKeydown}
         ></textarea>
       </form>
@@ -738,6 +859,7 @@
   }
 
   .panel {
+    position: relative;
     min-width: 0;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
@@ -747,6 +869,48 @@
       rgba(255, 255, 255, 0.04),
       rgba(255, 255, 255, 0.02)
     );
+    opacity: 0.7;
+    filter: saturate(0.82);
+    transition:
+      border-color 120ms ease,
+      filter 120ms ease,
+      box-shadow 120ms ease,
+      opacity 120ms ease;
+  }
+
+  .panel-active {
+    border-color: rgba(255, 255, 255, 0.18);
+    opacity: 1;
+    filter: saturate(1);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.055),
+      rgba(255, 255, 255, 0.026)
+    );
+  }
+
+  .pomodoro.panel-active {
+    border-color: #ff5965;
+    box-shadow:
+      0 0 0 1px rgba(255, 89, 101, 0.34),
+      0 0 0 4px rgba(255, 89, 101, 0.08),
+      0 0.8rem 2rem rgba(255, 89, 101, 0.1);
+  }
+
+  .todo.panel-active {
+    border-color: #44d16b;
+    box-shadow:
+      0 0 0 1px rgba(68, 209, 107, 0.35),
+      0 0 0 4px rgba(68, 209, 107, 0.08),
+      0 0.8rem 2rem rgba(68, 209, 107, 0.1);
+  }
+
+  .log.panel-active {
+    border-color: #5b8ff9;
+    box-shadow:
+      0 0 0 1px rgba(91, 143, 249, 0.35),
+      0 0 0 4px rgba(91, 143, 249, 0.08),
+      0 0.8rem 2rem rgba(91, 143, 249, 0.11);
   }
 
   .panel-header {

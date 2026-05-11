@@ -8,7 +8,7 @@
 - [ ] Decide project structure
 - [ ] Setup state management
 - [x] Setup local database or storage layer
-- [ ] Setup keyboard shortcut handling
+- [x] Setup keyboard shortcut handling
 - [x] Setup basic window configuration
 
 ---
@@ -20,8 +20,8 @@
 - [x] Create TODO section
 - [x] Create Work Log section
 - [ ] Add resizable section layout if needed
-- [ ] Add focus state UI for active section
-- [ ] Add keyboard navigation between sections
+- [x] Add focus state UI for active section
+- [x] Add keyboard navigation between sections
 - [ ] Add basic responsive window behavior
 
 ---
@@ -51,6 +51,7 @@
 
 Keyboard decisions:
 
+- TODO shortcuts are scoped to the active TODO section.
 - `i`: focus the add input
 - `j` / `k` and `ArrowDown` / `ArrowUp`: move selection
 - `Tab`: indent the selected TODO
@@ -124,13 +125,15 @@ Now behavior:
 
 ### Work Log UX
 
-- [ ] Add keyboard shortcut for focusing log input
+- [x] Add keyboard shortcut for focusing log input
 - [x] Add quick log submission flow
 - [ ] Restore draft input state if needed
 - [ ] Keep logging flow lightweight
 
 Work Log decisions:
 
+- Work Log shortcuts are scoped to the active Log section.
+- `i`: focus the work log input
 - `Enter`: submit the current work log
 - `Shift+Enter`: insert a newline
 - Work logs are persisted to SQLite with creation timestamps.
@@ -185,16 +188,26 @@ Work Log decisions:
 
 ### Global Navigation
 
-- [ ] Add section switching shortcuts
+- [x] Add section switching shortcuts
 - [ ] Add global hotkey for showing app
 - [ ] Restore previous focus state on reopen
 
 ### Keyboard UX
 
 - [ ] Ensure all major actions work without mouse
-- [ ] Improve focus visibility
-- [ ] Add shortcut hints to focused section
-- [ ] Hide detailed shortcut hints for inactive sections
+- [x] Improve focus visibility
+- [x] Add shortcut hints to focused section
+- [x] Hide detailed shortcut hints for inactive sections
+
+Section shortcut decisions:
+
+- `Cmd+1`: activate Pomodoro section
+- `Cmd+2`: activate TODO section
+- `Cmd+3`: activate Log section
+- TODO is the initial active section for now.
+- Global shortcuts should be limited to app-wide actions such as section switching.
+- Section-specific shortcuts should only run inside the active section.
+- Reusing keys like `i` across sections is acceptable when the active section gives the key a clear local meaning.
 
 ---
 
