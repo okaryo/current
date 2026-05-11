@@ -96,6 +96,7 @@ When implementing tasks from `TODO.md`:
 - complete tasks incrementally
 - keep commits and changes small
 - update TODO status clearly
+- update `TODO.md` when new requirements, keyboard shortcuts, persistence decisions, or implementation policies are decided through conversation
 - explain tradeoffs when changing the original plan
 
 If implementation reveals a better approach than the original TODO:

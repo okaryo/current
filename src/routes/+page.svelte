@@ -2,6 +2,7 @@
   import { onMount, tick } from "svelte";
   import {
     createTodo,
+    deleteTodo,
     listTodos,
     toggleTodo,
     updateTodoTitle,
@@ -168,6 +169,12 @@
     }
 
     switch (event.key) {
+      case "D":
+        if (event.shiftKey) {
+          event.preventDefault();
+          void deleteSelectedTodo();
+        }
+        break;
       case "j":
       case "ArrowDown":
         event.preventDefault();
@@ -200,6 +207,46 @@
         event.preventDefault();
         selectedTodoId = null;
         break;
+    }
+  }
+
+  async function deleteSelectedTodo() {
+    if (selectedTodoId === null) {
+      return;
+    }
+
+    const deletedTodoId = selectedTodoId;
+    const deletedTodoIndex = todos.findIndex(
+      (todo) => todo.id === deletedTodoId,
+    );
+
+    if (deletedTodoIndex === -1) {
+      return;
+    }
+
+    todoError = null;
+
+    try {
+      await deleteTodo(deletedTodoId);
+
+      const nextTodos = todos.filter((todo) => todo.id !== deletedTodoId);
+      const nextSelectedIndex = Math.min(
+        deletedTodoIndex,
+        nextTodos.length - 1,
+      );
+
+      todos = nextTodos;
+      selectedTodoId = nextTodos[nextSelectedIndex]?.id ?? null;
+
+      if (nowTodoId === deletedTodoId) {
+        nowTodoId = null;
+      }
+
+      if (editingTodoId === deletedTodoId) {
+        cancelEdit();
+      }
+    } catch (error) {
+      todoError = errorMessage(error);
     }
   }
 
@@ -434,6 +481,7 @@
                           : "Set Now"}
                       </span>
                     {/if}
+                    <span><kbd>D</kbd>Delete</span>
                   </div>
                 {/if}
               </div>

@@ -21,3 +21,8 @@ pub fn toggle_todo(id: u32, app: AppHandle) -> Result<Todo, String> {
 pub fn update_todo_title(id: u32, title: String, app: AppHandle) -> Result<Todo, String> {
     service::update_todo_title(&app, id, &title)
 }
+
+#[tauri::command]
+pub fn delete_todo(id: u32, app: AppHandle) -> Result<(), String> {
+    service::delete_todo(&app, id)
+}

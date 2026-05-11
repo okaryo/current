@@ -14,7 +14,8 @@ pub fn run() {
             todo::commands::list_todos,
             todo::commands::create_todo,
             todo::commands::toggle_todo,
-            todo::commands::update_todo_title
+            todo::commands::update_todo_title,
+            todo::commands::delete_todo
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

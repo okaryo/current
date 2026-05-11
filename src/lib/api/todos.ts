@@ -23,3 +23,7 @@ export function toggleTodo(id: number) {
 export function updateTodoTitle(id: number, title: string) {
   return invoke<Todo>("update_todo_title", { id, title });
 }
+
+export function deleteTodo(id: number) {
+  return invoke<void>("delete_todo", { id });
+}

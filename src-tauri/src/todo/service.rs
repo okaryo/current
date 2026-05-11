@@ -48,6 +48,12 @@ pub fn update_todo_title(app: &AppHandle, id: u32, title: &str) -> Result<Todo, 
     repository::update_title(&connection, id, title)
 }
 
+pub fn delete_todo(app: &AppHandle, id: u32) -> Result<(), String> {
+    let connection = db::open(app)?;
+
+    repository::delete(&connection, id)
+}
+
 fn now_ms() -> Result<i64, String> {
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)

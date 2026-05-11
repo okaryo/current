@@ -34,7 +34,7 @@
 - [x] Create TODO list UI
 - [x] Add TODO item
 - [x] Edit TODO item
-- [ ] Delete TODO item
+- [x] Delete TODO item
 - [x] Toggle TODO completion
 - [x] Persist TODO data locally
 
@@ -43,9 +43,21 @@
 - [x] Support keyboard-first TODO operations
 - [x] Add shortcut for creating TODO
 - [x] Add shortcut for toggling completion
-- [ ] Add shortcut for deleting TODO
+- [x] Add shortcut for deleting TODO
 - [x] Add shortcut for moving selection
 - [ ] Add auto-focus behavior for new TODOs
+
+Keyboard decisions:
+
+- `i`: focus the add input
+- `j` / `k` and `ArrowDown` / `ArrowUp`: move selection
+- `Space`: toggle completion for the selected TODO
+- `e`: edit the selected TODO
+- `Enter`: set/unset the selected TODO as Now
+- `D` (`Shift+d`): delete the selected TODO immediately
+- `Escape`: cancel edit or clear selection
+- Delete intentionally does not use plain `d`.
+- Delete does not have undo for now.
 
 ### Completed TODO Behavior
 
@@ -61,6 +73,11 @@
 - [ ] Dim other TODO items while "Now" is active
 - [x] Clear "Now" when task is completed
 - [x] Add shortcut for toggling "Now"
+
+Now behavior:
+
+- Now is session-local UI state and is not persisted to SQLite.
+- Reopening the app should start with no Now task selected.
 
 ---
 

@@ -81,6 +81,18 @@ pub fn update_title(connection: &Connection, id: u32, title: &str) -> Result<Tod
     get(connection, id)?.ok_or_else(|| format!("Todo #{id} was not found after title update."))
 }
 
+pub fn delete(connection: &Connection, id: u32) -> Result<(), String> {
+    let deleted_rows = connection
+        .execute("DELETE FROM todos WHERE id = ?1", params![id])
+        .map_err(|error| format!("Failed to delete todo: {error}"))?;
+
+    if deleted_rows == 0 {
+        return Err(format!("Todo #{id} was not found."));
+    }
+
+    Ok(())
+}
+
 pub fn get(connection: &Connection, id: u32) -> Result<Option<Todo>, String> {
     connection
         .query_row(
