@@ -45,7 +45,7 @@
 - [x] Add shortcut for toggling completion
 - [x] Add shortcut for deleting TODO
 - [x] Add shortcut for moving selection
-- [ ] Add auto-focus behavior for new TODOs
+- [x] Add add-input focus behavior for new TODOs
 
 Keyboard decisions:
 
@@ -58,6 +58,9 @@ Keyboard decisions:
 - `Escape`: cancel edit or clear selection
 - Delete intentionally does not use plain `d`.
 - Delete does not have undo for now.
+- Focusing the add input clears TODO selection.
+- Creating a TODO keeps focus on the add input and does not select the created TODO.
+- Focused text inputs should avoid native blue outlines and use caret/container border emphasis instead.
 
 ### Completed TODO Behavior
 
@@ -70,14 +73,17 @@ Keyboard decisions:
 
 - [x] Add "Set as Now" action
 - [x] Highlight current "Now" task
-- [ ] Dim other TODO items while "Now" is active
+- [x] Dim other TODO items while "Now" is active
 - [x] Clear "Now" when task is completed
 - [x] Add shortcut for toggling "Now"
+- [ ] Start Pomodoro timer when setting a TODO as Now
 
 Now behavior:
 
 - Now is session-local UI state and is not persisted to SQLite.
 - Reopening the app should start with no Now task selected.
+- When Now is active, the Now TODO title is emphasized and other incomplete TODO titles are dimmed.
+- Setting Now may later become the trigger for starting the Pomodoro timer.
 
 ---
 

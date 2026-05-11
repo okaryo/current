@@ -82,7 +82,7 @@
     try {
       const todo = await createTodo(title);
       todos = [...todos, todo].sort(compareTodos);
-      selectedTodoId = todo.id;
+      selectedTodoId = null;
       todoInput = "";
     } catch (error) {
       todoError = errorMessage(error);
@@ -309,8 +309,15 @@
   }
 
   async function focusAddTodoInput() {
+    clearTodoSelection();
     await tick();
     addTodoInput?.focus();
+  }
+
+  function clearTodoSelection() {
+    selectedTodoId = null;
+    editingTodoId = null;
+    editingTitle = "";
   }
 
   function ensureSelectedTodo() {
@@ -422,6 +429,9 @@
             <li
               class:task-selected={selectedTodoId === todo.id}
               class:task-now={nowTodoId === todo.id}
+              class:task-dimmed={nowTodoId !== null &&
+                nowTodoId !== todo.id &&
+                !todo.completed}
               class:task-completed={todo.completed}
             >
               <button
@@ -431,7 +441,22 @@
                   ? `Mark "${todo.title}" as incomplete`
                   : `Mark "${todo.title}" as complete`}
                 onclick={() => toggleTodoCompletion(todo.id)}
-              ></button>
+              >
+                {#if todo.completed}
+                  <svg
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                {/if}
+              </button>
               {#if editingTodoId === todo.id}
                 <form
                   class="task-edit"
@@ -498,6 +523,7 @@
           bind:value={todoInput}
           bind:this={addTodoInput}
           disabled={isCreatingTodo}
+          onfocus={clearTodoSelection}
         />
       </form>
 
@@ -584,11 +610,14 @@
     cursor: pointer;
   }
 
-  button:focus-visible,
+  button:focus-visible {
+    outline: 1px solid rgba(68, 209, 107, 0.8);
+    outline-offset: 2px;
+  }
+
   input:focus-visible,
   textarea:focus-visible {
-    outline: 2px solid rgba(91, 143, 249, 0.95);
-    outline-offset: 2px;
+    outline: none;
   }
 
   kbd {
@@ -622,7 +651,7 @@
 
   .workspace {
     display: grid;
-    grid-template-rows: auto minmax(11rem, 1fr) minmax(9rem, 0.75fr);
+    grid-template-rows: auto auto minmax(9rem, 1fr);
     gap: 0.75rem;
     width: min(100%, 104rem);
     min-height: calc(100vh - 1.6rem);
@@ -815,10 +844,23 @@
 
   .task-now {
     background: rgba(68, 209, 107, 0.08);
+    box-shadow:
+      inset 3px 0 0 rgba(68, 209, 107, 0.85),
+      0 0 0 1px rgba(68, 209, 107, 0.18);
   }
 
   .task-completed {
     color: #7f8794;
+  }
+
+  .task-dimmed .task-title,
+  .task-completed .task-title {
+    color: #858d9a;
+  }
+
+  .task-now .task-title {
+    color: #f4f7fb;
+    font-weight: 700;
   }
 
   .task-completed .task-title {
@@ -826,6 +868,8 @@
   }
 
   .task-check {
+    display: grid;
+    place-items: center;
     width: 1rem;
     height: 1rem;
     border: 1px solid #8c95a4;
@@ -840,7 +884,13 @@
 
   .task-completed .task-check {
     border-color: #44d16b;
+    color: #0b0d10;
     background: #44d16b;
+  }
+
+  .task-check svg {
+    width: 0.8rem;
+    height: 0.8rem;
   }
 
   .task-title {
@@ -868,7 +918,12 @@
     border: 0;
     border-bottom: 1px solid rgba(68, 209, 107, 0.7);
     color: #e8ecf2;
+    caret-color: #44d16b;
     background: transparent;
+  }
+
+  .task-edit:focus-within {
+    box-shadow: inset 0 -1px 0 #44d16b;
   }
 
   .now-badge {
@@ -914,7 +969,7 @@
     align-items: center;
     gap: 0.7rem;
     margin-top: 0.7rem;
-    border: 1px solid rgba(68, 209, 107, 0.65);
+    border: 1px solid rgba(68, 209, 107, 0.52);
     border-radius: 8px;
     padding: 0.65rem 0.8rem;
     background: rgba(4, 8, 12, 0.28);
@@ -926,8 +981,16 @@
     min-width: 0;
     border: 0;
     color: #e8ecf2;
+    caret-color: #44d16b;
     background: transparent;
     resize: none;
+  }
+
+  .quick-input:focus-within {
+    border-color: #44d16b;
+    box-shadow:
+      0 0 0 1px rgba(68, 209, 107, 0.35),
+      0 0 0 4px rgba(68, 209, 107, 0.08);
   }
 
   .quick-input input:disabled {
