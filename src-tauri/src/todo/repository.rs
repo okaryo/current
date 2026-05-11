@@ -62,6 +62,25 @@ pub fn toggle(
     get(connection, id)?.ok_or_else(|| format!("Todo #{id} was not found after update."))
 }
 
+pub fn update_title(connection: &Connection, id: u32, title: &str) -> Result<Todo, String> {
+    let updated_rows = connection
+        .execute(
+            "
+            UPDATE todos
+            SET title = ?1
+            WHERE id = ?2
+            ",
+            params![title, id],
+        )
+        .map_err(|error| format!("Failed to update todo title: {error}"))?;
+
+    if updated_rows == 0 {
+        return Err(format!("Todo #{id} was not found."));
+    }
+
+    get(connection, id)?.ok_or_else(|| format!("Todo #{id} was not found after title update."))
+}
+
 pub fn get(connection: &Connection, id: u32) -> Result<Option<Todo>, String> {
     connection
         .query_row(

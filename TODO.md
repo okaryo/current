@@ -33,18 +33,18 @@
 - [x] Create TODO item model
 - [x] Create TODO list UI
 - [x] Add TODO item
-- [ ] Edit TODO item
+- [x] Edit TODO item
 - [ ] Delete TODO item
 - [x] Toggle TODO completion
 - [x] Persist TODO data locally
 
 ### TODO UX
 
-- [ ] Support keyboard-first TODO operations
-- [ ] Add shortcut for creating TODO
-- [ ] Add shortcut for toggling completion
+- [x] Support keyboard-first TODO operations
+- [x] Add shortcut for creating TODO
+- [x] Add shortcut for toggling completion
 - [ ] Add shortcut for deleting TODO
-- [ ] Add shortcut for moving selection
+- [x] Add shortcut for moving selection
 - [ ] Add auto-focus behavior for new TODOs
 
 ### Completed TODO Behavior
@@ -56,11 +56,11 @@
 
 ### Now Task
 
-- [ ] Add "Set as Now" action
-- [ ] Highlight current "Now" task
+- [x] Add "Set as Now" action
+- [x] Highlight current "Now" task
 - [ ] Dim other TODO items while "Now" is active
-- [ ] Clear "Now" when task is completed
-- [ ] Add shortcut for toggling "Now"
+- [x] Clear "Now" when task is completed
+- [x] Add shortcut for toggling "Now"
 
 ---
 

@@ -1,6 +1,12 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { createTodo, listTodos, toggleTodo, type Todo } from "$lib/api/todos";
+  import { onMount, tick } from "svelte";
+  import {
+    createTodo,
+    listTodos,
+    toggleTodo,
+    updateTodoTitle,
+    type Todo,
+  } from "$lib/api/todos";
 
   type Section = {
     title: string;
@@ -30,6 +36,13 @@
   let todoError = $state<string | null>(null);
   let isLoadingTodos = $state(true);
   let isCreatingTodo = $state(false);
+  let selectedTodoId = $state<number | null>(null);
+  let nowTodoId = $state<number | null>(null);
+  let editingTodoId = $state<number | null>(null);
+  let editingTitle = $state("");
+  let isSavingEdit = $state(false);
+  let addTodoInput = $state<HTMLInputElement>();
+  let editTodoInput = $state<HTMLInputElement>();
 
   onMount(() => {
     void loadTodos();
@@ -41,6 +54,7 @@
 
     try {
       todos = await listTodos();
+      ensureSelectedTodo();
     } catch (error) {
       todoError = errorMessage(error);
     } finally {
@@ -67,6 +81,7 @@
     try {
       const todo = await createTodo(title);
       todos = [...todos, todo].sort(compareTodos);
+      selectedTodoId = todo.id;
       todoInput = "";
     } catch (error) {
       todoError = errorMessage(error);
@@ -83,9 +98,196 @@
       todos = todos
         .map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo))
         .sort(compareTodos);
+      selectedTodoId = updatedTodo.id;
+
+      if (updatedTodo.completed && nowTodoId === updatedTodo.id) {
+        nowTodoId = null;
+      }
     } catch (error) {
       todoError = errorMessage(error);
     }
+  }
+
+  async function submitEdit(event: SubmitEvent, id: number) {
+    event.preventDefault();
+
+    if (isSavingEdit) {
+      return;
+    }
+
+    const title = editingTitle.trim();
+
+    if (!title) {
+      cancelEdit();
+      return;
+    }
+
+    isSavingEdit = true;
+    todoError = null;
+
+    try {
+      const updatedTodo = await updateTodoTitle(id, title);
+      todos = todos
+        .map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo))
+        .sort(compareTodos);
+      editingTodoId = null;
+      editingTitle = "";
+      selectedTodoId = updatedTodo.id;
+    } catch (error) {
+      todoError = errorMessage(error);
+    } finally {
+      isSavingEdit = false;
+    }
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (isTextInputTarget(event.target)) {
+      if (event.key === "Escape") {
+        (event.target as HTMLElement).blur();
+      }
+
+      return;
+    }
+
+    if (editingTodoId !== null) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        cancelEdit();
+      }
+
+      return;
+    }
+
+    if (todos.length === 0) {
+      if (event.key === "i") {
+        event.preventDefault();
+        focusAddTodoInput();
+      }
+
+      return;
+    }
+
+    switch (event.key) {
+      case "j":
+      case "ArrowDown":
+        event.preventDefault();
+        moveSelection(1);
+        break;
+      case "k":
+      case "ArrowUp":
+        event.preventDefault();
+        moveSelection(-1);
+        break;
+      case " ":
+        event.preventDefault();
+        if (selectedTodoId !== null) {
+          void toggleTodoCompletion(selectedTodoId);
+        }
+        break;
+      case "i":
+        event.preventDefault();
+        focusAddTodoInput();
+        break;
+      case "e":
+        event.preventDefault();
+        startEditSelectedTodo();
+        break;
+      case "Enter":
+        event.preventDefault();
+        toggleNowTodo();
+        break;
+      case "Escape":
+        event.preventDefault();
+        selectedTodoId = null;
+        break;
+    }
+  }
+
+  function selectTodo(id: number) {
+    selectedTodoId = id;
+  }
+
+  function moveSelection(direction: 1 | -1) {
+    if (todos.length === 0) {
+      selectedTodoId = null;
+      return;
+    }
+
+    const currentIndex = todos.findIndex((todo) => todo.id === selectedTodoId);
+    const nextIndex =
+      currentIndex === -1
+        ? direction === 1
+          ? 0
+          : todos.length - 1
+        : Math.min(Math.max(currentIndex + direction, 0), todos.length - 1);
+
+    selectedTodoId = todos[nextIndex]?.id ?? null;
+  }
+
+  function toggleNowTodo() {
+    if (selectedTodoId === null) {
+      return;
+    }
+
+    const selectedTodo = todos.find((todo) => todo.id === selectedTodoId);
+
+    if (!selectedTodo || selectedTodo.completed) {
+      return;
+    }
+
+    nowTodoId = nowTodoId === selectedTodoId ? null : selectedTodoId;
+  }
+
+  async function startEditSelectedTodo() {
+    if (selectedTodoId === null) {
+      return;
+    }
+
+    const selectedTodo = todos.find((todo) => todo.id === selectedTodoId);
+
+    if (!selectedTodo) {
+      return;
+    }
+
+    editingTodoId = selectedTodo.id;
+    editingTitle = selectedTodo.title;
+    await tick();
+    editTodoInput?.focus();
+    editTodoInput?.select();
+  }
+
+  function cancelEdit() {
+    editingTodoId = null;
+    editingTitle = "";
+  }
+
+  async function focusAddTodoInput() {
+    await tick();
+    addTodoInput?.focus();
+  }
+
+  function ensureSelectedTodo() {
+    if (todos.length === 0) {
+      selectedTodoId = null;
+      nowTodoId = null;
+      return;
+    }
+
+    if (!todos.some((todo) => todo.id === selectedTodoId)) {
+      selectedTodoId = todos[0]?.id ?? null;
+    }
+
+    if (!todos.some((todo) => todo.id === nowTodoId)) {
+      nowTodoId = null;
+    }
+  }
+
+  function isTextInputTarget(target: EventTarget | null) {
+    return (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement
+    );
   }
 
   function compareTodos(a: Todo, b: Todo) {
@@ -104,6 +306,8 @@
 <svelte:head>
   <title>Current</title>
 </svelte:head>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <main class="app-shell" aria-label="Current">
   <div class="workspace">
@@ -154,9 +358,8 @@
           <kbd>{sections[1].shortcut}</kbd>
         </div>
         <div class="hint-row" aria-label="Todo shortcuts">
-          <span><kbd>Enter</kbd>Add</span>
-          <span><kbd>Space</kbd>Complete</span>
-          <span><kbd>J</kbd>/<kbd>K</kbd>Move</span>
+          <span><kbd>i</kbd>Focus Add</span>
+          <span><kbd>j</kbd>/<kbd>k</kbd>Move</span>
         </div>
       </header>
 
@@ -169,7 +372,11 @@
           <li class="task-empty">No todos yet.</li>
         {:else}
           {#each todos as todo (todo.id)}
-            <li class:task-completed={todo.completed}>
+            <li
+              class:task-selected={selectedTodoId === todo.id}
+              class:task-now={nowTodoId === todo.id}
+              class:task-completed={todo.completed}
+            >
               <button
                 class="task-check"
                 type="button"
@@ -178,7 +385,58 @@
                   : `Mark "${todo.title}" as complete`}
                 onclick={() => toggleTodoCompletion(todo.id)}
               ></button>
-              <span class="task-title">{todo.title}</span>
+              {#if editingTodoId === todo.id}
+                <form
+                  class="task-edit"
+                  onsubmit={(event) => submitEdit(event, todo.id)}
+                >
+                  <input
+                    type="text"
+                    bind:this={editTodoInput}
+                    bind:value={editingTitle}
+                    disabled={isSavingEdit}
+                    onkeydown={(event) => {
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        cancelEdit();
+                      }
+                    }}
+                  />
+                </form>
+              {:else}
+                <button
+                  class="task-title-button"
+                  type="button"
+                  onclick={() => selectTodo(todo.id)}
+                >
+                  <span class="task-title">{todo.title}</span>
+                </button>
+              {/if}
+              <div class="task-meta">
+                {#if nowTodoId === todo.id}
+                  <span class="now-badge">Now</span>
+                {/if}
+                {#if selectedTodoId === todo.id && editingTodoId !== todo.id}
+                  <div
+                    class="task-actions"
+                    aria-label="Selected todo shortcuts"
+                  >
+                    <span><kbd>e</kbd>Edit</span>
+                    <span>
+                      <kbd>Space</kbd>{todo.completed
+                        ? "Incomplete"
+                        : "Complete"}
+                    </span>
+                    {#if !todo.completed}
+                      <span>
+                        <kbd>Enter</kbd>{nowTodoId === todo.id
+                          ? "Unset Now"
+                          : "Set Now"}
+                      </span>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
             </li>
           {/each}
         {/if}
@@ -190,6 +448,7 @@
           type="text"
           placeholder="Add a new task... (Enter to confirm)"
           bind:value={todoInput}
+          bind:this={addTodoInput}
           disabled={isCreatingTodo}
         />
       </form>
@@ -488,7 +747,7 @@
 
   .task-list li {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.75rem;
     min-height: 2.75rem;
@@ -499,6 +758,15 @@
 
   .task-list li:last-child {
     border-bottom: 0;
+  }
+
+  .task-selected {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 3px 0 0 rgba(68, 209, 107, 0.7);
+  }
+
+  .task-now {
+    background: rgba(68, 209, 107, 0.08);
   }
 
   .task-completed {
@@ -530,6 +798,59 @@
   .task-title {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .task-title-button {
+    min-width: 0;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+  }
+
+  .task-edit {
+    min-width: 0;
+  }
+
+  .task-edit input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    border-bottom: 1px solid rgba(68, 209, 107, 0.7);
+    color: #e8ecf2;
+    background: transparent;
+  }
+
+  .now-badge {
+    border: 1px solid rgba(68, 209, 107, 0.35);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    color: #78e596;
+    font-size: 0.76rem;
+    font-weight: 650;
+  }
+
+  .task-meta,
+  .task-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    min-width: 0;
+  }
+
+  .task-actions {
+    flex-wrap: wrap;
+    color: #9ba3b0;
+    font-size: 0.78rem;
+  }
+
+  .task-actions span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
     white-space: nowrap;
   }
 

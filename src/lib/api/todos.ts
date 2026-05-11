@@ -19,3 +19,7 @@ export function createTodo(title: string) {
 export function toggleTodo(id: number) {
   return invoke<Todo>("toggle_todo", { id });
 }
+
+export function updateTodoTitle(id: number, title: string) {
+  return invoke<Todo>("update_todo_title", { id, title });
+}

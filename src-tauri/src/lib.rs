@@ -13,7 +13,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             todo::commands::list_todos,
             todo::commands::create_todo,
-            todo::commands::toggle_todo
+            todo::commands::toggle_todo,
+            todo::commands::update_todo_title
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
