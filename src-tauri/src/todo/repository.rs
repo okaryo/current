@@ -265,7 +265,7 @@ fn flatten_todos(todos: Vec<Todo>) -> Vec<Todo> {
         }
     }
 
-    sort_todo_level(&mut roots);
+    sort_todo_level(&mut roots, &children_by_parent);
 
     let mut flattened = Vec::new();
 
@@ -275,7 +275,7 @@ fn flatten_todos(todos: Vec<Todo>) -> Vec<Todo> {
         flattened.push(root);
 
         if let Some(mut children) = children_by_parent.remove(&root_id) {
-            sort_todo_level(&mut children);
+            sort_todo_level(&mut children, &children_by_parent);
             flattened.extend(children);
         }
     }
@@ -283,8 +283,21 @@ fn flatten_todos(todos: Vec<Todo>) -> Vec<Todo> {
     flattened
 }
 
-fn sort_todo_level(todos: &mut [Todo]) {
-    todos.sort_by_key(|todo| (todo.completed, todo.position, todo.id));
+fn sort_todo_level(todos: &mut [Todo], children_by_parent: &HashMap<u32, Vec<Todo>>) {
+    todos.sort_by_key(|todo| {
+        (
+            is_sort_completed(todo, children_by_parent),
+            todo.position,
+            todo.id,
+        )
+    });
+}
+
+fn is_sort_completed(todo: &Todo, children_by_parent: &HashMap<u32, Vec<Todo>>) -> bool {
+    todo.completed
+        && children_by_parent
+            .get(&todo.id)
+            .is_none_or(|children| children.iter().all(|child| child.completed))
 }
 
 #[cfg(test)]
@@ -329,6 +342,41 @@ mod tests {
         assert_eq!(
             todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
             vec![second.id, first.id]
+        );
+    }
+
+    #[test]
+    fn keeps_completed_parent_with_incomplete_child_in_position_order() {
+        let connection = migrated_connection();
+        let parent = create(&connection, "parent", 1000).expect("create parent todo");
+        let child = create(&connection, "child", 2000).expect("create child todo");
+        let sibling = create(&connection, "sibling", 3000).expect("create sibling todo");
+        set_parent_to_previous_root(&connection, child.id).expect("set child parent");
+        toggle(&connection, parent.id, true, Some(4000)).expect("complete parent");
+
+        let todos = list(&connection).expect("list todos");
+
+        assert_eq!(
+            todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
+            vec![parent.id, child.id, sibling.id]
+        );
+    }
+
+    #[test]
+    fn moves_completed_parent_after_incomplete_roots_when_children_are_complete() {
+        let connection = migrated_connection();
+        let parent = create(&connection, "parent", 1000).expect("create parent todo");
+        let child = create(&connection, "child", 2000).expect("create child todo");
+        let sibling = create(&connection, "sibling", 3000).expect("create sibling todo");
+        set_parent_to_previous_root(&connection, child.id).expect("set child parent");
+        toggle(&connection, parent.id, true, Some(4000)).expect("complete parent");
+        toggle(&connection, child.id, true, Some(5000)).expect("complete child");
+
+        let todos = list(&connection).expect("list todos");
+
+        assert_eq!(
+            todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
+            vec![sibling.id, parent.id, child.id]
         );
     }
 

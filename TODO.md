@@ -91,6 +91,7 @@ Nested TODO decisions:
 - Initial release supports one nested level only.
 - Parent completion does not change child completion.
 - Child completion does not automatically complete the parent.
+- A completed parent with incomplete children stays in the incomplete sort group.
 - Nested TODOs are always expanded for now.
 - Nested TODOs should stay lightweight and should not turn the app into a project management tool.
 
