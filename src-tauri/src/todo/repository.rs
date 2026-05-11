@@ -3,18 +3,49 @@ use rusqlite::{params, Connection, OptionalExtension};
 use std::collections::{HashMap, HashSet};
 
 pub fn list(connection: &Connection) -> Result<Vec<Todo>, String> {
+    list_by_query(
+        connection,
+        "
+        SELECT id, title, completed, created_at_ms, completed_at_ms, parent_id, position
+        FROM todos
+        ORDER BY position ASC, id ASC
+        ",
+        [],
+    )
+}
+
+pub fn list_active_for_day(
+    connection: &Connection,
+    day_start_ms: i64,
+    next_day_start_ms: i64,
+) -> Result<Vec<Todo>, String> {
+    list_by_query(
+        connection,
+        "
+        SELECT id, title, completed, created_at_ms, completed_at_ms, parent_id, position
+        FROM todos
+        WHERE completed = 0
+           OR (
+                completed_at_ms IS NOT NULL
+                AND completed_at_ms >= ?1
+                AND completed_at_ms < ?2
+              )
+        ORDER BY position ASC, id ASC
+        ",
+        params![day_start_ms, next_day_start_ms],
+    )
+}
+
+fn list_by_query<P>(connection: &Connection, query: &str, params: P) -> Result<Vec<Todo>, String>
+where
+    P: rusqlite::Params,
+{
     let mut statement = connection
-        .prepare(
-            "
-            SELECT id, title, completed, created_at_ms, completed_at_ms, parent_id, position
-            FROM todos
-            ORDER BY position ASC, id ASC
-            ",
-        )
+        .prepare(query)
         .map_err(|error| format!("Failed to prepare todo list query: {error}"))?;
 
     let todos = statement
-        .query_map([], todo_from_row)
+        .query_map(params, todo_from_row)
         .map_err(|error| format!("Failed to query todos: {error}"))?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("Failed to read todos: {error}"))?;
@@ -298,6 +329,34 @@ mod tests {
         assert_eq!(
             todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
             vec![second.id, first.id]
+        );
+    }
+
+    #[test]
+    fn lists_incomplete_and_completed_todos_for_given_day() {
+        let connection = migrated_connection();
+        let incomplete = create(&connection, "incomplete", 1000).expect("create incomplete todo");
+        let completed_before_day = create(&connection, "before", 2000).expect("create before todo");
+        let completed_at_start = create(&connection, "at start", 3000).expect("create start todo");
+        let completed_before_end =
+            create(&connection, "before end", 4000).expect("create before-end todo");
+        let completed_at_end = create(&connection, "at end", 5000).expect("create end todo");
+
+        toggle(&connection, completed_before_day.id, true, Some(999)).expect("complete before day");
+        toggle(&connection, completed_at_start.id, true, Some(1000)).expect("complete at start");
+        toggle(&connection, completed_before_end.id, true, Some(1999))
+            .expect("complete before end");
+        toggle(&connection, completed_at_end.id, true, Some(2000)).expect("complete at end");
+
+        let todos = list_active_for_day(&connection, 1000, 2000).expect("list active todos");
+
+        assert_eq!(
+            todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
+            vec![
+                incomplete.id,
+                completed_at_start.id,
+                completed_before_end.id
+            ]
         );
     }
 

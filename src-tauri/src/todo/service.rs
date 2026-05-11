@@ -1,13 +1,15 @@
 use super::model::Todo;
 use super::repository;
 use crate::db;
+use chrono::{Local, LocalResult, NaiveDate, TimeZone};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::AppHandle;
 
 pub fn list_todos(app: &AppHandle) -> Result<Vec<Todo>, String> {
     let connection = db::open(app)?;
+    let (day_start_ms, next_day_start_ms) = current_local_day_bounds_ms()?;
 
-    repository::list(&connection)
+    repository::list_active_for_day(&connection, day_start_ms, next_day_start_ms)
 }
 
 pub fn create_todo(app: &AppHandle, title: &str) -> Result<Todo, String> {
@@ -65,6 +67,36 @@ fn now_ms() -> Result<i64, String> {
     i64::try_from(millis).map_err(|_| "Current timestamp is out of range.".to_string())
 }
 
+fn current_local_day_bounds_ms() -> Result<(i64, i64), String> {
+    local_day_bounds_ms(now_ms()?)
+}
+
+fn local_day_bounds_ms(reference_ms: i64) -> Result<(i64, i64), String> {
+    let reference = match Local.timestamp_millis_opt(reference_ms) {
+        LocalResult::Single(datetime) => datetime,
+        LocalResult::Ambiguous(earlier, _) => earlier,
+        LocalResult::None => return Err("Failed to resolve local time.".to_string()),
+    };
+    let day = reference.date_naive();
+    let next_day = day
+        .succ_opt()
+        .ok_or_else(|| "Failed to resolve next local day.".to_string())?;
+
+    Ok((local_midnight_ms(day)?, local_midnight_ms(next_day)?))
+}
+
+fn local_midnight_ms(day: NaiveDate) -> Result<i64, String> {
+    let midnight = day
+        .and_hms_opt(0, 0, 0)
+        .ok_or_else(|| "Failed to resolve local midnight.".to_string())?;
+
+    match Local.from_local_datetime(&midnight) {
+        LocalResult::Single(datetime) => Ok(datetime.timestamp_millis()),
+        LocalResult::Ambiguous(earlier, _) => Ok(earlier.timestamp_millis()),
+        LocalResult::None => Err("Failed to resolve local midnight.".to_string()),
+    }
+}
+
 fn normalize_title(title: &str) -> Result<&str, String> {
     let title = title.trim();
 
@@ -90,5 +122,16 @@ mod tests {
             normalize_title(" \n\t "),
             Err("Todo title is required.".to_string())
         );
+    }
+
+    #[test]
+    fn local_day_bounds_include_reference_time() {
+        let reference_ms = now_ms().expect("current timestamp");
+
+        let (day_start_ms, next_day_start_ms) =
+            local_day_bounds_ms(reference_ms).expect("local day bounds");
+
+        assert!(day_start_ms <= reference_ms);
+        assert!(reference_ms < next_day_start_ms);
     }
 }

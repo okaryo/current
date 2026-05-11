@@ -96,10 +96,16 @@ Nested TODO decisions:
 
 ### Completed TODO Behavior
 
-- [ ] Show completed TODOs for today
-- [ ] Hide completed TODOs from previous days
-- [ ] Add toggle for hiding completed TODOs
-- [ ] Persist completed timestamps
+- [x] Show completed TODOs for today
+- [x] Hide completed TODOs from previous days
+- [x] Persist completed timestamps
+
+Completed TODO decisions:
+
+- TODO list shows incomplete tasks and tasks completed during the current local day.
+- Tasks completed before today are hidden from the normal TODO list.
+- Completed tasks are not deleted; they remain in SQLite.
+- A toggle for showing hidden completed tasks is intentionally not planned.
 
 ### Now Task
 
