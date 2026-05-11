@@ -56,8 +56,8 @@ Layout decisions:
 - [x] Add shortcut for deleting TODO
 - [x] Add shortcut for moving selection
 - [x] Add add-input focus behavior for new TODOs
-- [ ] Add shortcut for indenting TODOs
-- [ ] Add shortcut for outdenting TODOs
+- [x] Add shortcut for indenting TODOs
+- [x] Add shortcut for outdenting TODOs
 
 Keyboard decisions:
 
@@ -156,8 +156,6 @@ Now behavior:
 
 - [x] Add keyboard shortcut for focusing log input
 - [x] Add quick log submission flow
-- [ ] Restore draft input state if needed
-- [ ] Keep logging flow lightweight
 
 Work Log decisions:
 
@@ -171,6 +169,7 @@ Work Log decisions:
 - Checked checkbox markers continue as unchecked markers.
 - Empty list marker lines exit the list and keep only indentation.
 - Markdown helper behavior is deferred until the basic logging flow feels right.
+- Keep logging flow lightweight: avoid extra confirmations, categories, tags, and other metadata-heavy interactions.
 
 ---
 
@@ -194,17 +193,10 @@ Pomodoro decisions:
 - Reset always stops the timer and returns to `25:00`.
 - Session count is not displayed or persisted for now.
 
-### Timer Settings
-
-- [ ] Configure focus duration
-- [ ] Configure break duration
-- [ ] Persist timer settings locally
-
 ### Keyboard Workflow
 
 - [x] Add keyboard shortcut for start/pause
 - [x] Add keyboard shortcut for reset
-- [ ] Add keyboard shortcut for focusing timer section
 
 Pomodoro keyboard decisions:
 
@@ -238,11 +230,10 @@ Pomodoro keyboard decisions:
 
 - [x] Add section switching shortcuts
 - [ ] Add global hotkey for showing app
-- [ ] Restore previous focus state on reopen
 
 ### Keyboard UX
 
-- [ ] Ensure all major actions work without mouse
+- [x] Ensure all major actions work without mouse
 - [x] Improve focus visibility
 - [x] Add shortcut hints to focused section
 - [x] Hide detailed shortcut hints for inactive sections
@@ -252,7 +243,7 @@ Section shortcut decisions:
 - `Cmd+1`: activate Pomodoro section
 - `Cmd+2`: activate TODO section
 - `Cmd+3`: activate Log section
-- TODO is the initial active section for now.
+- Log is the initial active section for now.
 - `Cmd+2` keeps the current TODO selection when possible; otherwise it selects Now, then the first TODO, then focuses the add input.
 - `Cmd+3` focuses the Work Log input.
 - Global shortcuts should be limited to app-wide actions such as section switching.
@@ -263,11 +254,9 @@ Section shortcut decisions:
 
 ## Phase 8 — Persistence
 
-- [ ] Persist TODOs locally
+- [x] Persist TODOs locally
 - [x] Persist work logs locally
-- [ ] Persist timer settings locally
 - [ ] Persist reminder settings locally
-- [ ] Persist window state locally
 
 ---
 
@@ -304,6 +293,8 @@ Testing decisions:
 
 ## Phase 11 — Initial Release
 
+- [ ] Add CI workflow
+- [ ] Add release workflow
 - [ ] Test keyboard-only workflow
 - [ ] Test local persistence
 - [ ] Test notifications
@@ -311,3 +302,42 @@ Testing decisions:
 - [ ] Create application icon
 - [ ] Write installation instructions
 - [ ] Prepare initial GitHub release
+
+Initial release workflow decisions:
+
+- CI should run frontend formatting, linting, type checking, Vitest, Rust tests, and a production build.
+- Release workflow should build the macOS app artifact.
+- Distribution should support installing/downloading the app outside the repository.
+- Homebrew distribution is a candidate, but the concrete release channel can be decided when packaging is closer.
+
+---
+
+## Post Initial Release
+
+### Pomodoro Settings
+
+- [ ] Configure focus duration between 10 and 60 minutes
+- [ ] Configure break duration
+- [ ] Add optional automatic transition from break back to focus
+- [ ] Persist timer settings locally
+
+### Pomodoro Sound
+
+- [ ] Add optional white noise while the timer is running
+
+### Keyboard Workflow
+
+- [ ] Add keyboard shortcut for focusing timer section
+
+### Work Log
+
+- [ ] Amend the most recent work log
+- [ ] Add timeline view for browsing past logs
+- [ ] Support keyboard navigation in the log timeline
+- [ ] Support browsing logs across days
+
+Work Log post-release decisions:
+
+- Editing work logs should stay lightweight.
+- A likely amend flow is: bring the latest log back into the input, edit it, then submit to update it.
+- The shortcut for amending the latest log is undecided.
