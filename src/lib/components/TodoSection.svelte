@@ -48,6 +48,7 @@
   let isSavingEdit = $state(false);
   let addTodoInput = $state<HTMLInputElement>();
   let editTodoInput = $state<HTMLInputElement>();
+  let taskListElement = $state<HTMLUListElement>();
   let lastCommandRequestId = 0;
 
   onMount(() => {
@@ -67,6 +68,14 @@
 
     lastCommandRequestId = commandRequest.id;
     void handleCommand(commandRequest.command);
+  });
+
+  $effect(() => {
+    if (!active || selectedTodoId === null) {
+      return;
+    }
+
+    void scrollSelectedTodoIntoView();
   });
 
   async function loadTodos() {
@@ -348,6 +357,19 @@
     return id !== null && todos.some((todo) => todo.id === id);
   }
 
+  async function scrollSelectedTodoIntoView() {
+    await tick();
+
+    const selectedTodoElement = taskListElement?.querySelector<HTMLElement>(
+      `[data-todo-id="${selectedTodoId}"]`,
+    );
+
+    selectedTodoElement?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
+  }
+
   function compareTodos(a: Todo, b: Todo) {
     if (a.completed !== b.completed) {
       return Number(a.completed) - Number(b.completed);
@@ -381,7 +403,7 @@
 
   <h2 id="todo-title" class="sr-only">Todo</h2>
 
-  <ul class="task-list" aria-label="Todo list">
+  <ul class="task-list" aria-label="Todo list" bind:this={taskListElement}>
     {#if isLoadingTodos}
       <li class="task-empty">Loading todos...</li>
     {:else if todos.length === 0}
@@ -389,6 +411,7 @@
     {:else}
       {#each todos as todo (todo.id)}
         <li
+          data-todo-id={todo.id}
           class:task-selected={active && selectedTodoId === todo.id}
           class:task-now={nowTodoId === todo.id}
           class:task-dimmed={nowTodoId !== null &&
