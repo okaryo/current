@@ -3,6 +3,7 @@ use rusqlite::Connection;
 const MIGRATIONS: &[(u32, &str)] = &[
     (1, include_str!("../../migrations/001_initial.sql")),
     (2, include_str!("../../migrations/002_create_work_logs.sql")),
+    (3, include_str!("../../migrations/003_nest_todos.sql")),
 ];
 
 pub fn apply(connection: &mut Connection) -> Result<(), String> {
@@ -74,9 +75,22 @@ mod tests {
             )
             .expect("read table counts");
 
-        assert_eq!(version, 2);
+        let nested_todo_column_count: u32 = connection
+            .query_row(
+                "
+                SELECT COUNT(*)
+                FROM pragma_table_info('todos')
+                WHERE name IN ('parent_id', 'position')
+                ",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read nested todo column count");
+
+        assert_eq!(version, 3);
         assert_eq!(todos_table_count, 1);
         assert_eq!(work_logs_table_count, 1);
+        assert_eq!(nested_todo_column_count, 2);
     }
 
     #[test]
@@ -120,7 +134,7 @@ mod tests {
             )
             .expect("read work logs table count");
 
-        assert_eq!(version, 2);
+        assert_eq!(version, 3);
         assert_eq!(todo_count, 1);
         assert_eq!(work_logs_table_count, 1);
     }
@@ -149,7 +163,7 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM work_logs", [], |row| row.get(0))
             .expect("read work log count");
 
-        assert_eq!(version, 2);
+        assert_eq!(version, 3);
         assert_eq!(work_log_count, 1);
     }
 }

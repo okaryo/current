@@ -8,4 +8,6 @@ pub struct Todo {
     pub completed: bool,
     pub created_at_ms: i64,
     pub completed_at_ms: Option<i64>,
+    pub parent_id: Option<u32>,
+    pub position: i64,
 }

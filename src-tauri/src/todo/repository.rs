@@ -1,13 +1,14 @@
 use super::model::Todo;
 use rusqlite::{params, Connection, OptionalExtension};
+use std::collections::{HashMap, HashSet};
 
 pub fn list(connection: &Connection) -> Result<Vec<Todo>, String> {
     let mut statement = connection
         .prepare(
             "
-            SELECT id, title, completed, created_at_ms, completed_at_ms
+            SELECT id, title, completed, created_at_ms, completed_at_ms, parent_id, position
             FROM todos
-            ORDER BY completed ASC, id ASC
+            ORDER BY position ASC, id ASC
             ",
         )
         .map_err(|error| format!("Failed to prepare todo list query: {error}"))?;
@@ -18,17 +19,19 @@ pub fn list(connection: &Connection) -> Result<Vec<Todo>, String> {
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("Failed to read todos: {error}"))?;
 
-    Ok(todos)
+    Ok(flatten_todos(todos))
 }
 
 pub fn create(connection: &Connection, title: &str, created_at_ms: i64) -> Result<Todo, String> {
+    let position = next_position(connection, None)?;
+
     connection
         .execute(
             "
-            INSERT INTO todos (title, completed, created_at_ms, completed_at_ms)
-            VALUES (?1, ?2, ?3, NULL)
+            INSERT INTO todos (title, completed, created_at_ms, completed_at_ms, parent_id, position)
+            VALUES (?1, ?2, ?3, NULL, NULL, ?4)
             ",
-            params![title, false, created_at_ms],
+            params![title, false, created_at_ms, position],
         )
         .map_err(|error| format!("Failed to create todo: {error}"))?;
 
@@ -93,11 +96,73 @@ pub fn delete(connection: &Connection, id: u32) -> Result<(), String> {
     Ok(())
 }
 
+pub fn set_parent_to_previous_root(connection: &Connection, id: u32) -> Result<Todo, String> {
+    let todo = get(connection, id)?.ok_or_else(|| format!("Todo #{id} was not found."))?;
+
+    if todo.parent_id.is_some() {
+        return Ok(todo);
+    }
+
+    let parent = previous_root_todo(connection, id)?
+        .ok_or_else(|| "This task needs a task above it before it can be indented.".to_string())?;
+    let position = next_position(connection, Some(parent.id))?;
+
+    connection
+        .execute(
+            "
+            UPDATE todos
+            SET parent_id = ?1,
+                position = ?2
+            WHERE id = ?3
+            ",
+            params![parent.id, position, id],
+        )
+        .map_err(|error| format!("Failed to indent todo: {error}"))?;
+
+    get(connection, id)?.ok_or_else(|| format!("Todo #{id} was not found after indent."))
+}
+
+pub fn clear_parent(connection: &Connection, id: u32) -> Result<Todo, String> {
+    let todo = get(connection, id)?.ok_or_else(|| format!("Todo #{id} was not found."))?;
+    let Some(parent_id) = todo.parent_id else {
+        return Ok(todo);
+    };
+    let parent = get(connection, parent_id)?
+        .ok_or_else(|| format!("Parent todo #{parent_id} was not found."))?;
+    let position = parent.position + 1;
+
+    connection
+        .execute(
+            "
+            UPDATE todos
+            SET position = position + 1
+            WHERE parent_id IS NULL
+              AND position > ?1
+            ",
+            params![parent.position],
+        )
+        .map_err(|error| format!("Failed to make room for outdented todo: {error}"))?;
+
+    connection
+        .execute(
+            "
+            UPDATE todos
+            SET parent_id = NULL,
+                position = ?1
+            WHERE id = ?2
+            ",
+            params![position, id],
+        )
+        .map_err(|error| format!("Failed to outdent todo: {error}"))?;
+
+    get(connection, id)?.ok_or_else(|| format!("Todo #{id} was not found after outdent."))
+}
+
 pub fn get(connection: &Connection, id: u32) -> Result<Option<Todo>, String> {
     connection
         .query_row(
             "
-            SELECT id, title, completed, created_at_ms, completed_at_ms
+            SELECT id, title, completed, created_at_ms, completed_at_ms, parent_id, position
             FROM todos
             WHERE id = ?1
             ",
@@ -115,11 +180,80 @@ fn todo_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Todo> {
         completed: row.get(2)?,
         created_at_ms: row.get(3)?,
         completed_at_ms: row.get(4)?,
+        parent_id: row.get(5)?,
+        position: row.get(6)?,
     })
 }
 
 fn row_id_to_u32(row_id: i64) -> Result<u32, String> {
     u32::try_from(row_id).map_err(|_| format!("Database row id {row_id} is out of range."))
+}
+
+fn next_position(connection: &Connection, parent_id: Option<u32>) -> Result<i64, String> {
+    let max_position: Option<i64> = match parent_id {
+        Some(parent_id) => connection.query_row(
+            "SELECT MAX(position) FROM todos WHERE parent_id = ?1",
+            params![parent_id],
+            |row| row.get(0),
+        ),
+        None => connection.query_row(
+            "SELECT MAX(position) FROM todos WHERE parent_id IS NULL",
+            [],
+            |row| row.get(0),
+        ),
+    }
+    .map_err(|error| format!("Failed to read next todo position: {error}"))?;
+
+    Ok(max_position.unwrap_or(0) + 1)
+}
+
+fn previous_root_todo(connection: &Connection, id: u32) -> Result<Option<Todo>, String> {
+    let todos = list(connection)?;
+    let Some(current_index) = todos.iter().position(|todo| todo.id == id) else {
+        return Ok(None);
+    };
+
+    Ok(todos[..current_index]
+        .iter()
+        .rev()
+        .find(|todo| todo.parent_id.is_none())
+        .cloned())
+}
+
+fn flatten_todos(todos: Vec<Todo>) -> Vec<Todo> {
+    let ids = todos.iter().map(|todo| todo.id).collect::<HashSet<_>>();
+    let mut children_by_parent = HashMap::<u32, Vec<Todo>>::new();
+    let mut roots = Vec::new();
+
+    for todo in todos {
+        match todo.parent_id {
+            Some(parent_id) if ids.contains(&parent_id) => {
+                children_by_parent.entry(parent_id).or_default().push(todo);
+            }
+            _ => roots.push(todo),
+        }
+    }
+
+    sort_todo_level(&mut roots);
+
+    let mut flattened = Vec::new();
+
+    for root in roots {
+        let root_id = root.id;
+
+        flattened.push(root);
+
+        if let Some(mut children) = children_by_parent.remove(&root_id) {
+            sort_todo_level(&mut children);
+            flattened.extend(children);
+        }
+    }
+
+    flattened
+}
+
+fn sort_todo_level(todos: &mut [Todo]) {
+    todos.sort_by_key(|todo| (todo.completed, todo.position, todo.id));
 }
 
 #[cfg(test)]
@@ -141,7 +275,10 @@ mod tests {
         assert!(!first.completed);
         assert_eq!(first.created_at_ms, 1000);
         assert_eq!(first.completed_at_ms, None);
+        assert_eq!(first.parent_id, None);
+        assert_eq!(first.position, 1);
         assert_eq!(second.id, 2);
+        assert_eq!(second.position, 2);
         assert_eq!(
             todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
             vec![1, 2]
@@ -208,5 +345,69 @@ mod tests {
         let error = update_title(&connection, 1, "missing").expect_err("update should fail");
 
         assert_eq!(error, "Todo #1 was not found.");
+    }
+
+    #[test]
+    fn indents_todo_under_previous_root_todo() {
+        let connection = migrated_connection();
+        let parent = create(&connection, "parent", 1000).expect("create parent todo");
+        let child = create(&connection, "child", 2000).expect("create child todo");
+
+        let indented = set_parent_to_previous_root(&connection, child.id).expect("set todo parent");
+        let todos = list(&connection).expect("list todos");
+
+        assert_eq!(indented.parent_id, Some(parent.id));
+        assert_eq!(indented.position, 1);
+        assert_eq!(
+            todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
+            vec![parent.id, child.id]
+        );
+    }
+
+    #[test]
+    fn does_not_indent_first_root_todo() {
+        let connection = migrated_connection();
+        let todo = create(&connection, "first", 1000).expect("create todo");
+
+        let error =
+            set_parent_to_previous_root(&connection, todo.id).expect_err("set parent should fail");
+
+        assert_eq!(
+            error,
+            "This task needs a task above it before it can be indented."
+        );
+    }
+
+    #[test]
+    fn does_not_create_deeper_nesting() {
+        let connection = migrated_connection();
+        let parent = create(&connection, "parent", 1000).expect("create parent todo");
+        let child = create(&connection, "child", 2000).expect("create child todo");
+        let indented = set_parent_to_previous_root(&connection, child.id).expect("set todo parent");
+
+        let second_indent =
+            set_parent_to_previous_root(&connection, indented.id).expect("set parent again");
+
+        assert_eq!(second_indent.parent_id, Some(parent.id));
+        assert_eq!(second_indent.position, 1);
+    }
+
+    #[test]
+    fn outdents_nested_todo_after_parent() {
+        let connection = migrated_connection();
+        let parent = create(&connection, "parent", 1000).expect("create parent todo");
+        let child = create(&connection, "child", 2000).expect("create child todo");
+        let sibling = create(&connection, "sibling", 3000).expect("create sibling todo");
+        set_parent_to_previous_root(&connection, child.id).expect("set child parent");
+
+        let outdented = clear_parent(&connection, child.id).expect("clear child parent");
+        let todos = list(&connection).expect("list todos");
+
+        assert_eq!(outdented.parent_id, None);
+        assert_eq!(outdented.position, parent.position + 1);
+        assert_eq!(
+            todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
+            vec![parent.id, child.id, sibling.id]
+        );
     }
 }

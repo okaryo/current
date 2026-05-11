@@ -4,6 +4,8 @@
     createTodo,
     deleteTodo,
     listTodos,
+    moveTodoUnderPreviousRoot,
+    promoteTodoToRoot,
     toggleTodo,
     updateTodoTitle,
     type Todo,
@@ -18,6 +20,8 @@
     | "toggleComplete"
     | "edit"
     | "toggleNow"
+    | "indent"
+    | "outdent"
     | "delete"
     | "clearSelection";
 
@@ -83,7 +87,7 @@
     todoError = null;
 
     try {
-      todos = await listTodos();
+      todos = sortTodos(await listTodos());
       ensureSelectedTodo();
     } catch (error) {
       todoError = errorMessage(error);
@@ -110,7 +114,7 @@
 
     try {
       const todo = await createTodo(title);
-      todos = [...todos, todo].sort(compareTodos);
+      todos = sortTodos([...todos, todo]);
       selectedTodoId = null;
       todoInput = "";
     } catch (error) {
@@ -126,9 +130,9 @@
 
     try {
       const updatedTodo = await toggleTodo(id);
-      todos = todos
-        .map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo))
-        .sort(compareTodos);
+      todos = sortTodos(
+        todos.map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo)),
+      );
       selectedTodoId = updatedTodo.id;
 
       if (updatedTodo.completed && nowTodoId === updatedTodo.id) {
@@ -158,9 +162,9 @@
 
     try {
       const updatedTodo = await updateTodoTitle(id, title);
-      todos = todos
-        .map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo))
-        .sort(compareTodos);
+      todos = sortTodos(
+        todos.map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo)),
+      );
       editingTodoId = null;
       editingTitle = "";
       selectedTodoId = updatedTodo.id;
@@ -196,6 +200,12 @@
       case "toggleNow":
         toggleNowTodo();
         break;
+      case "indent":
+        await indentSelectedTodo();
+        break;
+      case "outdent":
+        await outdentSelectedTodo();
+        break;
       case "delete":
         await deleteSelectedTodo();
         break;
@@ -224,7 +234,7 @@
     try {
       await deleteTodo(deletedTodoId);
 
-      const nextTodos = todos.filter((todo) => todo.id !== deletedTodoId);
+      const nextTodos = sortTodos(await listTodos());
       const nextSelectedIndex = Math.min(
         deletedTodoIndex,
         nextTodos.length - 1,
@@ -240,6 +250,38 @@
       if (editingTodoId === deletedTodoId) {
         cancelEdit();
       }
+    } catch (error) {
+      todoError = errorMessage(error);
+    }
+  }
+
+  async function indentSelectedTodo() {
+    if (selectedTodoId === null) {
+      return;
+    }
+
+    todoError = null;
+
+    try {
+      const updatedTodo = await moveTodoUnderPreviousRoot(selectedTodoId);
+      todos = sortTodos(await listTodos());
+      selectedTodoId = updatedTodo.id;
+    } catch (error) {
+      todoError = errorMessage(error);
+    }
+  }
+
+  async function outdentSelectedTodo() {
+    if (selectedTodoId === null) {
+      return;
+    }
+
+    todoError = null;
+
+    try {
+      const updatedTodo = await promoteTodoToRoot(selectedTodoId);
+      todos = sortTodos(await listTodos());
+      selectedTodoId = updatedTodo.id;
     } catch (error) {
       todoError = errorMessage(error);
     }
@@ -375,7 +417,29 @@
       return Number(a.completed) - Number(b.completed);
     }
 
+    if (a.position !== b.position) {
+      return a.position - b.position;
+    }
+
     return a.id - b.id;
+  }
+
+  function sortTodos(items: Todo[]) {
+    const ids = new Set(items.map((todo) => todo.id));
+    const roots: Todo[] = [];
+
+    for (const todo of items) {
+      if (todo.parentId === null || !ids.has(todo.parentId)) {
+        roots.push(todo);
+      }
+    }
+
+    roots.sort(compareTodos);
+
+    return roots.flatMap((root) => [
+      root,
+      ...items.filter((todo) => todo.parentId === root.id).sort(compareTodos),
+    ]);
   }
 
   function errorMessage(error: unknown) {
@@ -418,6 +482,7 @@
             nowTodoId !== todo.id &&
             !todo.completed}
           class:task-completed={todo.completed}
+          class:task-child={todo.parentId !== null}
         >
           <button
             class="task-check"
@@ -487,6 +552,11 @@
                       ? "Unset Now"
                       : "Set Now"}
                   </span>
+                {/if}
+                {#if todo.parentId === null}
+                  <span><KeyboardKey value="Tab" />Indent</span>
+                {:else}
+                  <span><KeyboardKey value="⇧Tab" />Outdent</span>
                 {/if}
                 <span><KeyboardKey value="D" />Delete</span>
               </div>
@@ -648,6 +718,7 @@
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
+    position: relative;
     gap: 0.75rem;
     min-height: 2.75rem;
     padding: 0.45rem 0.8rem;
@@ -662,6 +733,23 @@
   .task-selected {
     background: rgba(255, 255, 255, 0.05);
     box-shadow: inset 3px 0 0 rgba(68, 209, 107, 0.7);
+  }
+
+  .task-list li.task-child {
+    padding-left: 2.85rem;
+  }
+
+  .task-child::before {
+    content: "";
+    position: absolute;
+    left: 1.25rem;
+    top: 0.25rem;
+    width: 0.8rem;
+    height: 1.2rem;
+    border-left: 1px solid rgba(155, 163, 176, 0.36);
+    border-bottom: 1px solid rgba(155, 163, 176, 0.36);
+    border-bottom-left-radius: 5px;
+    pointer-events: none;
   }
 
   .task-now {
@@ -826,6 +914,7 @@
     margin: 0.55rem 0 0;
     color: #ff8a93;
     font-size: 0.88rem;
+    overflow-wrap: anywhere;
   }
 
   .sr-only {

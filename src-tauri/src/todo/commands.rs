@@ -23,6 +23,16 @@ pub fn update_todo_title(id: u32, title: String, app: AppHandle) -> Result<Todo,
 }
 
 #[tauri::command]
+pub fn move_todo_under_previous_root(id: u32, app: AppHandle) -> Result<Todo, String> {
+    service::move_todo_under_previous_root(&app, id)
+}
+
+#[tauri::command]
+pub fn promote_todo_to_root(id: u32, app: AppHandle) -> Result<Todo, String> {
+    service::promote_todo_to_root(&app, id)
+}
+
+#[tauri::command]
 pub fn delete_todo(id: u32, app: AppHandle) -> Result<(), String> {
     service::delete_todo(&app, id)
 }

@@ -19,6 +19,8 @@
     | "toggleComplete"
     | "edit"
     | "toggleNow"
+    | "indent"
+    | "outdent"
     | "delete"
     | "clearSelection";
 
@@ -95,6 +97,10 @@
       case "Enter":
         event.preventDefault();
         requestTodoCommand("toggleNow");
+        break;
+      case "Tab":
+        event.preventDefault();
+        requestTodoCommand(event.shiftKey ? "outdent" : "indent");
         break;
       case "Escape":
         event.preventDefault();

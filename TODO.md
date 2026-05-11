@@ -79,15 +79,19 @@ Keyboard decisions:
 
 ### Nested TODO
 
-- [ ] Support nested TODO items
-- [ ] Persist TODO parent-child relationships
-- [ ] Preserve TODO order within each level
-- [ ] Define completion behavior for parent and child TODOs
+- [x] Support nested TODO items
+- [x] Persist TODO parent-child relationships
+- [x] Preserve TODO order within each level
+- [x] Define completion behavior for parent and child TODOs
 
 Nested TODO decisions:
 
 - `Tab`: indent the selected TODO under the previous TODO when possible.
 - `Shift+Tab`: outdent the selected TODO when possible.
+- Initial release supports one nested level only.
+- Parent completion does not change child completion.
+- Child completion does not automatically complete the parent.
+- Nested TODOs are always expanded for now.
 - Nested TODOs should stay lightweight and should not turn the app into a project management tool.
 
 ### Completed TODO Behavior

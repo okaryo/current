@@ -38,6 +38,18 @@ pub fn update_todo_title(app: &AppHandle, id: u32, title: &str) -> Result<Todo, 
     repository::update_title(&connection, id, title)
 }
 
+pub fn move_todo_under_previous_root(app: &AppHandle, id: u32) -> Result<Todo, String> {
+    let connection = db::open(app)?;
+
+    repository::set_parent_to_previous_root(&connection, id)
+}
+
+pub fn promote_todo_to_root(app: &AppHandle, id: u32) -> Result<Todo, String> {
+    let connection = db::open(app)?;
+
+    repository::clear_parent(&connection, id)
+}
+
 pub fn delete_todo(app: &AppHandle, id: u32) -> Result<(), String> {
     let connection = db::open(app)?;
 
