@@ -1,5 +1,6 @@
 mod db;
 mod todo;
+mod work_log;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -15,7 +16,9 @@ pub fn run() {
             todo::commands::create_todo,
             todo::commands::toggle_todo,
             todo::commands::update_todo_title,
-            todo::commands::delete_todo
+            todo::commands::delete_todo,
+            work_log::commands::list_work_logs,
+            work_log::commands::create_work_log
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

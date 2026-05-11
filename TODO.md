@@ -91,15 +91,15 @@ Now behavior:
 
 ### Basic Work Log
 
-- [ ] Create work log model
-- [ ] Create work log input UI
-- [ ] Save logs locally
-- [ ] Display recent logs
-- [ ] Add timestamps to logs
+- [x] Create work log model
+- [x] Create work log input UI
+- [x] Save logs locally
+- [x] Display recent logs
+- [x] Add timestamps to logs
 
 ### Markdown Support
 
-- [ ] Support multiline logs
+- [x] Support multiline logs
 - [ ] Support markdown lists
 - [ ] Continue list markers on Enter
 - [ ] Continue checkbox markers on Enter
@@ -108,9 +108,16 @@ Now behavior:
 ### Work Log UX
 
 - [ ] Add keyboard shortcut for focusing log input
-- [ ] Add quick log submission flow
+- [x] Add quick log submission flow
 - [ ] Restore draft input state if needed
 - [ ] Keep logging flow lightweight
+
+Work Log decisions:
+
+- `Enter`: submit the current work log
+- `Shift+Enter`: insert a newline
+- Work logs are persisted to SQLite with creation timestamps.
+- Markdown helper behavior is deferred until the basic logging flow feels right.
 
 ---
 
@@ -177,7 +184,7 @@ Now behavior:
 ## Phase 8 — Persistence
 
 - [ ] Persist TODOs locally
-- [ ] Persist work logs locally
+- [x] Persist work logs locally
 - [ ] Persist timer settings locally
 - [ ] Persist reminder settings locally
 - [ ] Persist window state locally

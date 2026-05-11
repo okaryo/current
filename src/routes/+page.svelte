@@ -8,28 +8,17 @@
     updateTodoTitle,
     type Todo,
   } from "$lib/api/todos";
+  import { createWorkLog, listWorkLogs, type WorkLog } from "$lib/api/workLogs";
 
   type Section = {
     title: string;
     shortcut: string;
   };
 
-  type LogEntry = {
-    time: string;
-    text: string;
-  };
-
   const sections: Section[] = [
     { title: "Pomodoro", shortcut: "⌘1" },
     { title: "Todo", shortcut: "⌘2" },
     { title: "Log", shortcut: "⌘3" },
-  ];
-
-  const logs: LogEntry[] = [
-    { time: "09:15", text: "アプリの構成を確認" },
-    { time: "09:32", text: "初期レイアウトの方向性を整理" },
-    { time: "10:05", text: "3つの領域に分けて画面を構成" },
-    { time: "10:40", text: "次に実装する単位を小さく分ける" },
   ];
 
   let todos = $state<Todo[]>([]);
@@ -44,9 +33,15 @@
   let isSavingEdit = $state(false);
   let addTodoInput = $state<HTMLInputElement>();
   let editTodoInput = $state<HTMLInputElement>();
+  let workLogs = $state<WorkLog[]>([]);
+  let workLogInput = $state("");
+  let workLogError = $state<string | null>(null);
+  let isLoadingWorkLogs = $state(true);
+  let isCreatingWorkLog = $state(false);
 
   onMount(() => {
     void loadTodos();
+    void loadWorkLogs();
   });
 
   async function loadTodos() {
@@ -139,6 +134,53 @@
     } finally {
       isSavingEdit = false;
     }
+  }
+
+  async function loadWorkLogs() {
+    isLoadingWorkLogs = true;
+    workLogError = null;
+
+    try {
+      workLogs = await listWorkLogs();
+    } catch (error) {
+      workLogError = errorMessage(error);
+    } finally {
+      isLoadingWorkLogs = false;
+    }
+  }
+
+  async function submitWorkLog() {
+    if (isCreatingWorkLog) {
+      return;
+    }
+
+    const body = workLogInput.trim();
+
+    if (!body) {
+      return;
+    }
+
+    isCreatingWorkLog = true;
+    workLogError = null;
+
+    try {
+      const workLog = await createWorkLog(body);
+      workLogs = [...workLogs, workLog].sort(compareWorkLogs);
+      workLogInput = "";
+    } catch (error) {
+      workLogError = errorMessage(error);
+    } finally {
+      isCreatingWorkLog = false;
+    }
+  }
+
+  function handleWorkLogKeydown(event: KeyboardEvent) {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+
+    event.preventDefault();
+    void submitWorkLog();
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -352,6 +394,22 @@
     return a.id - b.id;
   }
 
+  function compareWorkLogs(a: WorkLog, b: WorkLog) {
+    if (a.createdAtMs !== b.createdAtMs) {
+      return a.createdAtMs - b.createdAtMs;
+    }
+
+    return a.id - b.id;
+  }
+
+  function formatLogTime(createdAtMs: number) {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date(createdAtMs));
+  }
+
   function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
   }
@@ -547,19 +605,40 @@
       <h2 id="log-title" class="sr-only">Work Log</h2>
 
       <ol class="log-list" aria-label="Work log">
-        {#each logs as log (log.time)}
-          <li>
-            <time>{log.time}</time>
-            <span>{log.text}</span>
-          </li>
-        {/each}
+        {#if isLoadingWorkLogs}
+          <li class="log-empty">Loading logs...</li>
+        {:else if workLogs.length === 0}
+          <li class="log-empty">No logs yet.</li>
+        {:else}
+          {#each workLogs as log (log.id)}
+            <li>
+              <time>{formatLogTime(log.createdAtMs)}</time>
+              <span>{log.body}</span>
+            </li>
+          {/each}
+        {/if}
       </ol>
 
-      <label class="log-input">
+      <form
+        class="log-input"
+        onsubmit={(event) => {
+          event.preventDefault();
+          void submitWorkLog();
+        }}
+      >
         <span aria-hidden="true">&gt;</span>
-        <textarea rows="2" placeholder="Write a work log... (Enter to submit)"
+        <textarea
+          rows="2"
+          placeholder="Write a work log... (Enter to submit)"
+          bind:value={workLogInput}
+          disabled={isCreatingWorkLog}
+          onkeydown={handleWorkLogKeydown}
         ></textarea>
-      </label>
+      </form>
+
+      {#if workLogError}
+        <p class="log-error" role="alert">{workLogError}</p>
+      {/if}
     </section>
   </div>
 </main>
@@ -1017,6 +1096,15 @@
     color: #d7dce4;
   }
 
+  .log-list span {
+    white-space: pre-wrap;
+  }
+
+  .log-list .log-empty {
+    grid-template-columns: 1fr;
+    color: #858d9a;
+  }
+
   .log-list time {
     color: #a8b0be;
     font-variant-numeric: tabular-nums;
@@ -1027,12 +1115,28 @@
     align-items: start;
   }
 
+  .log-input:focus-within {
+    border-color: #5b8ff9;
+    box-shadow:
+      0 0 0 1px rgba(91, 143, 249, 0.35),
+      0 0 0 4px rgba(91, 143, 249, 0.08);
+  }
+
   .log-input span {
     color: #5b8ff9;
     font-weight: 700;
   }
 
-  .todo-error {
+  .log-input textarea {
+    caret-color: #5b8ff9;
+  }
+
+  .log-input textarea:disabled {
+    opacity: 0.65;
+  }
+
+  .todo-error,
+  .log-error {
     margin: 0.55rem 0 0;
     color: #ff8a93;
     font-size: 0.88rem;

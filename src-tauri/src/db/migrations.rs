@@ -1,6 +1,9 @@
 use rusqlite::Connection;
 
-const MIGRATIONS: &[(u32, &str)] = &[(1, include_str!("../../migrations/001_initial.sql"))];
+const MIGRATIONS: &[(u32, &str)] = &[
+    (1, include_str!("../../migrations/001_initial.sql")),
+    (2, include_str!("../../migrations/002_create_work_logs.sql")),
+];
 
 pub fn apply(connection: &mut Connection) -> Result<(), String> {
     let current_version = current_schema_version(connection)?;
@@ -56,20 +59,23 @@ mod tests {
         let version: u32 = connection
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .expect("read schema version");
-        let todos_table_count: u32 = connection
+        let (todos_table_count, work_logs_table_count): (u32, u32) = connection
             .query_row(
                 "
-                SELECT COUNT(*)
+                SELECT
+                    SUM(name = 'todos'),
+                    SUM(name = 'work_logs')
                 FROM sqlite_schema
                 WHERE type = 'table'
-                  AND name = 'todos'
+                  AND name IN ('todos', 'work_logs')
                 ",
                 [],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
-            .expect("read todos table count");
+            .expect("read table counts");
 
-        assert_eq!(version, 1);
+        assert_eq!(version, 2);
         assert_eq!(todos_table_count, 1);
+        assert_eq!(work_logs_table_count, 1);
     }
 }
