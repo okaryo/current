@@ -170,12 +170,20 @@ Work Log decisions:
 
 ### Basic Timer
 
-- [ ] Create Pomodoro timer UI
-- [ ] Start timer
-- [ ] Pause timer
-- [ ] Reset timer
-- [ ] Display remaining time
+- [x] Create Pomodoro timer UI
+- [x] Start timer
+- [x] Pause timer
+- [x] Reset timer
+- [x] Display remaining time
 - [ ] Add session end notification
+
+Pomodoro decisions:
+
+- Initial timer supports Focus only.
+- Focus duration is fixed at 25 minutes for now.
+- Timer stops at `00:00`.
+- Reset always stops the timer and returns to `25:00`.
+- Session count is not displayed or persisted for now.
 
 ### Timer Settings
 
@@ -185,9 +193,15 @@ Work Log decisions:
 
 ### Keyboard Workflow
 
-- [ ] Add keyboard shortcut for start/pause
-- [ ] Add keyboard shortcut for reset
+- [x] Add keyboard shortcut for start/pause
+- [x] Add keyboard shortcut for reset
 - [ ] Add keyboard shortcut for focusing timer section
+
+Pomodoro keyboard decisions:
+
+- Pomodoro shortcuts are scoped to the active Pomodoro section.
+- `Space`: start/pause
+- `r`: reset
 
 ---
 

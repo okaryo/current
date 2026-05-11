@@ -24,6 +24,8 @@
     | "delete"
     | "clearSelection";
 
+  type PomodoroCommand = "toggle" | "reset";
+
   const sections: Section[] = [
     { id: "pomodoro", title: "Pomodoro", shortcut: "⌘1" },
     { id: "todo", title: "Todo", shortcut: "⌘2" },
@@ -31,6 +33,11 @@
   ];
 
   let activeSection = $state<SectionId>("todo");
+  let pomodoroCommandRequest = $state<{
+    id: number;
+    command: PomodoroCommand;
+  } | null>(null);
+  let pomodoroCommandRequestId = 0;
   let todoCommandRequest = $state<{ id: number; command: TodoCommand } | null>(
     null,
   );
@@ -55,11 +62,27 @@
     }
 
     switch (activeSection) {
+      case "pomodoro":
+        handlePomodoroSectionKeydown(event);
+        break;
       case "todo":
         handleTodoSectionKeydown(event);
         break;
       case "log":
         handleLogSectionKeydown(event);
+        break;
+    }
+  }
+
+  function handlePomodoroSectionKeydown(event: KeyboardEvent) {
+    switch (event.key) {
+      case " ":
+        event.preventDefault();
+        requestPomodoroCommand("toggle");
+        break;
+      case "r":
+        event.preventDefault();
+        requestPomodoroCommand("reset");
         break;
     }
   }
@@ -154,6 +177,13 @@
     };
   }
 
+  function requestPomodoroCommand(command: PomodoroCommand) {
+    pomodoroCommandRequest = {
+      id: ++pomodoroCommandRequestId,
+      command,
+    };
+  }
+
   function sectionFromShortcut(event: KeyboardEvent): SectionId | null {
     if (!event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
       return null;
@@ -192,6 +222,7 @@
       active={activeSection === "pomodoro"}
       title={sections[0].title}
       shortcut={sections[0].shortcut}
+      commandRequest={pomodoroCommandRequest}
       onActivate={() => setActiveSection("pomodoro", { preserveFocus: true })}
     />
 

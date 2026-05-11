@@ -1,14 +1,116 @@
 <script lang="ts">
+  import { onDestroy } from "svelte";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+
+  type PomodoroCommand = "toggle" | "reset";
+
+  type PomodoroCommandRequest = {
+    id: number;
+    command: PomodoroCommand;
+  } | null;
 
   type Props = {
     active: boolean;
     title: string;
     shortcut: string;
+    commandRequest: PomodoroCommandRequest;
     onActivate: () => void;
   };
 
-  let { active, title, shortcut, onActivate }: Props = $props();
+  const FOCUS_DURATION_SECONDS = 25 * 60;
+
+  let { active, title, shortcut, commandRequest, onActivate }: Props = $props();
+
+  let remainingSeconds = $state(FOCUS_DURATION_SECONDS);
+  let running = $state(false);
+  let timerInterval: ReturnType<typeof setInterval> | undefined;
+  let lastCommandRequestId = 0;
+
+  const formattedRemainingTime = $derived(formatTime(remainingSeconds));
+  const timerStatus = $derived(running ? "Focusing..." : "Paused");
+  const primaryActionLabel = $derived(running ? "Pause" : "Start");
+
+  $effect(() => {
+    if (!commandRequest || commandRequest.id === lastCommandRequestId) {
+      return;
+    }
+
+    lastCommandRequestId = commandRequest.id;
+
+    switch (commandRequest.command) {
+      case "toggle":
+        toggleTimer();
+        break;
+      case "reset":
+        resetTimer();
+        break;
+    }
+  });
+
+  onDestroy(() => {
+    stopTimer();
+  });
+
+  function toggleTimer() {
+    onActivate();
+
+    if (running) {
+      pauseTimer();
+      return;
+    }
+
+    startTimer();
+  }
+
+  function startTimer() {
+    if (remainingSeconds <= 0) {
+      remainingSeconds = FOCUS_DURATION_SECONDS;
+    }
+
+    running = true;
+    restartInterval();
+  }
+
+  function pauseTimer() {
+    running = false;
+    stopTimer();
+  }
+
+  function resetTimer() {
+    onActivate();
+    running = false;
+    stopTimer();
+    remainingSeconds = FOCUS_DURATION_SECONDS;
+  }
+
+  function restartInterval() {
+    stopTimer();
+
+    timerInterval = setInterval(() => {
+      if (remainingSeconds <= 1) {
+        remainingSeconds = 0;
+        running = false;
+        stopTimer();
+        return;
+      }
+
+      remainingSeconds -= 1;
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = undefined;
+    }
+  }
+
+  function formatTime(totalSeconds: number) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
 </script>
 
 <section
@@ -24,26 +126,23 @@
   </header>
 
   <div class="timer-layout">
-    <div class="timer-ring" aria-label="25 minutes remaining">
-      <span class="time">25:00</span>
+    <div class="timer-ring" aria-label={`${formattedRemainingTime} remaining`}>
+      <span class="time">{formattedRemainingTime}</span>
       <span class="mode">Focus</span>
     </div>
 
     <div class="timer-details">
-      <p class="session">Today's sessions <strong>2 / 4</strong></p>
+      <p class="timer-status">{timerStatus}</p>
       <div class="timer-actions" aria-label="Pomodoro controls">
         <button
           class="primary-button"
           type="button"
           onfocus={onActivate}
-          onclick={onActivate}
+          onclick={toggleTimer}
         >
-          Start
+          {primaryActionLabel}
         </button>
-        <button type="button" onfocus={onActivate} onclick={onActivate}>
-          Pause
-        </button>
-        <button type="button" onfocus={onActivate} onclick={onActivate}>
+        <button type="button" onfocus={onActivate} onclick={resetTimer}>
           Reset
         </button>
       </div>
@@ -51,16 +150,12 @@
 
     <dl class="shortcut-list" aria-label="Pomodoro shortcuts">
       <div>
-        <dt><KeyboardKey value="⌘P" label="Command P" /></dt>
+        <dt><KeyboardKey value="Space" /></dt>
         <dd>Start / Pause</dd>
       </div>
       <div>
-        <dt><KeyboardKey value="⌘R" label="Command R" /></dt>
+        <dt><KeyboardKey value="r" /></dt>
         <dd>Reset</dd>
-      </div>
-      <div>
-        <dt><KeyboardKey value="⌘L" label="Command L" /></dt>
-        <dd>Log completed session</dd>
       </div>
     </dl>
   </div>
@@ -110,11 +205,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     color: #e8ecf2;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.11),
-      rgba(255, 255, 255, 0.05)
-    );
+    background: rgba(255, 255, 255, 0.07);
     cursor: pointer;
     font: inherit;
   }
@@ -188,15 +279,10 @@
     font-weight: 600;
   }
 
-  .session {
+  .timer-status {
     margin: 0 0 0.75rem;
     color: #c7cdd6;
     font-size: 1rem;
-  }
-
-  .session strong {
-    margin-left: 0.5rem;
-    color: #ffffff;
   }
 
   .timer-actions {
@@ -213,9 +299,9 @@
   }
 
   .timer-actions .primary-button {
-    border-color: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 89, 101, 0.45);
     color: #ffffff;
-    background: linear-gradient(180deg, #ff6670, #df3745);
+    background: #e94654;
   }
 
   .shortcut-list {
