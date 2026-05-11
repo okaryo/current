@@ -75,12 +75,22 @@
   }
 
   function handleWorkLogKeydown(event: KeyboardEvent) {
-    if (event.key !== "Enter" || event.shiftKey) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    if (event.metaKey) {
+      event.preventDefault();
+      void submitWorkLog();
+      return;
+    }
+
+    if (event.shiftKey || event.ctrlKey || event.altKey) {
       return;
     }
 
     event.preventDefault();
-    void submitWorkLog();
+    insertMarkdownNewLine(event.currentTarget);
   }
 
   async function focusInput() {
@@ -111,6 +121,87 @@
       minute: "2-digit",
       hourCycle: "h23",
     }).format(new Date(createdAtMs));
+  }
+
+  function insertMarkdownNewLine(textarea: EventTarget | null) {
+    if (!(textarea instanceof HTMLTextAreaElement)) {
+      return;
+    }
+
+    const value = textarea.value;
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const currentLineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+    const currentLineEnd = value.indexOf("\n", selectionStart);
+    const currentLine = value.slice(
+      currentLineStart,
+      currentLineEnd === -1 ? value.length : currentLineEnd,
+    );
+    const nextPrefix = markdownContinuationPrefix(currentLine);
+    const nextValue =
+      value.slice(0, selectionStart) +
+      "\n" +
+      nextPrefix +
+      value.slice(selectionEnd);
+    const nextCursorPosition = selectionStart + 1 + nextPrefix.length;
+
+    workLogInput = nextValue;
+
+    tick().then(() => {
+      textarea.selectionStart = nextCursorPosition;
+      textarea.selectionEnd = nextCursorPosition;
+    });
+  }
+
+  function markdownContinuationPrefix(line: string) {
+    return (
+      checkboxContinuationPrefix(line) ??
+      bulletContinuationPrefix(line) ??
+      orderedListContinuationPrefix(line) ??
+      indentationPrefix(line)
+    );
+  }
+
+  function checkboxContinuationPrefix(line: string) {
+    const match = line.match(/^(\s*)([-*+])\s+\[[ xX]\]\s+(.*)$/);
+
+    if (!match) {
+      return null;
+    }
+
+    const [, indentation, marker, content] = match;
+
+    return content.trim() ? `${indentation}${marker} [ ] ` : indentation;
+  }
+
+  function bulletContinuationPrefix(line: string) {
+    const match = line.match(/^(\s*)([-*+])\s+(.*)$/);
+
+    if (!match) {
+      return null;
+    }
+
+    const [, indentation, marker, content] = match;
+
+    return content.trim() ? `${indentation}${marker} ` : indentation;
+  }
+
+  function orderedListContinuationPrefix(line: string) {
+    const match = line.match(/^(\s*)(\d+)([.)])\s+(.*)$/);
+
+    if (!match) {
+      return null;
+    }
+
+    const [, indentation, number, delimiter, content] = match;
+
+    return content.trim()
+      ? `${indentation}${Number(number) + 1}${delimiter} `
+      : indentation;
+  }
+
+  function indentationPrefix(line: string) {
+    return line.match(/^\s*/)?.[0] ?? "";
   }
 
   function errorMessage(error: unknown) {
@@ -172,7 +263,7 @@
         onkeydown={handleWorkLogKeydown}
       ></textarea>
       <p id="work-log-input-help" class="log-input-help">
-        Enter to submit, Shift+Enter for new line
+        Enter for new line, Cmd+Enter to submit
       </p>
     </div>
   </form>

@@ -128,10 +128,10 @@ Now behavior:
 ### Markdown Support
 
 - [x] Support multiline logs
-- [ ] Support markdown lists
-- [ ] Continue list markers on Enter
-- [ ] Continue checkbox markers on Enter
-- [ ] Preserve indentation on Enter
+- [x] Support markdown lists
+- [x] Continue list markers on Enter
+- [x] Continue checkbox markers on Enter
+- [x] Preserve indentation on Enter
 
 ### Work Log UX
 
@@ -144,10 +144,13 @@ Work Log decisions:
 
 - Work Log shortcuts are scoped to the active Log section.
 - `i`: focus the work log input
-- `Enter`: submit the current work log
-- `Shift+Enter`: insert a newline
+- `Enter`: insert a newline with Markdown continuation support
+- `Cmd+Enter`: submit the current work log
 - Work logs are persisted to SQLite with creation timestamps.
 - Work logs are displayed newest first.
+- `Enter` continues `-`, `*`, `+`, numbered lists, and checkbox list markers.
+- Checked checkbox markers continue as unchecked markers.
+- Empty list marker lines exit the list and keep only indentation.
 - Markdown helper behavior is deferred until the basic logging flow feels right.
 
 ---
@@ -234,7 +237,25 @@ Section shortcut decisions:
 
 ---
 
-## Phase 9 — UI Polish
+## Phase 9 — Testing
+
+- [ ] Setup Vitest for frontend unit tests
+- [ ] Extract Work Log markdown continuation logic into a testable module
+- [ ] Add Vitest coverage for Work Log markdown continuation behavior
+- [ ] Add Rust unit tests for domain logic
+- [ ] Add Rust tests for SQLite migration handling
+- [ ] Add Rust command-level tests where logic can be tested without Tauri UI
+
+Testing decisions:
+
+- Domain logic should be covered with focused unit tests when practical.
+- Frontend helper logic should be moved out of Svelte components when that makes it easier to test.
+- Rust-side persistence and migration behavior should be tested close to the database layer.
+- UI interaction tests can stay minimal until the keyboard workflow stabilizes.
+
+---
+
+## Phase 10 — UI Polish
 
 - [ ] Improve spacing and typography
 - [ ] Improve active/inactive section contrast
@@ -246,7 +267,7 @@ Section shortcut decisions:
 
 ---
 
-## Phase 10 — Initial Release
+## Phase 11 — Initial Release
 
 - [ ] Test keyboard-only workflow
 - [ ] Test local persistence
