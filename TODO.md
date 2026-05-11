@@ -239,9 +239,9 @@ Section shortcut decisions:
 
 ## Phase 9 — Testing
 
-- [ ] Setup Vitest for frontend unit tests
-- [ ] Extract Work Log markdown continuation logic into a testable module
-- [ ] Add Vitest coverage for Work Log markdown continuation behavior
+- [x] Setup Vitest for frontend unit tests
+- [x] Extract Work Log markdown continuation logic into a testable module
+- [x] Add Vitest coverage for Work Log markdown continuation behavior
 - [ ] Add Rust unit tests for domain logic
 - [ ] Add Rust tests for SQLite migration handling
 - [ ] Add Rust command-level tests where logic can be tested without Tauri UI

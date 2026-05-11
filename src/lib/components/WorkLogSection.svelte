@@ -2,6 +2,7 @@
   import { onMount, tick } from "svelte";
   import { createWorkLog, listWorkLogs, type WorkLog } from "$lib/api/workLogs";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import { insertMarkdownNewLine } from "$lib/work-log/markdown";
 
   type Props = {
     active: boolean;
@@ -90,7 +91,7 @@
     }
 
     event.preventDefault();
-    insertMarkdownNewLine(event.currentTarget);
+    insertMarkdownNewLineInTextarea(event.currentTarget);
   }
 
   async function focusInput() {
@@ -123,85 +124,23 @@
     }).format(new Date(createdAtMs));
   }
 
-  function insertMarkdownNewLine(textarea: EventTarget | null) {
+  function insertMarkdownNewLineInTextarea(textarea: EventTarget | null) {
     if (!(textarea instanceof HTMLTextAreaElement)) {
       return;
     }
 
-    const value = textarea.value;
-    const selectionStart = textarea.selectionStart;
-    const selectionEnd = textarea.selectionEnd;
-    const currentLineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-    const currentLineEnd = value.indexOf("\n", selectionStart);
-    const currentLine = value.slice(
-      currentLineStart,
-      currentLineEnd === -1 ? value.length : currentLineEnd,
+    const insertion = insertMarkdownNewLine(
+      textarea.value,
+      textarea.selectionStart,
+      textarea.selectionEnd,
     );
-    const nextPrefix = markdownContinuationPrefix(currentLine);
-    const nextValue =
-      value.slice(0, selectionStart) +
-      "\n" +
-      nextPrefix +
-      value.slice(selectionEnd);
-    const nextCursorPosition = selectionStart + 1 + nextPrefix.length;
 
-    workLogInput = nextValue;
+    workLogInput = insertion.value;
 
     tick().then(() => {
-      textarea.selectionStart = nextCursorPosition;
-      textarea.selectionEnd = nextCursorPosition;
+      textarea.selectionStart = insertion.cursorPosition;
+      textarea.selectionEnd = insertion.cursorPosition;
     });
-  }
-
-  function markdownContinuationPrefix(line: string) {
-    return (
-      checkboxContinuationPrefix(line) ??
-      bulletContinuationPrefix(line) ??
-      orderedListContinuationPrefix(line) ??
-      indentationPrefix(line)
-    );
-  }
-
-  function checkboxContinuationPrefix(line: string) {
-    const match = line.match(/^(\s*)([-*+])\s+\[[ xX]\]\s+(.*)$/);
-
-    if (!match) {
-      return null;
-    }
-
-    const [, indentation, marker, content] = match;
-
-    return content.trim() ? `${indentation}${marker} [ ] ` : indentation;
-  }
-
-  function bulletContinuationPrefix(line: string) {
-    const match = line.match(/^(\s*)([-*+])\s+(.*)$/);
-
-    if (!match) {
-      return null;
-    }
-
-    const [, indentation, marker, content] = match;
-
-    return content.trim() ? `${indentation}${marker} ` : indentation;
-  }
-
-  function orderedListContinuationPrefix(line: string) {
-    const match = line.match(/^(\s*)(\d+)([.)])\s+(.*)$/);
-
-    if (!match) {
-      return null;
-    }
-
-    const [, indentation, number, delimiter, content] = match;
-
-    return content.trim()
-      ? `${indentation}${Number(number) + 1}${delimiter} `
-      : indentation;
-  }
-
-  function indentationPrefix(line: string) {
-    return line.match(/^\s*/)?.[0] ?? "";
   }
 
   function errorMessage(error: unknown) {
