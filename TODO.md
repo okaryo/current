@@ -104,6 +104,7 @@ Completed TODO decisions:
 
 - TODO list shows incomplete tasks and tasks completed during the current local day.
 - Tasks completed before today are hidden from the normal TODO list.
+- When the app stays open across midnight, the TODO list refreshes after the local day changes.
 - Completed tasks are not deleted; they remain in SQLite.
 - A toggle for showing hidden completed tasks is intentionally not planned.
 

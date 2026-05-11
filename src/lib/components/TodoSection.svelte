@@ -54,9 +54,18 @@
   let editTodoInput = $state<HTMLInputElement>();
   let taskListElement = $state<HTMLUListElement>();
   let lastCommandRequestId = 0;
+  let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
 
   onMount(() => {
     void loadTodos();
+
+    scheduleNextDayRefresh();
+
+    return () => {
+      if (dayRefreshTimeout) {
+        clearTimeout(dayRefreshTimeout);
+      }
+    };
   });
 
   $effect(() => {
@@ -94,6 +103,32 @@
     } finally {
       isLoadingTodos = false;
     }
+  }
+
+  function scheduleNextDayRefresh() {
+    if (dayRefreshTimeout) {
+      clearTimeout(dayRefreshTimeout);
+    }
+
+    dayRefreshTimeout = setTimeout(() => {
+      void refreshTodosForNewDay();
+    }, msUntilNextLocalDay());
+  }
+
+  async function refreshTodosForNewDay() {
+    await loadTodos();
+    scheduleNextDayRefresh();
+  }
+
+  function msUntilNextLocalDay() {
+    const now = new Date();
+    const nextLocalDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    );
+
+    return Math.max(nextLocalDay.getTime() - now.getTime(), 1000);
   }
 
   async function submitTodo(event: SubmitEvent) {
