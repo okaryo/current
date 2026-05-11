@@ -19,6 +19,7 @@
   let isLoadingWorkLogs = $state(true);
   let isCreatingWorkLog = $state(false);
   let workLogInputElement = $state<HTMLTextAreaElement>();
+  let workLogListElement = $state<HTMLOListElement>();
   let lastFocusRequest = 0;
 
   onMount(() => {
@@ -65,6 +66,7 @@
       const workLog = await createWorkLog(body);
       workLogs = [...workLogs, workLog].sort(compareWorkLogs);
       workLogInput = "";
+      await scrollLogListToTop();
     } catch (error) {
       workLogError = errorMessage(error);
     } finally {
@@ -85,6 +87,14 @@
     onActivate();
     await tick();
     workLogInputElement?.focus();
+  }
+
+  async function scrollLogListToTop() {
+    await tick();
+
+    if (workLogListElement) {
+      workLogListElement.scrollTop = 0;
+    }
   }
 
   function compareWorkLogs(a: WorkLog, b: WorkLog) {
@@ -127,7 +137,7 @@
 
   <h2 id="log-title" class="sr-only">Work Log</h2>
 
-  <ol class="log-list" aria-label="Work log">
+  <ol class="log-list" aria-label="Work log" bind:this={workLogListElement}>
     {#if isLoadingWorkLogs}
       <li class="log-empty">Loading logs...</li>
     {:else if workLogs.length === 0}
