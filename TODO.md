@@ -242,8 +242,8 @@ Section shortcut decisions:
 - [x] Setup Vitest for frontend unit tests
 - [x] Extract Work Log markdown continuation logic into a testable module
 - [x] Add Vitest coverage for Work Log markdown continuation behavior
-- [ ] Add Rust unit tests for domain logic
-- [ ] Add Rust tests for SQLite migration handling
+- [x] Add Rust unit tests for domain logic
+- [x] Add Rust tests for SQLite migration handling
 - [ ] Add Rust command-level tests where logic can be tested without Tauri UI
 
 Testing decisions:
@@ -251,6 +251,7 @@ Testing decisions:
 - Domain logic should be covered with focused unit tests when practical.
 - Frontend helper logic should be moved out of Svelte components when that makes it easier to test.
 - Rust-side persistence and migration behavior should be tested close to the database layer.
+- Command-level tests should be added when commands contain logic beyond thin Tauri wrappers.
 - UI interaction tests can stay minimal until the keyboard workflow stabilizes.
 
 ---

@@ -63,3 +63,53 @@ fn work_log_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<WorkLog> {
 fn row_id_to_u32(row_id: i64) -> Result<u32, String> {
     u32::try_from(row_id).map_err(|_| format!("Database row id {row_id} is out of range."))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_support::migrated_connection;
+
+    #[test]
+    fn creates_and_lists_work_logs() {
+        let connection = migrated_connection();
+
+        let first = create(&connection, "first log", 1000).expect("create first work log");
+        let second = create(&connection, "second log", 2000).expect("create second work log");
+
+        let logs = list(&connection).expect("list work logs");
+
+        assert_eq!(first.id, 1);
+        assert_eq!(first.body, "first log");
+        assert_eq!(first.created_at_ms, 1000);
+        assert_eq!(second.id, 2);
+        assert_eq!(
+            logs.iter().map(|log| log.id).collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+    }
+
+    #[test]
+    fn preserves_multiline_body() {
+        let connection = migrated_connection();
+        let body = "- first\n- second";
+
+        let log = create(&connection, body, 1000).expect("create work log");
+
+        assert_eq!(log.body, body);
+    }
+
+    #[test]
+    fn lists_work_logs_by_creation_time_then_id() {
+        let connection = migrated_connection();
+        let second = create(&connection, "second", 2000).expect("create second work log");
+        let first = create(&connection, "first", 1000).expect("create first work log");
+        let same_time = create(&connection, "same time", 1000).expect("create same-time work log");
+
+        let logs = list(&connection).expect("list work logs");
+
+        assert_eq!(
+            logs.iter().map(|log| log.id).collect::<Vec<_>>(),
+            vec![first.id, same_time.id, second.id]
+        );
+    }
+}

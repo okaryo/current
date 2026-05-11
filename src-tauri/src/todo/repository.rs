@@ -121,3 +121,92 @@ fn todo_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Todo> {
 fn row_id_to_u32(row_id: i64) -> Result<u32, String> {
     u32::try_from(row_id).map_err(|_| format!("Database row id {row_id} is out of range."))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_support::migrated_connection;
+
+    #[test]
+    fn creates_and_lists_todos() {
+        let connection = migrated_connection();
+
+        let first = create(&connection, "first", 1000).expect("create first todo");
+        let second = create(&connection, "second", 2000).expect("create second todo");
+
+        let todos = list(&connection).expect("list todos");
+
+        assert_eq!(first.id, 1);
+        assert_eq!(first.title, "first");
+        assert!(!first.completed);
+        assert_eq!(first.created_at_ms, 1000);
+        assert_eq!(first.completed_at_ms, None);
+        assert_eq!(second.id, 2);
+        assert_eq!(
+            todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+    }
+
+    #[test]
+    fn lists_incomplete_todos_before_completed_todos() {
+        let connection = migrated_connection();
+        let first = create(&connection, "first", 1000).expect("create first todo");
+        let second = create(&connection, "second", 2000).expect("create second todo");
+
+        toggle(&connection, first.id, true, Some(3000)).expect("complete first todo");
+
+        let todos = list(&connection).expect("list todos");
+
+        assert_eq!(
+            todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
+            vec![second.id, first.id]
+        );
+    }
+
+    #[test]
+    fn toggles_completion_state() {
+        let connection = migrated_connection();
+        let todo = create(&connection, "task", 1000).expect("create todo");
+
+        let completed = toggle(&connection, todo.id, true, Some(2000)).expect("complete todo");
+        let reopened = toggle(&connection, todo.id, false, None).expect("reopen todo");
+
+        assert!(completed.completed);
+        assert_eq!(completed.completed_at_ms, Some(2000));
+        assert!(!reopened.completed);
+        assert_eq!(reopened.completed_at_ms, None);
+    }
+
+    #[test]
+    fn updates_title() {
+        let connection = migrated_connection();
+        let todo = create(&connection, "old title", 1000).expect("create todo");
+
+        let updated = update_title(&connection, todo.id, "new title").expect("update title");
+
+        assert_eq!(updated.id, todo.id);
+        assert_eq!(updated.title, "new title");
+    }
+
+    #[test]
+    fn deletes_todo() {
+        let connection = migrated_connection();
+        let todo = create(&connection, "task", 1000).expect("create todo");
+
+        delete(&connection, todo.id).expect("delete todo");
+
+        assert!(get(&connection, todo.id)
+            .expect("get deleted todo")
+            .is_none());
+    }
+
+    #[test]
+    fn returns_error_when_updating_missing_todo() {
+        let connection = migrated_connection();
+
+        let error = update_title(&connection, 1, "missing").expect_err("update should fail");
+
+        assert_eq!(error, "Todo #1 was not found.");
+    }
+}

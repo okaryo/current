@@ -11,12 +11,7 @@ pub fn list_todos(app: &AppHandle) -> Result<Vec<Todo>, String> {
 }
 
 pub fn create_todo(app: &AppHandle, title: &str) -> Result<Todo, String> {
-    let title = title.trim();
-
-    if title.is_empty() {
-        return Err("Todo title is required.".to_string());
-    }
-
+    let title = normalize_title(title)?;
     let connection = db::open(app)?;
 
     repository::create(&connection, title, now_ms()?)
@@ -37,12 +32,7 @@ pub fn toggle_todo(app: &AppHandle, id: u32) -> Result<Todo, String> {
 }
 
 pub fn update_todo_title(app: &AppHandle, id: u32, title: &str) -> Result<Todo, String> {
-    let title = title.trim();
-
-    if title.is_empty() {
-        return Err("Todo title is required.".to_string());
-    }
-
+    let title = normalize_title(title)?;
     let connection = db::open(app)?;
 
     repository::update_title(&connection, id, title)
@@ -61,4 +51,32 @@ fn now_ms() -> Result<i64, String> {
         .as_millis();
 
     i64::try_from(millis).map_err(|_| "Current timestamp is out of range.".to_string())
+}
+
+fn normalize_title(title: &str) -> Result<&str, String> {
+    let title = title.trim();
+
+    if title.is_empty() {
+        return Err("Todo title is required.".to_string());
+    }
+
+    Ok(title)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_title_trims_surrounding_whitespace() {
+        assert_eq!(normalize_title("  write tests  "), Ok("write tests"));
+    }
+
+    #[test]
+    fn normalize_title_rejects_blank_titles() {
+        assert_eq!(
+            normalize_title(" \n\t "),
+            Err("Todo title is required.".to_string())
+        );
+    }
 }

@@ -37,3 +37,20 @@ fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
 
     Ok(app_data_dir)
 }
+
+#[cfg(test)]
+pub(crate) mod test_support {
+    use super::migrations;
+    use rusqlite::Connection;
+
+    pub(crate) fn migrated_connection() -> Connection {
+        let mut connection = Connection::open_in_memory().expect("open in-memory database");
+
+        connection
+            .pragma_update(None, "foreign_keys", true)
+            .expect("enable foreign keys");
+        migrations::apply(&mut connection).expect("apply migrations");
+
+        connection
+    }
+}

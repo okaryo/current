@@ -78,4 +78,78 @@ mod tests {
         assert_eq!(todos_table_count, 1);
         assert_eq!(work_logs_table_count, 1);
     }
+
+    #[test]
+    fn applies_only_pending_migrations() {
+        let mut connection = Connection::open_in_memory().expect("open in-memory database");
+
+        connection
+            .execute_batch(include_str!("../../migrations/001_initial.sql"))
+            .expect("apply v1 migration manually");
+        connection
+            .pragma_update(None, "user_version", 1)
+            .expect("set schema version");
+        connection
+            .execute(
+                "
+                INSERT INTO todos (title, completed, created_at_ms, completed_at_ms)
+                VALUES ('existing todo', 0, 1000, NULL)
+                ",
+                [],
+            )
+            .expect("insert existing todo");
+
+        apply(&mut connection).expect("apply pending migrations");
+
+        let version: u32 = connection
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .expect("read schema version");
+        let todo_count: u32 = connection
+            .query_row("SELECT COUNT(*) FROM todos", [], |row| row.get(0))
+            .expect("read todo count");
+        let work_logs_table_count: u32 = connection
+            .query_row(
+                "
+                SELECT COUNT(*)
+                FROM sqlite_schema
+                WHERE type = 'table'
+                  AND name = 'work_logs'
+                ",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read work logs table count");
+
+        assert_eq!(version, 2);
+        assert_eq!(todo_count, 1);
+        assert_eq!(work_logs_table_count, 1);
+    }
+
+    #[test]
+    fn migrations_are_idempotent() {
+        let mut connection = Connection::open_in_memory().expect("open in-memory database");
+
+        apply(&mut connection).expect("apply migrations");
+        connection
+            .execute(
+                "
+                INSERT INTO work_logs (body, created_at_ms)
+                VALUES ('existing log', 1000)
+                ",
+                [],
+            )
+            .expect("insert existing work log");
+
+        apply(&mut connection).expect("reapply migrations");
+
+        let version: u32 = connection
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .expect("read schema version");
+        let work_log_count: u32 = connection
+            .query_row("SELECT COUNT(*) FROM work_logs", [], |row| row.get(0))
+            .expect("read work log count");
+
+        assert_eq!(version, 2);
+        assert_eq!(work_log_count, 1);
+    }
 }
