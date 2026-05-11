@@ -121,14 +121,16 @@ Completed TODO decisions:
 - [x] Dim other TODO items while "Now" is active
 - [x] Clear "Now" when task is completed
 - [x] Add shortcut for toggling "Now"
-- [ ] Start Pomodoro timer when setting a TODO as Now
+- [x] Start Pomodoro timer when setting a TODO as Now
 
 Now behavior:
 
 - Now is session-local UI state and is not persisted to SQLite.
 - Reopening the app should start with no Now task selected.
 - When Now is active, the Now TODO title is emphasized and other incomplete TODO titles are dimmed.
-- Setting Now may later become the trigger for starting the Pomodoro timer.
+- Setting Now resets the Pomodoro timer to `25:00` and starts focus.
+- Unsetting Now does not stop the Pomodoro timer.
+- Completing the Now task clears Now but does not stop the Pomodoro timer.
 
 ---
 

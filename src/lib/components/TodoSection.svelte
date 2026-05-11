@@ -35,10 +35,12 @@
     title: string;
     shortcut: string;
     commandRequest: TodoCommandRequest;
+    onSetNow: () => void;
     onActivate: () => void;
   };
 
-  let { active, title, shortcut, commandRequest, onActivate }: Props = $props();
+  let { active, title, shortcut, commandRequest, onSetNow, onActivate }: Props =
+    $props();
 
   let todos = $state<Todo[]>([]);
   let todoInput = $state("");
@@ -356,7 +358,13 @@
       return;
     }
 
-    nowTodoId = nowTodoId === selectedTodoId ? null : selectedTodoId;
+    const nextNowTodoId = nowTodoId === selectedTodoId ? null : selectedTodoId;
+
+    nowTodoId = nextNowTodoId;
+
+    if (nextNowTodoId !== null) {
+      onSetNow();
+    }
   }
 
   async function startEditSelectedTodo() {

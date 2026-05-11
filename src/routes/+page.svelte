@@ -24,7 +24,7 @@
     | "delete"
     | "clearSelection";
 
-  type PomodoroCommand = "toggle" | "reset";
+  type PomodoroCommand = "toggle" | "reset" | "startFocus";
 
   const sections: Section[] = [
     { id: "pomodoro", title: "Pomodoro", shortcut: "⌘1" },
@@ -184,6 +184,10 @@
     };
   }
 
+  function startPomodoroFocus() {
+    requestPomodoroCommand("startFocus");
+  }
+
   function sectionFromShortcut(event: KeyboardEvent): SectionId | null {
     if (!event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
       return null;
@@ -231,6 +235,7 @@
       title={sections[1].title}
       shortcut={sections[1].shortcut}
       commandRequest={todoCommandRequest}
+      onSetNow={startPomodoroFocus}
       onActivate={() => setActiveSection("todo", { preserveFocus: true })}
     />
 

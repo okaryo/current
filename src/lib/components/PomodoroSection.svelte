@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
 
-  type PomodoroCommand = "toggle" | "reset";
+  type PomodoroCommand = "toggle" | "reset" | "startFocus";
 
   type PomodoroCommandRequest = {
     id: number;
@@ -44,6 +44,9 @@
       case "reset":
         resetTimer();
         break;
+      case "startFocus":
+        startFocusTimer();
+        break;
     }
   });
 
@@ -81,6 +84,11 @@
     running = false;
     stopTimer();
     remainingSeconds = FOCUS_DURATION_SECONDS;
+  }
+
+  function startFocusTimer() {
+    remainingSeconds = FOCUS_DURATION_SECONDS;
+    startTimer();
   }
 
   function restartInterval() {
