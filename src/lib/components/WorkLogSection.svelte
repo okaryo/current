@@ -121,12 +121,6 @@
     {#if active}
       <div class="hint-row" aria-label="Log shortcuts">
         <span><KeyboardKey value="i" />Focus Input</span>
-        <span><KeyboardKey value="Enter" />Submit</span>
-        <span
-          ><KeyboardKey value="⇧" label="Shift" /> + <KeyboardKey
-            value="Enter"
-          />New line</span
-        >
       </div>
     {/if}
   </header>
@@ -155,16 +149,22 @@
       void submitWorkLog();
     }}
   >
-    <span aria-hidden="true">&gt;</span>
-    <textarea
-      rows="2"
-      placeholder="Write a work log... (Enter to submit)"
-      bind:value={workLogInput}
-      bind:this={workLogInputElement}
-      disabled={isCreatingWorkLog}
-      onfocus={onActivate}
-      onkeydown={handleWorkLogKeydown}
-    ></textarea>
+    <span class="log-prompt" aria-hidden="true">&gt;</span>
+    <div class="log-input-field">
+      <textarea
+        rows="2"
+        placeholder="Write a work log..."
+        aria-describedby="work-log-input-help"
+        bind:value={workLogInput}
+        bind:this={workLogInputElement}
+        disabled={isCreatingWorkLog}
+        onfocus={onActivate}
+        onkeydown={handleWorkLogKeydown}
+      ></textarea>
+      <p id="work-log-input-help" class="log-input-help">
+        Enter to submit, Shift+Enter for new line
+      </p>
+    </div>
   </form>
 
   {#if workLogError}
@@ -315,12 +315,20 @@
       0 0 0 4px rgba(91, 143, 249, 0.08);
   }
 
-  .log-input span {
+  .log-prompt {
     color: #5b8ff9;
     font-weight: 700;
   }
 
+  .log-input-field {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+
   .log-input textarea {
+    display: block;
+    width: 100%;
     min-width: 0;
     border: 0;
     color: #e8ecf2;
@@ -335,6 +343,13 @@
 
   .log-input textarea::placeholder {
     color: #858d9a;
+  }
+
+  .log-input-help {
+    margin: 0;
+    color: #858d9a;
+    font-size: 0.78rem;
+    line-height: 1.3;
   }
 
   .log-error {

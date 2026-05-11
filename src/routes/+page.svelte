@@ -237,7 +237,8 @@
 
   .workspace {
     display: grid;
-    grid-template-rows: auto auto minmax(9rem, 1fr);
+    grid-template-rows: auto auto auto;
+    align-content: start;
     gap: 0.75rem;
     width: min(100%, 104rem);
     min-height: calc(100vh - 1.6rem);
