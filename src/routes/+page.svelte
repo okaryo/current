@@ -13,6 +13,7 @@
 
   type TodoCommand =
     | "focusAdd"
+    | "focusPreferred"
     | "moveDown"
     | "moveUp"
     | "toggleComplete"
@@ -39,7 +40,7 @@
 
     if (sectionShortcut) {
       event.preventDefault();
-      setActiveSection(sectionShortcut);
+      activateSectionFromShortcut(sectionShortcut);
       return;
     }
 
@@ -114,15 +115,26 @@
     workLogFocusRequest += 1;
   }
 
+  function activateSectionFromShortcut(section: SectionId) {
+    if (section === "todo") {
+      setActiveSection("todo");
+      requestTodoCommand("focusPreferred");
+      return;
+    }
+
+    if (section === "log") {
+      focusWorkLogInput();
+      return;
+    }
+
+    setActiveSection(section);
+  }
+
   function setActiveSection(
     section: SectionId,
     options: { preserveFocus?: boolean } = {},
   ) {
     activeSection = section;
-
-    if (section !== "todo") {
-      requestTodoCommand("clearSelection");
-    }
 
     if (!options.preserveFocus && isTextInputTarget(document.activeElement)) {
       (document.activeElement as HTMLElement).blur();

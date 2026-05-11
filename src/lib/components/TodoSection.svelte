@@ -12,6 +12,7 @@
 
   type TodoCommand =
     | "focusAdd"
+    | "focusPreferred"
     | "moveDown"
     | "moveUp"
     | "toggleComplete"
@@ -166,6 +167,9 @@
       case "focusAdd":
         await focusAddTodoInput();
         break;
+      case "focusPreferred":
+        await focusPreferredTodoTarget();
+        break;
       case "moveDown":
         moveSelection(1);
         break;
@@ -298,6 +302,26 @@
     addTodoInput?.focus();
   }
 
+  async function focusPreferredTodoTarget() {
+    onActivate();
+
+    if (hasSelectableTodo(selectedTodoId)) {
+      cancelEdit();
+      return;
+    }
+
+    const nextSelectedTodo =
+      todos.find((todo) => todo.id === nowTodoId) ?? todos[0];
+
+    if (nextSelectedTodo) {
+      selectedTodoId = nextSelectedTodo.id;
+      cancelEdit();
+      return;
+    }
+
+    await focusAddTodoInput();
+  }
+
   function clearTodoSelection() {
     selectedTodoId = null;
     editingTodoId = null;
@@ -318,6 +342,10 @@
     if (!todos.some((todo) => todo.id === nowTodoId)) {
       nowTodoId = null;
     }
+  }
+
+  function hasSelectableTodo(id: number | null) {
+    return id !== null && todos.some((todo) => todo.id === id);
   }
 
   function compareTodos(a: Todo, b: Todo) {

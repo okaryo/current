@@ -208,6 +208,8 @@ Section shortcut decisions:
 - `Cmd+2`: activate TODO section
 - `Cmd+3`: activate Log section
 - TODO is the initial active section for now.
+- `Cmd+2` keeps the current TODO selection when possible; otherwise it selects Now, then the first TODO, then focuses the add input.
+- `Cmd+3` focuses the Work Log input.
 - Global shortcuts should be limited to app-wide actions such as section switching.
 - Section-specific shortcuts should only run inside the active section.
 - Reusing keys like `i` across sections is acceptable when the active section gives the key a clear local meaning.
