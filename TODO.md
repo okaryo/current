@@ -19,6 +19,8 @@
 - [x] Create Pomodoro section
 - [x] Create TODO section
 - [x] Create Work Log section
+- [x] Split Pomodoro and Work Log into section components
+- [x] Create reusable keyboard key component
 - [ ] Add resizable section layout if needed
 - [x] Add focus state UI for active section
 - [x] Add keyboard navigation between sections

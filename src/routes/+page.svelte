@@ -1,5 +1,8 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import PomodoroSection from "$lib/components/PomodoroSection.svelte";
+  import WorkLogSection from "$lib/components/WorkLogSection.svelte";
   import {
     createTodo,
     deleteTodo,
@@ -8,7 +11,6 @@
     updateTodoTitle,
     type Todo,
   } from "$lib/api/todos";
-  import { createWorkLog, listWorkLogs, type WorkLog } from "$lib/api/workLogs";
 
   type SectionId = "pomodoro" | "todo" | "log";
 
@@ -37,16 +39,10 @@
   let isSavingEdit = $state(false);
   let addTodoInput = $state<HTMLInputElement>();
   let editTodoInput = $state<HTMLInputElement>();
-  let workLogs = $state<WorkLog[]>([]);
-  let workLogInput = $state("");
-  let workLogError = $state<string | null>(null);
-  let isLoadingWorkLogs = $state(true);
-  let isCreatingWorkLog = $state(false);
-  let workLogInputElement = $state<HTMLTextAreaElement>();
+  let workLogFocusRequest = $state(0);
 
   onMount(() => {
     void loadTodos();
-    void loadWorkLogs();
   });
 
   async function loadTodos() {
@@ -140,53 +136,6 @@
     } finally {
       isSavingEdit = false;
     }
-  }
-
-  async function loadWorkLogs() {
-    isLoadingWorkLogs = true;
-    workLogError = null;
-
-    try {
-      workLogs = await listWorkLogs();
-    } catch (error) {
-      workLogError = errorMessage(error);
-    } finally {
-      isLoadingWorkLogs = false;
-    }
-  }
-
-  async function submitWorkLog() {
-    if (isCreatingWorkLog) {
-      return;
-    }
-
-    const body = workLogInput.trim();
-
-    if (!body) {
-      return;
-    }
-
-    isCreatingWorkLog = true;
-    workLogError = null;
-
-    try {
-      const workLog = await createWorkLog(body);
-      workLogs = [...workLogs, workLog].sort(compareWorkLogs);
-      workLogInput = "";
-    } catch (error) {
-      workLogError = errorMessage(error);
-    } finally {
-      isCreatingWorkLog = false;
-    }
-  }
-
-  function handleWorkLogKeydown(event: KeyboardEvent) {
-    if (event.key !== "Enter" || event.shiftKey) {
-      return;
-    }
-
-    event.preventDefault();
-    void submitWorkLog();
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -393,8 +342,7 @@
   async function focusWorkLogInput() {
     setActiveSection("log", { preserveFocus: true });
     clearTodoSelection();
-    await tick();
-    workLogInputElement?.focus();
+    workLogFocusRequest += 1;
   }
 
   function setActiveSection(
@@ -467,22 +415,6 @@
     return a.id - b.id;
   }
 
-  function compareWorkLogs(a: WorkLog, b: WorkLog) {
-    if (a.createdAtMs !== b.createdAtMs) {
-      return a.createdAtMs - b.createdAtMs;
-    }
-
-    return a.id - b.id;
-  }
-
-  function formatLogTime(createdAtMs: number) {
-    return new Intl.DateTimeFormat(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).format(new Date(createdAtMs));
-  }
-
   function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
   }
@@ -496,74 +428,12 @@
 
 <main class="app-shell" aria-label="Current">
   <div class="workspace">
-    <section
-      class="panel pomodoro"
-      class:panel-active={activeSection === "pomodoro"}
-      aria-label="Pomodoro"
-    >
-      <header class="panel-header">
-        <div class="title-row">
-          <p class="section-label section-label-focus">{sections[0].title}</p>
-          <kbd>{sections[0].shortcut}</kbd>
-        </div>
-      </header>
-
-      <div class="timer-layout">
-        <div class="timer-ring" aria-label="25 minutes remaining">
-          <span class="time">25:00</span>
-          <span class="mode">Focus</span>
-        </div>
-
-        <div class="timer-details">
-          <p class="session">Today's sessions <strong>2 / 4</strong></p>
-          <div class="timer-actions" aria-label="Pomodoro controls">
-            <button
-              class="primary-button"
-              type="button"
-              onfocus={() =>
-                setActiveSection("pomodoro", { preserveFocus: true })}
-              onclick={() =>
-                setActiveSection("pomodoro", { preserveFocus: true })}
-            >
-              Start
-            </button>
-            <button
-              type="button"
-              onfocus={() =>
-                setActiveSection("pomodoro", { preserveFocus: true })}
-              onclick={() =>
-                setActiveSection("pomodoro", { preserveFocus: true })}
-            >
-              Pause
-            </button>
-            <button
-              type="button"
-              onfocus={() =>
-                setActiveSection("pomodoro", { preserveFocus: true })}
-              onclick={() =>
-                setActiveSection("pomodoro", { preserveFocus: true })}
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-
-        <dl class="shortcut-list" aria-label="Pomodoro shortcuts">
-          <div>
-            <dt><kbd>⌘P</kbd></dt>
-            <dd>Start / Pause</dd>
-          </div>
-          <div>
-            <dt><kbd>⌘R</kbd></dt>
-            <dd>Reset</dd>
-          </div>
-          <div>
-            <dt><kbd>⌘L</kbd></dt>
-            <dd>Log completed session</dd>
-          </div>
-        </dl>
-      </div>
-    </section>
+    <PomodoroSection
+      active={activeSection === "pomodoro"}
+      title={sections[0].title}
+      shortcut={sections[0].shortcut}
+      onActivate={() => setActiveSection("pomodoro", { preserveFocus: true })}
+    />
 
     <section
       class="panel todo"
@@ -573,12 +443,12 @@
       <header class="panel-header inline-header">
         <div class="title-row">
           <p class="section-label section-label-todo">{sections[1].title}</p>
-          <kbd>{sections[1].shortcut}</kbd>
+          <KeyboardKey value={sections[1].shortcut} label="Command 2" />
         </div>
         {#if activeSection === "todo"}
           <div class="hint-row" aria-label="Todo shortcuts">
-            <span><kbd>i</kbd>Focus Add</span>
-            <span><kbd>j</kbd>/<kbd>k</kbd>Move</span>
+            <span><KeyboardKey value="i" />Focus Add</span>
+            <span><KeyboardKey value="j" />/<KeyboardKey value="k" />Move</span>
           </div>
         {/if}
       </header>
@@ -660,20 +530,20 @@
                     class="task-actions"
                     aria-label="Selected todo shortcuts"
                   >
-                    <span><kbd>e</kbd>Edit</span>
+                    <span><KeyboardKey value="e" />Edit</span>
                     <span>
-                      <kbd>Space</kbd>{todo.completed
+                      <KeyboardKey value="Space" />{todo.completed
                         ? "Incomplete"
                         : "Complete"}
                     </span>
                     {#if !todo.completed}
                       <span>
-                        <kbd>Enter</kbd>{nowTodoId === todo.id
+                        <KeyboardKey value="Enter" />{nowTodoId === todo.id
                           ? "Unset Now"
                           : "Set Now"}
                       </span>
                     {/if}
-                    <span><kbd>D</kbd>Delete</span>
+                    <span><KeyboardKey value="D" />Delete</span>
                   </div>
                 {/if}
               </div>
@@ -702,65 +572,13 @@
       {/if}
     </section>
 
-    <section
-      class="panel log"
-      class:panel-active={activeSection === "log"}
-      aria-labelledby="log-title"
-    >
-      <header class="panel-header inline-header">
-        <div class="title-row">
-          <p class="section-label section-label-log">{sections[2].title}</p>
-          <kbd>{sections[2].shortcut}</kbd>
-        </div>
-        {#if activeSection === "log"}
-          <div class="hint-row" aria-label="Log shortcuts">
-            <span><kbd>i</kbd>Focus Input</span>
-            <span><kbd>Enter</kbd>Submit</span>
-            <span><kbd>Shift</kbd> + <kbd>Enter</kbd>New line</span>
-          </div>
-        {/if}
-      </header>
-
-      <h2 id="log-title" class="sr-only">Work Log</h2>
-
-      <ol class="log-list" aria-label="Work log">
-        {#if isLoadingWorkLogs}
-          <li class="log-empty">Loading logs...</li>
-        {:else if workLogs.length === 0}
-          <li class="log-empty">No logs yet.</li>
-        {:else}
-          {#each workLogs as log (log.id)}
-            <li>
-              <time>{formatLogTime(log.createdAtMs)}</time>
-              <span>{log.body}</span>
-            </li>
-          {/each}
-        {/if}
-      </ol>
-
-      <form
-        class="log-input"
-        onsubmit={(event) => {
-          event.preventDefault();
-          void submitWorkLog();
-        }}
-      >
-        <span aria-hidden="true">&gt;</span>
-        <textarea
-          rows="2"
-          placeholder="Write a work log... (Enter to submit)"
-          bind:value={workLogInput}
-          bind:this={workLogInputElement}
-          disabled={isCreatingWorkLog}
-          onfocus={() => setActiveSection("log", { preserveFocus: true })}
-          onkeydown={handleWorkLogKeydown}
-        ></textarea>
-      </form>
-
-      {#if workLogError}
-        <p class="log-error" role="alert">{workLogError}</p>
-      {/if}
-    </section>
+    <WorkLogSection
+      active={activeSection === "log"}
+      title={sections[2].title}
+      shortcut={sections[2].shortcut}
+      focusRequest={workLogFocusRequest}
+      onActivate={() => setActiveSection("log", { preserveFocus: true })}
+    />
   </div>
 </main>
 
@@ -793,8 +611,7 @@
   }
 
   button,
-  input,
-  textarea {
+  input {
     font: inherit;
   }
 
@@ -815,26 +632,8 @@
     outline-offset: 2px;
   }
 
-  input:focus-visible,
-  textarea:focus-visible {
+  input:focus-visible {
     outline: none;
-  }
-
-  kbd {
-    display: inline-flex;
-    min-width: 1.65rem;
-    height: 1.35rem;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.13);
-    border-radius: 5px;
-    padding: 0 0.38rem;
-    color: #c8ced8;
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.3);
-    font-size: 0.76rem;
-    font-weight: 500;
-    line-height: 1;
   }
 
   .app-shell {
@@ -889,28 +688,12 @@
     );
   }
 
-  .pomodoro.panel-active {
-    border-color: #ff5965;
-    box-shadow:
-      0 0 0 1px rgba(255, 89, 101, 0.34),
-      0 0 0 4px rgba(255, 89, 101, 0.08),
-      0 0.8rem 2rem rgba(255, 89, 101, 0.1);
-  }
-
   .todo.panel-active {
     border-color: #44d16b;
     box-shadow:
       0 0 0 1px rgba(68, 209, 107, 0.35),
       0 0 0 4px rgba(68, 209, 107, 0.08),
       0 0.8rem 2rem rgba(68, 209, 107, 0.1);
-  }
-
-  .log.panel-active {
-    border-color: #5b8ff9;
-    box-shadow:
-      0 0 0 1px rgba(91, 143, 249, 0.35),
-      0 0 0 4px rgba(91, 143, 249, 0.08),
-      0 0.8rem 2rem rgba(91, 143, 249, 0.11);
   }
 
   .panel-header {
@@ -953,107 +736,11 @@
     letter-spacing: 0;
   }
 
-  .section-label-focus {
-    color: #ff5965;
-  }
-
   .section-label-todo {
     color: #44d16b;
   }
 
-  .section-label-log {
-    color: #5b8ff9;
-  }
-
-  .timer-layout {
-    display: grid;
-    grid-template-columns: auto minmax(14rem, 1fr) minmax(13rem, auto);
-    align-items: center;
-    gap: 1.4rem;
-    min-height: 7.4rem;
-    padding: 0.65rem;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
-    background: rgba(9, 12, 16, 0.28);
-  }
-
-  .timer-ring {
-    display: grid;
-    place-items: center;
-    align-content: center;
-    width: clamp(6.4rem, 12vw, 7.6rem);
-    aspect-ratio: 1;
-    border: 0.3rem solid #f05260;
-    border-radius: 999px;
-    box-shadow:
-      0 0 0 0.35rem rgba(240, 82, 96, 0.08),
-      inset 0 0 2rem rgba(0, 0, 0, 0.22);
-  }
-
-  .time {
-    font-size: clamp(1.8rem, 3.6vw, 2.25rem);
-    font-weight: 650;
-    line-height: 1;
-  }
-
-  .mode {
-    margin-top: 0.25rem;
-    font-size: 0.9rem;
-    color: #ff5965;
-    font-weight: 600;
-  }
-
-  .session {
-    margin: 0 0 0.75rem;
-    color: #c7cdd6;
-    font-size: 1rem;
-  }
-
-  .session strong {
-    margin-left: 0.5rem;
-    color: #ffffff;
-  }
-
-  .timer-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
-  }
-
-  .timer-actions button {
-    min-width: 5.5rem;
-    min-height: 2.45rem;
-    padding: 0 0.85rem;
-    font-weight: 650;
-  }
-
-  .timer-actions .primary-button {
-    border-color: rgba(255, 255, 255, 0.14);
-    background: linear-gradient(180deg, #ff6670, #df3745);
-    color: #ffffff;
-  }
-
-  .shortcut-list {
-    display: grid;
-    gap: 0.4rem;
-    margin: 0;
-    color: #aeb5c1;
-  }
-
-  .shortcut-list div {
-    display: grid;
-    grid-template-columns: 3rem 1fr;
-    align-items: center;
-    gap: 0.65rem;
-  }
-
-  .shortcut-list dt,
-  .shortcut-list dd {
-    margin: 0;
-  }
-
-  .task-list,
-  .log-list {
+  .task-list {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -1205,8 +892,7 @@
     color: #858d9a;
   }
 
-  .quick-input,
-  .log-input {
+  .quick-input {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
@@ -1219,8 +905,7 @@
     color: #7f8794;
   }
 
-  .quick-input input,
-  .log-input textarea {
+  .quick-input input {
     min-width: 0;
     border: 0;
     color: #e8ecf2;
@@ -1240,67 +925,11 @@
     opacity: 0.65;
   }
 
-  .quick-input input::placeholder,
-  .log-input textarea::placeholder {
+  .quick-input input::placeholder {
     color: #858d9a;
   }
 
-  .log-list {
-    min-height: 8rem;
-    padding: 0.75rem 0.9rem;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
-    background: rgba(9, 12, 16, 0.28);
-  }
-
-  .log-list li {
-    display: grid;
-    grid-template-columns: 4rem minmax(0, 1fr);
-    gap: 0.9rem;
-    color: #d7dce4;
-  }
-
-  .log-list span {
-    white-space: pre-wrap;
-  }
-
-  .log-list .log-empty {
-    grid-template-columns: 1fr;
-    color: #858d9a;
-  }
-
-  .log-list time {
-    color: #a8b0be;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .log-input {
-    border-color: rgba(91, 143, 249, 0.72);
-    align-items: start;
-  }
-
-  .log-input:focus-within {
-    border-color: #5b8ff9;
-    box-shadow:
-      0 0 0 1px rgba(91, 143, 249, 0.35),
-      0 0 0 4px rgba(91, 143, 249, 0.08);
-  }
-
-  .log-input span {
-    color: #5b8ff9;
-    font-weight: 700;
-  }
-
-  .log-input textarea {
-    caret-color: #5b8ff9;
-  }
-
-  .log-input textarea:disabled {
-    opacity: 0.65;
-  }
-
-  .todo-error,
-  .log-error {
+  .todo-error {
     margin: 0.55rem 0 0;
     color: #ff8a93;
     font-size: 0.88rem;
@@ -1319,16 +948,6 @@
     .workspace {
       grid-template-rows: auto auto auto;
       min-height: auto;
-    }
-
-    .timer-layout {
-      grid-template-columns: 1fr;
-      justify-items: start;
-      gap: 1.25rem;
-    }
-
-    .shortcut-list {
-      width: 100%;
     }
 
     .inline-header {
@@ -1352,14 +971,6 @@
 
     .panel {
       padding: 0.8rem;
-    }
-
-    .timer-actions {
-      width: 100%;
-    }
-
-    .timer-actions button {
-      flex: 1 1 8rem;
     }
 
     .task-title {
