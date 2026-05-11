@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import { sendPomodoroCompleteNotification } from "$lib/notifications";
 
   type PomodoroCommand = "toggle" | "reset" | "startFocus";
 
@@ -99,6 +100,7 @@
         remainingSeconds = 0;
         running = false;
         stopTimer();
+        void sendPomodoroCompleteNotification();
         return;
       }
 

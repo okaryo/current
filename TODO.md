@@ -183,13 +183,14 @@ Work Log decisions:
 - [x] Pause timer
 - [x] Reset timer
 - [x] Display remaining time
-- [ ] Add session end notification
+- [x] Add session end notification
 
 Pomodoro decisions:
 
 - Initial timer supports Focus only.
 - Focus duration is fixed at 25 minutes for now.
 - Timer stops at `00:00`.
+- Timer sends a system notification when focus reaches `00:00`.
 - Reset always stops the timer and returns to `25:00`.
 - Session count is not displayed or persisted for now.
 
