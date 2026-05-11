@@ -27,6 +27,13 @@
 - [x] Add keyboard navigation between sections
 - [ ] Add basic responsive window behavior
 
+Layout decisions:
+
+- Keep Pomodoro, TODO, and Work Log visible in the main window when possible.
+- Keep TODO and Work Log inputs at the bottom of their sections for a stable, familiar layout, as long as all sections remain visible.
+- Long TODO and Work Log content should scroll inside the list area, not push other sections out of view.
+- TODO and Work Log list areas should have a comfortable max height and should not keep expanding just because the window is taller.
+
 ---
 
 ## Phase 3 — TODO Features
@@ -140,6 +147,7 @@ Work Log decisions:
 - `Enter`: submit the current work log
 - `Shift+Enter`: insert a newline
 - Work logs are persisted to SQLite with creation timestamps.
+- Work logs are displayed newest first.
 - Markdown helper behavior is deferred until the basic logging flow feels right.
 
 ---

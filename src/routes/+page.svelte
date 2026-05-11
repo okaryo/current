@@ -231,12 +231,14 @@
 
   :global(body) {
     min-width: 360px;
-    min-height: 100vh;
+    height: 100vh;
     margin: 0;
+    overflow: hidden;
   }
 
   .app-shell {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     padding: 0.8rem;
     background:
       radial-gradient(
@@ -253,13 +255,26 @@
     align-content: start;
     gap: 0.75rem;
     width: min(100%, 104rem);
-    min-height: calc(100vh - 1.6rem);
+    height: calc(100vh - 1.6rem);
+    min-height: 0;
     margin: 0 auto;
   }
 
   @media (max-width: 860px) {
+    :global(body) {
+      height: auto;
+      overflow: auto;
+    }
+
+    .app-shell {
+      height: auto;
+      min-height: 100vh;
+      overflow: visible;
+    }
+
     .workspace {
       grid-template-rows: auto auto auto;
+      height: auto;
       min-height: auto;
     }
   }

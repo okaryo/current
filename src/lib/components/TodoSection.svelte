@@ -496,8 +496,12 @@
 
 <style>
   .panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
     position: relative;
     min-width: 0;
+    min-height: 0;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     padding: 0.85rem;
@@ -605,7 +609,11 @@
   }
 
   .task-list {
-    overflow: auto;
+    flex: 0 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 0;
+    max-height: clamp(7rem, 18vh, 14rem);
     margin: 0;
     padding: 0;
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -758,6 +766,7 @@
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 0.7rem;
+    flex: 0 0 auto;
     margin-top: 0.7rem;
     border: 1px solid rgba(68, 209, 107, 0.52);
     border-radius: 8px;

@@ -39,7 +39,7 @@
     workLogError = null;
 
     try {
-      workLogs = await listWorkLogs();
+      workLogs = (await listWorkLogs()).sort(compareWorkLogs);
     } catch (error) {
       workLogError = errorMessage(error);
     } finally {
@@ -89,10 +89,10 @@
 
   function compareWorkLogs(a: WorkLog, b: WorkLog) {
     if (a.createdAtMs !== b.createdAtMs) {
-      return a.createdAtMs - b.createdAtMs;
+      return b.createdAtMs - a.createdAtMs;
     }
 
-    return a.id - b.id;
+    return b.id - a.id;
   }
 
   function formatLogTime(createdAtMs: number) {
@@ -174,8 +174,12 @@
 
 <style>
   .panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
     position: relative;
     min-width: 0;
+    min-height: 0;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     padding: 0.85rem;
@@ -265,7 +269,11 @@
   }
 
   .log-list {
-    min-height: 8rem;
+    flex: 0 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 0;
+    max-height: clamp(6rem, 16vh, 12rem);
     margin: 0;
     padding: 0.75rem 0.9rem;
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -300,6 +308,7 @@
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
     gap: 0.7rem;
+    flex: 0 0 auto;
     margin-top: 0.7rem;
     border: 1px solid rgba(91, 143, 249, 0.72);
     border-radius: 8px;
