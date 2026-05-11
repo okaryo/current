@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
@@ -35,7 +35,7 @@
   ];
   const RHYTHM_REMINDER_INTERVAL_MS = 15 * 60 * 1000;
 
-  let activeSection = $state<SectionId>("todo");
+  let activeSection = $state<SectionId>("log");
   let pomodoroCommandRequest = $state<{
     id: number;
     command: PomodoroCommand;
@@ -68,6 +68,10 @@
 
   onDestroy(() => {
     stopRhythmReminder();
+  });
+
+  onMount(() => {
+    focusWorkLogInput();
   });
 
   function handleKeydown(event: KeyboardEvent) {

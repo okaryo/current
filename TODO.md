@@ -212,15 +212,12 @@ Pomodoro keyboard decisions:
 
 - [x] Create rhythm reminder timer
 - [x] Add periodic reminder notifications
-- [ ] Add reminder interval setting
-- [ ] Persist reminder settings locally
 
 ### Reminder UI
 
 - [x] Display subtle reminder status
 - [x] Display "Next check-in" indicator
 - [x] Add ON/OFF toggle
-- [ ] Add explanation text in settings
 
 Rhythm Reminder decisions:
 
@@ -334,6 +331,11 @@ Initial release workflow decisions:
 ### Pomodoro Sound
 
 - [ ] Add optional white noise while the timer is running
+
+### Rhythm Reminder Settings
+
+- [ ] Add reminder interval setting
+- [ ] Persist reminder settings locally
 
 ### Keyboard Workflow
 
