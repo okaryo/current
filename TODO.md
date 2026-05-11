@@ -76,6 +76,10 @@ Keyboard decisions:
 - Delete does not have undo for now.
 - Focusing the add input clears TODO selection.
 - Creating a TODO keeps focus on the add input and does not select the created TODO.
+- When the add input is focused, the TODO header hint shows only `Esc`: focus the TODO list; add confirmation stays in the input placeholder.
+- Pressing `Esc` from the add input focuses the TODO list and selects the first TODO item when one exists.
+- When a TODO item is selected, the TODO header hint shows section-level movement and focus shortcuts only; Arrow movement remains supported but is not shown because it is conventional.
+- Item-specific shortcuts stay inside the selected TODO item.
 - Focused text inputs should avoid native blue outlines and use caret/container border emphasis instead.
 
 ### Nested TODO

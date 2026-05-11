@@ -50,6 +50,7 @@
   let editingTodoId = $state<number | null>(null);
   let editingTitle = $state("");
   let isSavingEdit = $state(false);
+  let isAddInputFocused = $state(false);
   let addTodoInput = $state<HTMLInputElement>();
   let editTodoInput = $state<HTMLInputElement>();
   let taskListElement = $state<HTMLUListElement>();
@@ -388,6 +389,23 @@
     addTodoInput?.focus();
   }
 
+  async function focusTodoListFromAddInput() {
+    const firstTodoId = todos[0]?.id ?? null;
+
+    addTodoInput?.blur();
+    selectedTodoId = firstTodoId;
+    editingTodoId = null;
+    editingTitle = "";
+
+    if (firstTodoId === null) {
+      return;
+    }
+
+    await tick();
+
+    taskListElement?.focus({ preventScroll: true });
+  }
+
   async function focusPreferredTodoTarget() {
     onActivate();
 
@@ -512,15 +530,24 @@
     </div>
     {#if active}
       <div class="hint-row" aria-label="Todo shortcuts">
-        <span><KeyboardKey value="i" />Focus Add</span>
-        <span><KeyboardKey value="j" />/<KeyboardKey value="k" />Move</span>
+        {#if isAddInputFocused}
+          <span><KeyboardKey value="Esc" label="Escape" />Focus List</span>
+        {:else}
+          <span><KeyboardKey value="i" />Focus Add</span>
+          <span><KeyboardKey value="j" />/<KeyboardKey value="k" />Move</span>
+        {/if}
       </div>
     {/if}
   </header>
 
   <h2 id="todo-title" class="sr-only">Todo</h2>
 
-  <ul class="task-list" aria-label="Todo list" bind:this={taskListElement}>
+  <ul
+    class="task-list"
+    aria-label="Todo list"
+    tabindex="-1"
+    bind:this={taskListElement}
+  >
     {#if isLoadingTodos}
       <li class="task-empty">Loading todos...</li>
     {:else if todos.length === 0}
@@ -629,8 +656,19 @@
       bind:this={addTodoInput}
       disabled={isCreatingTodo}
       onfocus={() => {
+        isAddInputFocused = true;
         onActivate();
         clearTodoSelection();
+      }}
+      onkeydown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          void focusTodoListFromAddInput();
+        }
+      }}
+      onblur={() => {
+        isAddInputFocused = false;
       }}
     />
   </form>
@@ -764,6 +802,10 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 8px;
     list-style: none;
+  }
+
+  .task-list:focus {
+    outline: none;
   }
 
   .task-list li {
