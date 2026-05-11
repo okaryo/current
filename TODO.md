@@ -210,17 +210,27 @@ Pomodoro keyboard decisions:
 
 ### Reminder System
 
-- [ ] Create rhythm reminder timer
-- [ ] Add periodic reminder notifications
+- [x] Create rhythm reminder timer
+- [x] Add periodic reminder notifications
 - [ ] Add reminder interval setting
 - [ ] Persist reminder settings locally
 
 ### Reminder UI
 
-- [ ] Display subtle reminder status
-- [ ] Display "Next check-in" indicator
-- [ ] Add ON/OFF toggle
+- [x] Display subtle reminder status
+- [x] Display "Next check-in" indicator
+- [x] Add ON/OFF toggle
 - [ ] Add explanation text in settings
+
+Rhythm Reminder decisions:
+
+- Initial reminder interval is fixed at 15 minutes.
+- Rhythm Reminder runs only while the Pomodoro timer is running.
+- Starting or restarting Pomodoro resets the reminder countdown.
+- Pausing, resetting, or completing Pomodoro stops the reminder countdown.
+- Reminder ON/OFF is local UI state and is not persisted for now.
+- The Log section displays the next check-in status and a subtle progress gauge.
+- The ON/OFF toggle is keyboard accessible through normal button focus, but does not have a dedicated shortcut for now.
 
 ---
 

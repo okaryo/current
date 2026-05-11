@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { onDestroy } from "svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
+  import { sendWorkLogReminderNotification } from "$lib/notifications";
 
   type SectionId = "pomodoro" | "todo" | "log";
 
@@ -31,6 +33,7 @@
     { id: "todo", title: "Todo", shortcut: "⌘2" },
     { id: "log", title: "Log", shortcut: "⌘3" },
   ];
+  const RHYTHM_REMINDER_INTERVAL_MS = 15 * 60 * 1000;
 
   let activeSection = $state<SectionId>("todo");
   let pomodoroCommandRequest = $state<{
@@ -43,6 +46,29 @@
   );
   let todoCommandRequestId = 0;
   let workLogFocusRequest = $state(0);
+  let pomodoroRunning = $state(false);
+  let reminderEnabled = $state(true);
+  let reminderStartedAtMs = $state<number | null>(null);
+  let reminderNextAtMs = $state<number | null>(null);
+  let reminderNowMs = $state(Date.now());
+  let reminderTimeout: ReturnType<typeof setTimeout> | undefined;
+  let reminderTickInterval: ReturnType<typeof setInterval> | undefined;
+
+  const reminderRemainingLabel = $derived(
+    reminderStatusLabel(
+      reminderEnabled,
+      pomodoroRunning,
+      reminderNextAtMs,
+      reminderNowMs,
+    ),
+  );
+  const reminderProgress = $derived(
+    reminderProgressValue(reminderStartedAtMs, reminderNextAtMs, reminderNowMs),
+  );
+
+  onDestroy(() => {
+    stopRhythmReminder();
+  });
 
   function handleKeydown(event: KeyboardEvent) {
     const sectionShortcut = sectionFromShortcut(event);
@@ -188,6 +214,114 @@
     requestPomodoroCommand("startFocus");
   }
 
+  function handlePomodoroRunningChange(nextRunning: boolean) {
+    pomodoroRunning = nextRunning;
+
+    if (nextRunning) {
+      startRhythmReminder();
+      return;
+    }
+
+    stopRhythmReminder();
+  }
+
+  function toggleRhythmReminder() {
+    reminderEnabled = !reminderEnabled;
+
+    if (reminderEnabled && pomodoroRunning) {
+      startRhythmReminder();
+      return;
+    }
+
+    stopRhythmReminder();
+  }
+
+  function startRhythmReminder() {
+    stopRhythmReminder();
+
+    if (!reminderEnabled || !pomodoroRunning) {
+      return;
+    }
+
+    const now = Date.now();
+
+    reminderStartedAtMs = now;
+    reminderNextAtMs = now + RHYTHM_REMINDER_INTERVAL_MS;
+    reminderNowMs = now;
+    reminderTimeout = setTimeout(() => {
+      void handleRhythmReminderElapsed();
+    }, RHYTHM_REMINDER_INTERVAL_MS);
+    reminderTickInterval = setInterval(() => {
+      reminderNowMs = Date.now();
+    }, 1000);
+  }
+
+  function stopRhythmReminder() {
+    if (reminderTimeout) {
+      clearTimeout(reminderTimeout);
+      reminderTimeout = undefined;
+    }
+
+    if (reminderTickInterval) {
+      clearInterval(reminderTickInterval);
+      reminderTickInterval = undefined;
+    }
+
+    reminderStartedAtMs = null;
+    reminderNextAtMs = null;
+    reminderNowMs = Date.now();
+  }
+
+  async function handleRhythmReminderElapsed() {
+    if (!reminderEnabled || !pomodoroRunning) {
+      stopRhythmReminder();
+      return;
+    }
+
+    await sendWorkLogReminderNotification();
+    startRhythmReminder();
+  }
+
+  function reminderStatusLabel(
+    enabled: boolean,
+    running: boolean,
+    nextAtMs: number | null,
+    nowMs: number,
+  ) {
+    if (!enabled) {
+      return "Off";
+    }
+
+    if (!running || nextAtMs === null) {
+      return "Paused";
+    }
+
+    return formatDuration(Math.max(nextAtMs - nowMs, 0));
+  }
+
+  function reminderProgressValue(
+    startedAtMs: number | null,
+    nextAtMs: number | null,
+    nowMs: number,
+  ) {
+    if (startedAtMs === null || nextAtMs === null || nextAtMs <= startedAtMs) {
+      return 0;
+    }
+
+    return Math.min(
+      Math.max((nowMs - startedAtMs) / (nextAtMs - startedAtMs), 0),
+      1,
+    );
+  }
+
+  function formatDuration(durationMs: number) {
+    const totalSeconds = Math.ceil(durationMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+
   function sectionFromShortcut(event: KeyboardEvent): SectionId | null {
     if (!event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
       return null;
@@ -227,6 +361,7 @@
       title={sections[0].title}
       shortcut={sections[0].shortcut}
       commandRequest={pomodoroCommandRequest}
+      onRunningChange={handlePomodoroRunningChange}
       onActivate={() => setActiveSection("pomodoro", { preserveFocus: true })}
     />
 
@@ -244,6 +379,10 @@
       title={sections[2].title}
       shortcut={sections[2].shortcut}
       focusRequest={workLogFocusRequest}
+      {reminderEnabled}
+      {reminderProgress}
+      {reminderRemainingLabel}
+      onToggleReminder={toggleRhythmReminder}
       onActivate={() => setActiveSection("log", { preserveFocus: true })}
     />
   </div>

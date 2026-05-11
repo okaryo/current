@@ -15,12 +15,20 @@
     title: string;
     shortcut: string;
     commandRequest: PomodoroCommandRequest;
+    onRunningChange: (running: boolean) => void;
     onActivate: () => void;
   };
 
   const FOCUS_DURATION_SECONDS = 25 * 60;
 
-  let { active, title, shortcut, commandRequest, onActivate }: Props = $props();
+  let {
+    active,
+    title,
+    shortcut,
+    commandRequest,
+    onRunningChange,
+    onActivate,
+  }: Props = $props();
 
   let remainingSeconds = $state(FOCUS_DURATION_SECONDS);
   let running = $state(false);
@@ -71,18 +79,18 @@
       remainingSeconds = FOCUS_DURATION_SECONDS;
     }
 
-    running = true;
+    setRunning(true);
     restartInterval();
   }
 
   function pauseTimer() {
-    running = false;
+    setRunning(false);
     stopTimer();
   }
 
   function resetTimer() {
     onActivate();
-    running = false;
+    setRunning(false);
     stopTimer();
     remainingSeconds = FOCUS_DURATION_SECONDS;
   }
@@ -98,7 +106,7 @@
     timerInterval = setInterval(() => {
       if (remainingSeconds <= 1) {
         remainingSeconds = 0;
-        running = false;
+        setRunning(false);
         stopTimer();
         void sendPomodoroCompleteNotification();
         return;
@@ -113,6 +121,15 @@
       clearInterval(timerInterval);
       timerInterval = undefined;
     }
+  }
+
+  function setRunning(nextRunning: boolean) {
+    if (running === nextRunning) {
+      return;
+    }
+
+    running = nextRunning;
+    onRunningChange(nextRunning);
   }
 
   function formatTime(totalSeconds: number) {

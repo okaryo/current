@@ -9,10 +9,24 @@
     title: string;
     shortcut: string;
     focusRequest: number;
+    reminderEnabled: boolean;
+    reminderProgress: number;
+    reminderRemainingLabel: string;
+    onToggleReminder: () => void;
     onActivate: () => void;
   };
 
-  let { active, title, shortcut, focusRequest, onActivate }: Props = $props();
+  let {
+    active,
+    title,
+    shortcut,
+    focusRequest,
+    reminderEnabled,
+    reminderProgress,
+    reminderRemainingLabel,
+    onToggleReminder,
+    onActivate,
+  }: Props = $props();
 
   let workLogs = $state<WorkLog[]>([]);
   let workLogInput = $state("");
@@ -158,11 +172,30 @@
       <p class="section-label section-label-log">{title}</p>
       <KeyboardKey value={shortcut} label="Command 3" />
     </div>
-    {#if active}
-      <div class="hint-row" aria-label="Log shortcuts">
-        <span><KeyboardKey value="i" />Focus Input</span>
+    <div class="hint-row" aria-label="Log status and shortcuts">
+      <div
+        class="reminder-status"
+        aria-label={`Rhythm reminder ${reminderEnabled ? "on" : "off"}, next check-in ${reminderRemainingLabel}`}
+        style={`--reminder-progress: ${reminderProgress}`}
+      >
+        <span class="reminder-fill" aria-hidden="true"></span>
+        <span class="reminder-label">Next check-in</span>
+        <span class="reminder-time">{reminderRemainingLabel}</span>
+        <button
+          class="reminder-switch"
+          type="button"
+          role="switch"
+          aria-checked={reminderEnabled}
+          aria-label="Toggle rhythm reminder"
+          onclick={onToggleReminder}
+        >
+          <span aria-hidden="true"></span>
+        </button>
       </div>
-    {/if}
+      {#if active}
+        <span><KeyboardKey value="i" />Focus Input</span>
+      {/if}
+    </div>
   </header>
 
   <h2 id="log-title" class="sr-only">Work Log</h2>
@@ -295,6 +328,86 @@
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
+  }
+
+  .reminder-status {
+    --reminder-progress: 0;
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    gap: 0.45rem;
+    min-height: 1.75rem;
+    border: 1px solid rgba(91, 143, 249, 0.28);
+    border-radius: 8px;
+    padding: 0 0.25rem 0 0.65rem;
+    color: #c9d4e8;
+    background: rgba(91, 143, 249, 0.07);
+  }
+
+  .reminder-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--reminder-progress) * 100%);
+    background: rgba(91, 143, 249, 0.16);
+    pointer-events: none;
+  }
+
+  .reminder-label,
+  .reminder-time,
+  .reminder-switch {
+    position: relative;
+  }
+
+  .reminder-label {
+    color: #9ba3b0;
+  }
+
+  .reminder-time {
+    min-width: 3rem;
+    color: #e3e9f5;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .reminder-switch {
+    display: inline-flex;
+    align-items: center;
+    width: 2rem;
+    height: 1.15rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    padding: 0.12rem;
+    background: rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition:
+      border-color 120ms ease,
+      background 120ms ease;
+  }
+
+  .reminder-switch span {
+    width: 0.75rem;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    background: #aeb5c1;
+    transition:
+      background 120ms ease,
+      transform 120ms ease;
+  }
+
+  .reminder-switch[aria-checked="true"] {
+    border-color: rgba(91, 143, 249, 0.45);
+    background: rgba(91, 143, 249, 0.28);
+  }
+
+  .reminder-switch[aria-checked="true"] span {
+    background: #ffffff;
+    transform: translateX(0.82rem);
+  }
+
+  .reminder-switch:focus-visible {
+    outline: 1px solid rgba(91, 143, 249, 0.85);
+    outline-offset: 2px;
   }
 
   .section-label {
