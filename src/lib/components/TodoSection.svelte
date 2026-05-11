@@ -759,7 +759,6 @@
     overflow-x: hidden;
     overflow-y: auto;
     min-height: 0;
-    max-height: clamp(7rem, 18vh, 14rem);
     margin: 0;
     padding: 0;
     border: 1px solid rgba(255, 255, 255, 0.06);

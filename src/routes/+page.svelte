@@ -287,14 +287,21 @@
   }
 
   .workspace {
-    display: grid;
-    grid-template-rows: auto auto auto;
-    align-content: start;
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
     width: min(100%, 104rem);
     height: calc(100vh - 1.6rem);
     min-height: 0;
     margin: 0 auto;
+  }
+
+  .workspace > :global(section) {
+    flex: 0 1 auto;
+  }
+
+  .workspace > :global(section:first-child) {
+    flex-shrink: 0;
   }
 
   @media (max-width: 860px) {
@@ -310,7 +317,6 @@
     }
 
     .workspace {
-      grid-template-rows: auto auto auto;
       height: auto;
       min-height: auto;
     }

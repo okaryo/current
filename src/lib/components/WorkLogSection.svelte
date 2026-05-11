@@ -313,7 +313,6 @@
     overflow-x: hidden;
     overflow-y: auto;
     min-height: 0;
-    max-height: clamp(6rem, 16vh, 12rem);
     margin: 0;
     padding: 0.75rem 0.9rem;
     border: 1px solid rgba(255, 255, 255, 0.06);

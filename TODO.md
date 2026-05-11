@@ -32,7 +32,7 @@ Layout decisions:
 - Keep Pomodoro, TODO, and Work Log visible in the main window when possible.
 - Keep TODO and Work Log inputs at the bottom of their sections for a stable, familiar layout, as long as all sections remain visible.
 - Long TODO and Work Log content should scroll inside the list area, not push other sections out of view.
-- TODO and Work Log list areas should have a comfortable max height and should not keep expanding just because the window is taller.
+- TODO and Work Log list areas should fit their content when short, and use internal scrolling when content exceeds the available window height.
 
 ---
 
