@@ -360,35 +360,41 @@
 
 <main class="app-shell" aria-label="Current">
   <div class="workspace">
-    <PomodoroSection
-      active={activeSection === "pomodoro"}
-      title={sections[0].title}
-      shortcut={sections[0].shortcut}
-      commandRequest={pomodoroCommandRequest}
-      onRunningChange={handlePomodoroRunningChange}
-      onActivate={() => setActiveSection("pomodoro", { preserveFocus: true })}
-    />
+    <div class="section-slot pomodoro-slot">
+      <PomodoroSection
+        active={activeSection === "pomodoro"}
+        title={sections[0].title}
+        shortcut={sections[0].shortcut}
+        commandRequest={pomodoroCommandRequest}
+        onRunningChange={handlePomodoroRunningChange}
+        onActivate={() => setActiveSection("pomodoro", { preserveFocus: true })}
+      />
+    </div>
 
-    <TodoSection
-      active={activeSection === "todo"}
-      title={sections[1].title}
-      shortcut={sections[1].shortcut}
-      commandRequest={todoCommandRequest}
-      onSetNow={startPomodoroFocus}
-      onActivate={() => setActiveSection("todo", { preserveFocus: true })}
-    />
+    <div class="section-slot todo-slot">
+      <TodoSection
+        active={activeSection === "todo"}
+        title={sections[1].title}
+        shortcut={sections[1].shortcut}
+        commandRequest={todoCommandRequest}
+        onSetNow={startPomodoroFocus}
+        onActivate={() => setActiveSection("todo", { preserveFocus: true })}
+      />
+    </div>
 
-    <WorkLogSection
-      active={activeSection === "log"}
-      title={sections[2].title}
-      shortcut={sections[2].shortcut}
-      focusRequest={workLogFocusRequest}
-      {reminderEnabled}
-      {reminderProgress}
-      {reminderRemainingLabel}
-      onToggleReminder={toggleRhythmReminder}
-      onActivate={() => setActiveSection("log", { preserveFocus: true })}
-    />
+    <div class="section-slot log-slot">
+      <WorkLogSection
+        active={activeSection === "log"}
+        title={sections[2].title}
+        shortcut={sections[2].shortcut}
+        focusRequest={workLogFocusRequest}
+        {reminderEnabled}
+        {reminderProgress}
+        {reminderRemainingLabel}
+        onToggleReminder={toggleRhythmReminder}
+        onActivate={() => setActiveSection("log", { preserveFocus: true })}
+      />
+    </div>
   </div>
 </main>
 
@@ -435,8 +441,12 @@
   }
 
   .workspace {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-areas:
+      "pomodoro pomodoro"
+      "todo log";
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 0.75rem;
     width: min(100%, 104rem);
     height: calc(100vh - 1.6rem);
@@ -444,29 +454,50 @@
     margin: 0 auto;
   }
 
-  .workspace > :global(section) {
-    flex: 0 1 auto;
+  .section-slot {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
   }
 
-  .workspace > :global(section:first-child) {
-    flex-shrink: 0;
+  .section-slot :global(.panel) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .pomodoro-slot {
+    grid-area: pomodoro;
+  }
+
+  .todo-slot {
+    grid-area: todo;
+  }
+
+  .log-slot {
+    grid-area: log;
   }
 
   @media (max-width: 860px) {
     :global(body) {
-      height: auto;
-      overflow: auto;
+      height: 100vh;
+      overflow: hidden;
     }
 
     .app-shell {
-      height: auto;
-      min-height: 100vh;
-      overflow: visible;
+      height: 100vh;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .workspace {
-      height: auto;
-      min-height: auto;
+      grid-template-areas:
+        "pomodoro"
+        "todo"
+        "log";
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+      height: calc(100vh - 1.6rem);
+      min-height: 0;
     }
   }
 
@@ -476,6 +507,7 @@
     }
 
     .workspace {
+      height: 100vh;
       padding: 0.55rem;
     }
   }

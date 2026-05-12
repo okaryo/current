@@ -25,12 +25,17 @@
 - [ ] Add resizable section layout if needed
 - [x] Add focus state UI for active section
 - [x] Add keyboard navigation between sections
-- [ ] Add basic responsive window behavior
+- [x] Add basic responsive window behavior
 
 Layout decisions:
 
 - Keep Pomodoro, TODO, and Work Log visible in the main window when possible.
-- Keep TODO and Work Log inputs at the bottom of their sections for a stable, familiar layout, as long as all sections remain visible.
+- On desktop-width windows, Pomodoro spans the top row and TODO / Work Log share the lower row as two columns.
+- On narrow windows, sections stack vertically.
+- On narrow windows, keep all three sections within the main viewport when possible and keep Pomodoro content horizontally arranged.
+- On narrow windows, keep TODO and Work Log headers on one row; Work Log keeps the check-in indicator and input focus key to the right of the title.
+- On narrow windows, TODO and Work Log list areas use the available section height as an upper limit, but fit their content when short.
+- Keep TODO and Work Log inputs near the top of their sections when sections are tall, so input actions stay visually close to the current content.
 - Long TODO and Work Log content should scroll inside the list area, not push other sections out of view.
 - TODO and Work Log list areas should fit their content when short, and use internal scrolling when content exceeds the available window height.
 
@@ -79,7 +84,7 @@ Keyboard decisions:
 - When the add input is focused, the TODO header hint shows only `Esc`: focus the TODO list; add confirmation stays in the input placeholder.
 - Pressing `Esc` from the add input focuses the TODO list and selects the first TODO item when one exists.
 - When a TODO item is selected, the TODO header hint shows section-level movement and focus shortcuts only; Arrow movement remains supported but is not shown because it is conventional.
-- Item-specific shortcuts stay inside the selected TODO item.
+- Item-specific shortcuts stay in the TODO section footer while a TODO item is selected, wrap when narrow, and are removed from layout while the add input is focused.
 - Focused text inputs should avoid native blue outlines and use caret/container border emphasis instead.
 
 ### Nested TODO

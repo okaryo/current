@@ -352,13 +352,47 @@
 
   @media (max-width: 860px) {
     .timer-layout {
-      grid-template-columns: 1fr;
-      justify-items: start;
-      gap: 1.25rem;
+      grid-template-columns: auto minmax(9rem, 1fr) minmax(9.5rem, auto);
+      gap: 0.8rem;
+      min-height: 5.8rem;
+      padding: 0.5rem;
+    }
+
+    .timer-ring {
+      width: 5.5rem;
+      border-width: 0.25rem;
+      box-shadow:
+        0 0 0 0.25rem rgba(240, 82, 96, 0.08),
+        inset 0 0 1.5rem rgba(0, 0, 0, 0.22);
+    }
+
+    .time {
+      font-size: 1.45rem;
+    }
+
+    .mode {
+      font-size: 0.78rem;
+    }
+
+    .timer-status {
+      margin-bottom: 0.5rem;
+      font-size: 0.92rem;
+    }
+
+    .timer-actions button {
+      min-width: 4.8rem;
+      min-height: 2.15rem;
+      padding: 0 0.7rem;
     }
 
     .shortcut-list {
-      width: 100%;
+      gap: 0.25rem;
+      font-size: 0.86rem;
+    }
+
+    .shortcut-list div {
+      grid-template-columns: 2.6rem 1fr;
+      gap: 0.45rem;
     }
   }
 

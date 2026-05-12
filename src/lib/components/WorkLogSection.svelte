@@ -200,21 +200,6 @@
 
   <h2 id="log-title" class="sr-only">Work Log</h2>
 
-  <ol class="log-list" aria-label="Work log" bind:this={workLogListElement}>
-    {#if isLoadingWorkLogs}
-      <li class="log-empty">Loading logs...</li>
-    {:else if workLogs.length === 0}
-      <li class="log-empty">No logs yet.</li>
-    {:else}
-      {#each workLogs as log (log.id)}
-        <li>
-          <time>{formatLogTime(log.createdAtMs)}</time>
-          <span>{log.body}</span>
-        </li>
-      {/each}
-    {/if}
-  </ol>
-
   <form
     class="log-input"
     onsubmit={(event) => {
@@ -239,6 +224,21 @@
       </p>
     </div>
   </form>
+
+  <ol class="log-list" aria-label="Work log" bind:this={workLogListElement}>
+    {#if isLoadingWorkLogs}
+      <li class="log-empty">Loading logs...</li>
+    {:else if workLogs.length === 0}
+      <li class="log-empty">No logs yet.</li>
+    {:else}
+      {#each workLogs as log (log.id)}
+        <li>
+          <time>{formatLogTime(log.createdAtMs)}</time>
+          <span>{log.body}</span>
+        </li>
+      {/each}
+    {/if}
+  </ol>
 
   {#if workLogError}
     <p class="log-error" role="alert">{workLogError}</p>
@@ -461,7 +461,7 @@
     align-items: start;
     gap: 0.7rem;
     flex: 0 0 auto;
-    margin-top: 0.7rem;
+    margin-bottom: 0.7rem;
     border: 1px solid rgba(91, 143, 249, 0.72);
     border-radius: 8px;
     padding: 0.65rem 0.8rem;
@@ -530,12 +530,17 @@
 
   @media (max-width: 860px) {
     .inline-header {
-      align-items: start;
-      flex-direction: column;
+      align-items: center;
+      flex-direction: row;
     }
 
     .hint-row {
-      justify-content: flex-start;
+      justify-content: flex-end;
+      flex-wrap: nowrap;
+    }
+
+    .log-list {
+      flex: 0 1 auto;
     }
   }
 

@@ -58,6 +58,15 @@
   let taskListElement = $state<HTMLUListElement>();
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
+  const selectedTodo = $derived(
+    todos.find((todo) => todo.id === selectedTodoId) ?? null,
+  );
+  const shouldShowFooterActions = $derived(
+    active &&
+      !isAddInputFocused &&
+      selectedTodo !== null &&
+      editingTodoId !== selectedTodo.id,
+  );
 
   onMount(() => {
     void loadTodos();
@@ -550,6 +559,32 @@
 
   <h2 id="todo-title" class="sr-only">Todo</h2>
 
+  <form class="quick-input" onsubmit={submitTodo}>
+    <span aria-hidden="true">+</span>
+    <input
+      type="text"
+      placeholder="Add a new task... (Enter to confirm)"
+      bind:value={todoInput}
+      bind:this={addTodoInput}
+      disabled={isCreatingTodo}
+      onfocus={() => {
+        isAddInputFocused = true;
+        onActivate();
+        clearTodoSelection();
+      }}
+      onkeydown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          void focusTodoListFromAddInput();
+        }
+      }}
+      onblur={() => {
+        isAddInputFocused = false;
+      }}
+    />
+  </form>
+
   <ul
     class="task-list"
     aria-label="Todo list"
@@ -626,63 +661,40 @@
             {#if nowTodoId === todo.id}
               <span class="now-badge">Now</span>
             {/if}
-            {#if active && selectedTodoId === todo.id && editingTodoId !== todo.id}
-              <div class="task-actions" aria-label="Selected todo shortcuts">
-                <span><KeyboardKey value="e" />Edit</span>
-                <span>
-                  <KeyboardKey value="Space" />{todo.completed
-                    ? "Incomplete"
-                    : "Complete"}
-                </span>
-                {#if !todo.completed}
-                  <span>
-                    <KeyboardKey value="Enter" />{nowTodoId === todo.id
-                      ? "Unset Now"
-                      : "Set Now"}
-                  </span>
-                {/if}
-                {#if todo.parentId === null}
-                  <span><KeyboardKey value="Tab" />Indent</span>
-                {:else}
-                  <span><KeyboardKey value="⇧Tab" />Outdent</span>
-                {/if}
-                <span><KeyboardKey value="D" />Delete</span>
-              </div>
-            {/if}
           </div>
         </li>
       {/each}
     {/if}
   </ul>
 
-  <form class="quick-input" onsubmit={submitTodo}>
-    <span aria-hidden="true">+</span>
-    <input
-      type="text"
-      placeholder="Add a new task... (Enter to confirm)"
-      bind:value={todoInput}
-      bind:this={addTodoInput}
-      disabled={isCreatingTodo}
-      onfocus={() => {
-        isAddInputFocused = true;
-        onActivate();
-        clearTodoSelection();
-      }}
-      onkeydown={(event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          event.stopPropagation();
-          void focusTodoListFromAddInput();
-        }
-      }}
-      onblur={() => {
-        isAddInputFocused = false;
-      }}
-    />
-  </form>
-
   {#if todoError}
     <p class="todo-error" role="alert">{todoError}</p>
+  {/if}
+
+  {#if shouldShowFooterActions && selectedTodo !== null}
+    <footer class="todo-footer">
+      <div class="todo-footer-actions" aria-label="Selected todo shortcuts">
+        <span><KeyboardKey value="e" />Edit</span>
+        <span>
+          <KeyboardKey value="Space" />{selectedTodo.completed
+            ? "Incomplete"
+            : "Complete"}
+        </span>
+        {#if !selectedTodo.completed}
+          <span>
+            <KeyboardKey value="Enter" />{nowTodoId === selectedTodo.id
+              ? "Unset Now"
+              : "Set Now"}
+          </span>
+        {/if}
+        {#if selectedTodo.parentId === null}
+          <span><KeyboardKey value="Tab" />Indent</span>
+        {:else}
+          <span><KeyboardKey value="⇧Tab" />Outdent</span>
+        {/if}
+        <span><KeyboardKey value="D" />Delete</span>
+      </div>
+    </footer>
   {/if}
 </section>
 
@@ -828,10 +840,6 @@
     color: #e4e8ef;
   }
 
-  .task-list li:last-child {
-    border-bottom: 0;
-  }
-
   .task-selected {
     background: rgba(255, 255, 255, 0.05);
     box-shadow: inset 3px 0 0 rgba(68, 209, 107, 0.7);
@@ -947,26 +955,12 @@
     font-weight: 650;
   }
 
-  .task-meta,
-  .task-actions {
+  .task-meta {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.6rem;
     min-width: 0;
-  }
-
-  .task-actions {
-    flex-wrap: wrap;
-    color: #9ba3b0;
-    font-size: 0.78rem;
-  }
-
-  .task-actions span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.32rem;
-    white-space: nowrap;
   }
 
   .task-empty {
@@ -980,7 +974,7 @@
     align-items: center;
     gap: 0.7rem;
     flex: 0 0 auto;
-    margin-top: 0.7rem;
+    margin-bottom: 0.7rem;
     border: 1px solid rgba(68, 209, 107, 0.52);
     border-radius: 8px;
     padding: 0.65rem 0.8rem;
@@ -1019,6 +1013,36 @@
     overflow-wrap: anywhere;
   }
 
+  .todo-footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    min-height: 3.35rem;
+    margin-top: auto;
+    padding-top: 0.6rem;
+    color: #9ba3b0;
+    font-size: 0.76rem;
+  }
+
+  .todo-footer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.32rem 0.62rem;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .todo-footer-actions span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
   .sr-only {
     position: absolute;
     width: 1px;
@@ -1030,12 +1054,17 @@
 
   @media (max-width: 860px) {
     .inline-header {
-      align-items: start;
-      flex-direction: column;
+      align-items: center;
+      flex-direction: row;
     }
 
     .hint-row {
-      justify-content: flex-start;
+      justify-content: flex-end;
+      flex-wrap: nowrap;
+    }
+
+    .task-list {
+      flex: 0 1 auto;
     }
   }
 
