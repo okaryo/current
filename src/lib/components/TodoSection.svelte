@@ -924,12 +924,16 @@
   }
 
   .task-title {
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .task-title-button {
+    display: block;
+    overflow: hidden;
+    width: 100%;
     min-width: 0;
     border: 0;
     padding: 0;
