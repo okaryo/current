@@ -313,6 +313,7 @@ Testing decisions:
 - [ ] Test notifications
 - [ ] Build macOS release
 - [ ] Create application icon
+- [ ] Add updater support to detect available updates
 - [ ] Write installation instructions
 - [ ] Prepare initial GitHub release
 
@@ -329,6 +330,7 @@ Initial release workflow decisions:
 
 ### Pomodoro Settings
 
+- [ ] Display Pomodoro remaining time in the system menu bar
 - [ ] Configure focus duration between 10 and 60 minutes
 - [ ] Configure break duration
 - [ ] Add optional automatic transition from break back to focus
