@@ -312,7 +312,7 @@ Testing decisions:
 - [ ] Test local persistence
 - [ ] Test notifications
 - [ ] Build macOS release
-- [ ] Create application icon
+- [x] Create application icon
 - [ ] Add updater support to detect available updates
 - [ ] Write installation instructions
 - [ ] Prepare initial GitHub release
