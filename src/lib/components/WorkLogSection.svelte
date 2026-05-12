@@ -33,9 +33,11 @@
   let workLogError = $state<string | null>(null);
   let isLoadingWorkLogs = $state(true);
   let isCreatingWorkLog = $state(false);
+  let isWorkLogInputFocused = $state(false);
   let workLogInputElement = $state<HTMLTextAreaElement>();
   let workLogListElement = $state<HTMLOListElement>();
   let lastFocusRequest = 0;
+  const shouldShowFooterActions = $derived(active && !isWorkLogInputFocused);
 
   onMount(() => {
     void loadWorkLogs();
@@ -192,9 +194,6 @@
           <span aria-hidden="true"></span>
         </button>
       </div>
-      {#if active}
-        <span><KeyboardKey value="i" />Focus Input</span>
-      {/if}
     </div>
   </header>
 
@@ -216,7 +215,13 @@
         bind:value={workLogInput}
         bind:this={workLogInputElement}
         disabled={isCreatingWorkLog}
-        onfocus={onActivate}
+        onfocus={() => {
+          isWorkLogInputFocused = true;
+          onActivate();
+        }}
+        onblur={() => {
+          isWorkLogInputFocused = false;
+        }}
         onkeydown={handleWorkLogKeydown}
       ></textarea>
       <p id="work-log-input-help" class="log-input-help">
@@ -225,20 +230,30 @@
     </div>
   </form>
 
-  <ol class="log-list" aria-label="Work log" bind:this={workLogListElement}>
-    {#if isLoadingWorkLogs}
-      <li class="log-empty">Loading logs...</li>
-    {:else if workLogs.length === 0}
-      <li class="log-empty">No logs yet.</li>
-    {:else}
-      {#each workLogs as log (log.id)}
-        <li>
-          <time>{formatLogTime(log.createdAtMs)}</time>
-          <span>{log.body}</span>
-        </li>
-      {/each}
+  <div class="log-list-shell">
+    <ol class="log-list" aria-label="Work log" bind:this={workLogListElement}>
+      {#if isLoadingWorkLogs}
+        <li class="log-empty">Loading logs...</li>
+      {:else if workLogs.length === 0}
+        <li class="log-empty">No logs yet.</li>
+      {:else}
+        {#each workLogs as log (log.id)}
+          <li>
+            <time>{formatLogTime(log.createdAtMs)}</time>
+            <span>{log.body}</span>
+          </li>
+        {/each}
+      {/if}
+    </ol>
+
+    {#if shouldShowFooterActions}
+      <footer class="log-footer">
+        <div class="log-footer-actions" aria-label="Log shortcuts">
+          <span><KeyboardKey value="i" />Focus Input</span>
+        </div>
+      </footer>
     {/if}
-  </ol>
+  </div>
 
   {#if workLogError}
     <p class="log-error" role="alert">{workLogError}</p>
@@ -421,6 +436,17 @@
     color: #5b8ff9;
   }
 
+  .log-list-shell {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    background: rgba(9, 12, 16, 0.28);
+  }
+
   .log-list {
     flex: 0 1 auto;
     overflow-x: hidden;
@@ -428,9 +454,6 @@
     min-height: 0;
     margin: 0;
     padding: 0.75rem 0.9rem;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
-    background: rgba(9, 12, 16, 0.28);
     list-style: none;
   }
 
@@ -519,6 +542,35 @@
     font-size: 0.88rem;
   }
 
+  .log-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    min-height: 2.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.45rem 0.75rem;
+    color: #9ba3b0;
+    font-size: 0.76rem;
+    background: rgba(9, 12, 16, 0.18);
+  }
+
+  .log-footer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.62rem;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .log-footer-actions span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex: 0 0 auto;
+  }
+
   .sr-only {
     position: absolute;
     width: 1px;
@@ -539,7 +591,7 @@
       flex-wrap: nowrap;
     }
 
-    .log-list {
+    .log-list-shell {
       flex: 0 1 auto;
     }
   }

@@ -84,7 +84,7 @@ Keyboard decisions:
 - When the add input is focused, the TODO header hint shows only `Esc`: focus the TODO list; add confirmation stays in the input placeholder.
 - Pressing `Esc` from the add input focuses the TODO list and selects the first TODO item when one exists.
 - When a TODO item is selected, the TODO header hint shows section-level movement and focus shortcuts only; Arrow movement remains supported but is not shown because it is conventional.
-- Item-specific shortcuts stay in the TODO section footer while a TODO item is selected, wrap when narrow, and are removed from layout while the add input is focused.
+- Item-specific shortcuts stay in the TODO list shell footer while a TODO item is selected, wrap when narrow, remain visible while the list scrolls, and are removed from layout while the add input is focused.
 - Focused text inputs should avoid native blue outlines and use caret/container border emphasis instead.
 
 ### Nested TODO
@@ -166,6 +166,7 @@ Work Log decisions:
 
 - Work Log shortcuts are scoped to the active Log section.
 - `i`: focus the work log input
+- Log input focus shortcut stays in the Work Log list shell footer while the input is not focused, and is removed from layout while the input is focused.
 - `Enter`: insert a newline with Markdown continuation support
 - `Cmd+Enter`: submit the current work log
 - Work logs are persisted to SQLite with creation timestamps.

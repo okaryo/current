@@ -585,116 +585,118 @@
     />
   </form>
 
-  <ul
-    class="task-list"
-    aria-label="Todo list"
-    tabindex="-1"
-    bind:this={taskListElement}
-  >
-    {#if isLoadingTodos}
-      <li class="task-empty">Loading todos...</li>
-    {:else if todos.length === 0}
-      <li class="task-empty">No todos yet.</li>
-    {:else}
-      {#each todos as todo (todo.id)}
-        <li
-          data-todo-id={todo.id}
-          class:task-selected={active && selectedTodoId === todo.id}
-          class:task-now={nowTodoId === todo.id}
-          class:task-dimmed={nowTodoId !== null &&
-            nowTodoId !== todo.id &&
-            !todo.completed}
-          class:task-completed={todo.completed}
-          class:task-child={todo.parentId !== null}
-        >
-          <button
-            class="task-check"
-            type="button"
-            aria-label={todo.completed
-              ? `Mark "${todo.title}" as incomplete`
-              : `Mark "${todo.title}" as complete`}
-            onclick={() => toggleTodoCompletion(todo.id)}
+  <div class="task-list-shell">
+    <ul
+      class="task-list"
+      aria-label="Todo list"
+      tabindex="-1"
+      bind:this={taskListElement}
+    >
+      {#if isLoadingTodos}
+        <li class="task-empty">Loading todos...</li>
+      {:else if todos.length === 0}
+        <li class="task-empty">No todos yet.</li>
+      {:else}
+        {#each todos as todo (todo.id)}
+          <li
+            data-todo-id={todo.id}
+            class:task-selected={active && selectedTodoId === todo.id}
+            class:task-now={nowTodoId === todo.id}
+            class:task-dimmed={nowTodoId !== null &&
+              nowTodoId !== todo.id &&
+              !todo.completed}
+            class:task-completed={todo.completed}
+            class:task-child={todo.parentId !== null}
           >
-            {#if todo.completed}
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-            {/if}
-          </button>
-          {#if editingTodoId === todo.id}
-            <form
-              class="task-edit"
-              onsubmit={(event) => submitEdit(event, todo.id)}
-            >
-              <input
-                type="text"
-                bind:this={editTodoInput}
-                bind:value={editingTitle}
-                disabled={isSavingEdit}
-                onkeydown={(event) => {
-                  if (event.key === "Escape") {
-                    event.preventDefault();
-                    cancelEdit();
-                  }
-                }}
-              />
-            </form>
-          {:else}
             <button
-              class="task-title-button"
+              class="task-check"
               type="button"
-              onclick={() => selectTodo(todo.id)}
+              aria-label={todo.completed
+                ? `Mark "${todo.title}" as incomplete`
+                : `Mark "${todo.title}" as complete`}
+              onclick={() => toggleTodoCompletion(todo.id)}
             >
-              <span class="task-title">{todo.title}</span>
+              {#if todo.completed}
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              {/if}
             </button>
-          {/if}
-          <div class="task-meta">
-            {#if nowTodoId === todo.id}
-              <span class="now-badge">Now</span>
+            {#if editingTodoId === todo.id}
+              <form
+                class="task-edit"
+                onsubmit={(event) => submitEdit(event, todo.id)}
+              >
+                <input
+                  type="text"
+                  bind:this={editTodoInput}
+                  bind:value={editingTitle}
+                  disabled={isSavingEdit}
+                  onkeydown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      cancelEdit();
+                    }
+                  }}
+                />
+              </form>
+            {:else}
+              <button
+                class="task-title-button"
+                type="button"
+                onclick={() => selectTodo(todo.id)}
+              >
+                <span class="task-title">{todo.title}</span>
+              </button>
             {/if}
-          </div>
-        </li>
-      {/each}
+            <div class="task-meta">
+              {#if nowTodoId === todo.id}
+                <span class="now-badge">Now</span>
+              {/if}
+            </div>
+          </li>
+        {/each}
+      {/if}
+    </ul>
+
+    {#if shouldShowFooterActions && selectedTodo !== null}
+      <footer class="todo-footer">
+        <div class="todo-footer-actions" aria-label="Selected todo shortcuts">
+          <span><KeyboardKey value="e" />Edit</span>
+          <span>
+            <KeyboardKey value="Space" />{selectedTodo.completed
+              ? "Incomplete"
+              : "Complete"}
+          </span>
+          {#if !selectedTodo.completed}
+            <span>
+              <KeyboardKey value="Enter" />{nowTodoId === selectedTodo.id
+                ? "Unset Now"
+                : "Set Now"}
+            </span>
+          {/if}
+          {#if selectedTodo.parentId === null}
+            <span><KeyboardKey value="Tab" />Indent</span>
+          {:else}
+            <span><KeyboardKey value="⇧Tab" />Outdent</span>
+          {/if}
+          <span><KeyboardKey value="D" />Delete</span>
+        </div>
+      </footer>
     {/if}
-  </ul>
+  </div>
 
   {#if todoError}
     <p class="todo-error" role="alert">{todoError}</p>
-  {/if}
-
-  {#if shouldShowFooterActions && selectedTodo !== null}
-    <footer class="todo-footer">
-      <div class="todo-footer-actions" aria-label="Selected todo shortcuts">
-        <span><KeyboardKey value="e" />Edit</span>
-        <span>
-          <KeyboardKey value="Space" />{selectedTodo.completed
-            ? "Incomplete"
-            : "Complete"}
-        </span>
-        {#if !selectedTodo.completed}
-          <span>
-            <KeyboardKey value="Enter" />{nowTodoId === selectedTodo.id
-              ? "Unset Now"
-              : "Set Now"}
-          </span>
-        {/if}
-        {#if selectedTodo.parentId === null}
-          <span><KeyboardKey value="Tab" />Indent</span>
-        {:else}
-          <span><KeyboardKey value="⇧Tab" />Outdent</span>
-        {/if}
-        <span><KeyboardKey value="D" />Delete</span>
-      </div>
-    </footer>
   {/if}
 </section>
 
@@ -812,6 +814,16 @@
     color: #44d16b;
   }
 
+  .task-list-shell {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+  }
+
   .task-list {
     flex: 0 1 auto;
     overflow-x: hidden;
@@ -819,8 +831,6 @@
     min-height: 0;
     margin: 0;
     padding: 0;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
     list-style: none;
   }
 
@@ -1018,11 +1028,12 @@
     align-items: flex-end;
     justify-content: flex-end;
     flex: 0 0 auto;
-    min-height: 3.35rem;
-    margin-top: auto;
-    padding-top: 0.6rem;
+    min-height: 2.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.45rem 0.75rem;
     color: #9ba3b0;
     font-size: 0.76rem;
+    background: rgba(9, 12, 16, 0.18);
   }
 
   .todo-footer-actions {
@@ -1063,7 +1074,7 @@
       flex-wrap: nowrap;
     }
 
-    .task-list {
+    .task-list-shell {
       flex: 0 1 auto;
     }
   }
