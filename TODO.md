@@ -294,19 +294,19 @@ Testing decisions:
 
 ## Phase 10 — UI Polish
 
-- [ ] Improve spacing and typography
-- [ ] Improve active/inactive section contrast
-- [ ] Add subtle animations
-- [ ] Improve dark mode appearance
-- [ ] Improve keyboard focus visuals
-- [ ] Improve empty states
-- [ ] Improve scroll behavior
+- [x] Improve spacing and typography
+- [x] Improve active/inactive section contrast
+- [x] Add subtle animations
+- [x] Improve dark mode appearance
+- [x] Improve keyboard focus visuals
+- [x] Improve empty states
+- [x] Improve scroll behavior
 
 ---
 
 ## Phase 11 — Initial Release
 
-- [ ] Add CI workflow
+- [x] Add CI workflow
 - [ ] Add release workflow
 - [ ] Test keyboard-only workflow
 - [ ] Test local persistence
@@ -320,6 +320,7 @@ Testing decisions:
 Initial release workflow decisions:
 
 - CI should run frontend formatting, linting, type checking, Vitest, Rust tests, and a production build.
+- CI runs on Ubuntu for fast cross-platform checks; the release workflow should use macOS for packaging the desktop app.
 - Release workflow should build the macOS app artifact.
 - Distribution should support installing/downloading the app outside the repository.
 - Homebrew distribution is a candidate, but the concrete release channel can be decided when packaging is closer.
