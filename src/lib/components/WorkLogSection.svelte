@@ -34,6 +34,8 @@
   let isLoadingWorkLogs = $state(true);
   let isCreatingWorkLog = $state(false);
   let isWorkLogInputFocused = $state(false);
+  let isComposingWorkLogInput = false;
+  let shouldIgnoreNextEnterAfterComposition = false;
   let workLogInputElement = $state<HTMLTextAreaElement>();
   let workLogListElement = $state<HTMLOListElement>();
   let lastFocusRequest = 0;
@@ -96,6 +98,10 @@
       return;
     }
 
+    if (isComposingEnter(event)) {
+      return;
+    }
+
     if (event.metaKey) {
       event.preventDefault();
       void submitWorkLog();
@@ -108,6 +114,29 @@
 
     event.preventDefault();
     insertMarkdownNewLineInTextarea(event.currentTarget);
+  }
+
+  function handleWorkLogCompositionStart() {
+    isComposingWorkLogInput = true;
+    shouldIgnoreNextEnterAfterComposition = false;
+  }
+
+  function handleWorkLogCompositionEnd() {
+    isComposingWorkLogInput = false;
+    shouldIgnoreNextEnterAfterComposition = true;
+
+    window.setTimeout(() => {
+      shouldIgnoreNextEnterAfterComposition = false;
+    });
+  }
+
+  function isComposingEnter(event: KeyboardEvent) {
+    return (
+      event.isComposing ||
+      event.keyCode === 229 ||
+      isComposingWorkLogInput ||
+      shouldIgnoreNextEnterAfterComposition
+    );
   }
 
   async function focusInput() {
@@ -221,7 +250,11 @@
         }}
         onblur={() => {
           isWorkLogInputFocused = false;
+          isComposingWorkLogInput = false;
+          shouldIgnoreNextEnterAfterComposition = false;
         }}
+        oncompositionstart={handleWorkLogCompositionStart}
+        oncompositionend={handleWorkLogCompositionEnd}
         onkeydown={handleWorkLogKeydown}
       ></textarea>
       <p id="work-log-input-help" class="log-input-help">
