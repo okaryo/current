@@ -307,13 +307,15 @@ Testing decisions:
 ## Phase 11 — Initial Release
 
 - [x] Add CI workflow
-- [ ] Add release workflow
+- [x] Add release workflow
 - [ ] Test keyboard-only workflow
 - [ ] Test local persistence
 - [ ] Test notifications
 - [ ] Build macOS release
+- [ ] Add Linux and Windows release builds
 - [x] Create application icon
 - [ ] Add updater support to detect available updates
+- [ ] Add Homebrew installation support
 - [ ] Write installation instructions
 - [ ] Prepare initial GitHub release
 
@@ -321,9 +323,11 @@ Initial release workflow decisions:
 
 - CI should run frontend formatting, linting, type checking, Vitest, Rust tests, and a production build.
 - CI runs on Ubuntu for fast cross-platform checks; the release workflow should use macOS for packaging the desktop app.
-- Release workflow should build the macOS app artifact.
+- Release workflow should be triggered by pushing `v*` tags.
+- Initial release workflow builds macOS app artifacts and creates a draft GitHub Release.
+- Release workflow should eventually build Linux and Windows artifacts too.
 - Distribution should support installing/downloading the app outside the repository.
-- Homebrew distribution is a candidate, but the concrete release channel can be decided when packaging is closer.
+- Homebrew distribution should be supported after the basic GitHub Release flow is working.
 
 ---
 
