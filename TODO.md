@@ -5,8 +5,7 @@
 - [x] Create Tauri + Svelte project
 - [x] Setup TypeScript
 - [x] Setup linting and formatting
-- [ ] Decide project structure
-- [ ] Setup state management
+- [x] Decide project structure
 - [x] Setup local database or storage layer
 - [x] Setup keyboard shortcut handling
 - [x] Setup basic window configuration
@@ -22,7 +21,6 @@
 - [x] Split Pomodoro and Work Log into section components
 - [x] Split TODO into a section component
 - [x] Create reusable keyboard key component
-- [ ] Add resizable section layout if needed
 - [x] Add focus state UI for active section
 - [x] Add keyboard navigation between sections
 - [x] Add basic responsive window behavior
@@ -311,6 +309,7 @@ Testing decisions:
 - [ ] Test keyboard-only workflow
 - [ ] Test local persistence
 - [ ] Test notifications
+- [ ] Set completion sound when a task is completed
 - [ ] Build macOS release
 - [ ] Add Linux and Windows release builds
 - [x] Create application icon
