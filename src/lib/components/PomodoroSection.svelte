@@ -105,9 +105,9 @@
 
     timerInterval = setInterval(() => {
       if (remainingSeconds <= 1) {
-        remainingSeconds = 0;
         setRunning(false);
         stopTimer();
+        remainingSeconds = FOCUS_DURATION_SECONDS;
         void sendPomodoroCompleteNotification();
         return;
       }
@@ -155,7 +155,6 @@
   <div class="timer-layout">
     <div class="timer-ring" aria-label={`${formattedRemainingTime} remaining`}>
       <span class="time">{formattedRemainingTime}</span>
-      <span class="mode">Focus</span>
     </div>
 
     <div class="timer-details">
@@ -299,13 +298,6 @@
     line-height: 1;
   }
 
-  .mode {
-    margin-top: 0.25rem;
-    color: #ff5965;
-    font-size: 0.9rem;
-    font-weight: 600;
-  }
-
   .timer-status {
     margin: 0 0 0.75rem;
     color: #c7cdd6;
@@ -368,10 +360,6 @@
 
     .time {
       font-size: 1.45rem;
-    }
-
-    .mode {
-      font-size: 0.78rem;
     }
 
     .timer-status {
