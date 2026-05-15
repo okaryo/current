@@ -166,7 +166,8 @@ Work Log decisions:
 - `Enter`: insert a newline with Markdown continuation support
 - `Cmd+Enter`: submit the current work log
 - Work logs are persisted to SQLite with creation timestamps.
-- Work logs are displayed newest first.
+- Work logs display the latest seven local calendar days, grouped by day.
+- Work logs are displayed newest first within each day.
 - `Enter` continues `-`, `*`, `+`, numbered lists, and checkbox list markers.
 - Checked checkbox markers continue as unchecked markers.
 - Empty list marker lines exit the list and keep only indentation.

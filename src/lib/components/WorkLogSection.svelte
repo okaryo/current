@@ -16,6 +16,14 @@
     onActivate: () => void;
   };
 
+  type WorkLogGroup = {
+    dateKey: string;
+    label: string;
+    logs: WorkLog[];
+  };
+
+  const RECENT_WORK_LOG_DAY_COUNT = 7;
+
   let {
     active,
     title,
@@ -40,6 +48,7 @@
   let workLogListElement = $state<HTMLOListElement>();
   let lastFocusRequest = 0;
   const shouldShowFooterActions = $derived(active && !isWorkLogInputFocused);
+  const visibleWorkLogGroups = $derived(groupVisibleWorkLogs(workLogs));
 
   onMount(() => {
     void loadWorkLogs();
@@ -59,7 +68,9 @@
     workLogError = null;
 
     try {
-      workLogs = (await listWorkLogs()).sort(compareWorkLogs);
+      workLogs = (await listWorkLogs(oldestVisibleDayStartMs())).sort(
+        compareWorkLogs,
+      );
     } catch (error) {
       workLogError = errorMessage(error);
     } finally {
@@ -159,6 +170,77 @@
     }
 
     return b.id - a.id;
+  }
+
+  function groupVisibleWorkLogs(logs: WorkLog[]): WorkLogGroup[] {
+    const todayStartMs = startOfLocalDay(Date.now());
+    const groups = new Map<string, WorkLogGroup>();
+
+    for (const log of logs) {
+      const date = new Date(log.createdAtMs);
+      const dateKey = localDateKey(date);
+      const group = groups.get(dateKey);
+
+      if (group) {
+        group.logs.push(log);
+        continue;
+      }
+
+      groups.set(dateKey, {
+        dateKey,
+        label: formatLogDateLabel(date, todayStartMs),
+        logs: [log],
+      });
+    }
+
+    return Array.from(groups.values());
+  }
+
+  function oldestVisibleDayStartMs() {
+    return addLocalDays(
+      startOfLocalDay(Date.now()),
+      -(RECENT_WORK_LOG_DAY_COUNT - 1),
+    );
+  }
+
+  function startOfLocalDay(timestampMs: number) {
+    const date = new Date(timestampMs);
+    date.setHours(0, 0, 0, 0);
+    return date.getTime();
+  }
+
+  function addLocalDays(timestampMs: number, dayOffset: number) {
+    const date = new Date(timestampMs);
+    date.setDate(date.getDate() + dayOffset);
+    return date.getTime();
+  }
+
+  function localDateKey(date: Date) {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${date.getFullYear()}-${month}-${day}`;
+  }
+
+  function formatLogDateLabel(date: Date, todayStartMs: number) {
+    const dateStartMs = startOfLocalDay(date.getTime());
+
+    if (dateStartMs === todayStartMs) {
+      return "Today";
+    }
+
+    if (dateStartMs === addLocalDays(todayStartMs, -1)) {
+      return "Yesterday";
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      year:
+        date.getFullYear() === new Date(todayStartMs).getFullYear()
+          ? undefined
+          : "numeric",
+    }).format(date);
   }
 
   function formatLogTime(createdAtMs: number) {
@@ -267,13 +349,20 @@
     <ol class="log-list" aria-label="Work log" bind:this={workLogListElement}>
       {#if isLoadingWorkLogs}
         <li class="log-empty">Loading logs...</li>
-      {:else if workLogs.length === 0}
-        <li class="log-empty">No logs yet.</li>
+      {:else if workLogs.length === 0 || visibleWorkLogGroups.length === 0}
+        <li class="log-empty">No recent logs.</li>
       {:else}
-        {#each workLogs as log (log.id)}
-          <li>
-            <time>{formatLogTime(log.createdAtMs)}</time>
-            <span>{log.body}</span>
+        {#each visibleWorkLogGroups as group (group.dateKey)}
+          <li class="log-date-group">
+            <h3>{group.label}</h3>
+            <ol class="log-day-list" aria-label={`${group.label} logs`}>
+              {#each group.logs as log (log.id)}
+                <li class="log-item">
+                  <time>{formatLogTime(log.createdAtMs)}</time>
+                  <span>{log.body}</span>
+                </li>
+              {/each}
+            </ol>
           </li>
         {/each}
       {/if}
@@ -490,14 +579,40 @@
     list-style: none;
   }
 
-  .log-list li {
+  .log-date-group {
+    display: block;
+  }
+
+  .log-date-group + .log-date-group {
+    margin-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 0.7rem;
+  }
+
+  .log-date-group h3 {
+    margin: 0 0 0.45rem;
+    color: #8ea4c9;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .log-day-list {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .log-item {
     display: grid;
     grid-template-columns: 4rem minmax(0, 1fr);
     gap: 0.9rem;
     color: #d7dce4;
   }
 
-  .log-list span {
+  .log-item span {
     white-space: pre-wrap;
   }
 
@@ -506,7 +621,7 @@
     color: #858d9a;
   }
 
-  .log-list time {
+  .log-item time {
     color: #a8b0be;
     font-variant-numeric: tabular-nums;
   }

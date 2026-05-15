@@ -4,10 +4,10 @@ use crate::db;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::AppHandle;
 
-pub fn list_work_logs(app: &AppHandle) -> Result<Vec<WorkLog>, String> {
+pub fn list_work_logs(app: &AppHandle, oldest_created_at_ms: i64) -> Result<Vec<WorkLog>, String> {
     let connection = db::open(app)?;
 
-    repository::list(&connection)
+    repository::list_since(&connection, oldest_created_at_ms)
 }
 
 pub fn create_work_log(app: &AppHandle, body: &str) -> Result<WorkLog, String> {

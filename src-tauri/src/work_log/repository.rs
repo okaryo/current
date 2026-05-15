@@ -1,19 +1,23 @@
 use super::model::WorkLog;
 use rusqlite::{params, Connection, OptionalExtension};
 
-pub fn list(connection: &Connection) -> Result<Vec<WorkLog>, String> {
+pub fn list_since(
+    connection: &Connection,
+    oldest_created_at_ms: i64,
+) -> Result<Vec<WorkLog>, String> {
     let mut statement = connection
         .prepare(
             "
             SELECT id, body, created_at_ms
             FROM work_logs
-            ORDER BY created_at_ms ASC, id ASC
+            WHERE created_at_ms >= ?1
+            ORDER BY created_at_ms DESC, id DESC
             ",
         )
         .map_err(|error| format!("Failed to prepare work log list query: {error}"))?;
 
     let logs = statement
-        .query_map([], work_log_from_row)
+        .query_map(params![oldest_created_at_ms], work_log_from_row)
         .map_err(|error| format!("Failed to query work logs: {error}"))?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("Failed to read work logs: {error}"))?;
@@ -70,13 +74,13 @@ mod tests {
     use crate::db::test_support::migrated_connection;
 
     #[test]
-    fn creates_and_lists_work_logs() {
+    fn creates_and_lists_recent_work_logs() {
         let connection = migrated_connection();
 
         let first = create(&connection, "first log", 1000).expect("create first work log");
         let second = create(&connection, "second log", 2000).expect("create second work log");
 
-        let logs = list(&connection).expect("list work logs");
+        let logs = list_since(&connection, 1500).expect("list work logs");
 
         assert_eq!(first.id, 1);
         assert_eq!(first.body, "first log");
@@ -84,7 +88,7 @@ mod tests {
         assert_eq!(second.id, 2);
         assert_eq!(
             logs.iter().map(|log| log.id).collect::<Vec<_>>(),
-            vec![1, 2]
+            vec![second.id]
         );
     }
 
@@ -99,17 +103,17 @@ mod tests {
     }
 
     #[test]
-    fn lists_work_logs_by_creation_time_then_id() {
+    fn lists_work_logs_by_creation_time_then_id_descending() {
         let connection = migrated_connection();
         let second = create(&connection, "second", 2000).expect("create second work log");
         let first = create(&connection, "first", 1000).expect("create first work log");
         let same_time = create(&connection, "same time", 1000).expect("create same-time work log");
 
-        let logs = list(&connection).expect("list work logs");
+        let logs = list_since(&connection, 0).expect("list work logs");
 
         assert_eq!(
             logs.iter().map(|log| log.id).collect::<Vec<_>>(),
-            vec![first.id, same_time.id, second.id]
+            vec![second.id, same_time.id, first.id]
         );
     }
 }

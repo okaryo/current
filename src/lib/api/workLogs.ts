@@ -6,8 +6,8 @@ export type WorkLog = {
   createdAtMs: number;
 };
 
-export function listWorkLogs() {
-  return invoke<WorkLog[]>("list_work_logs");
+export function listWorkLogs(oldestCreatedAtMs: number) {
+  return invoke<WorkLog[]>("list_work_logs", { oldestCreatedAtMs });
 }
 
 export function createWorkLog(body: string) {
