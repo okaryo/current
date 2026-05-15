@@ -28,11 +28,9 @@
 Layout decisions:
 
 - Keep Pomodoro, TODO, and Work Log visible in the main window when possible.
-- On desktop-width windows, Pomodoro spans the top row and TODO / Work Log share the lower row as two columns.
-- On narrow windows, sections stack vertically.
-- On narrow windows, keep all three sections within the main viewport when possible and keep Pomodoro content horizontally arranged.
-- On narrow windows, keep TODO and Work Log headers on one row; Work Log keeps the check-in indicator and input focus key to the right of the title.
-- On narrow windows, TODO and Work Log list areas use the available section height as an upper limit, but fit their content when short.
+- The app window opens at its minimum size, `860px` wide and `630px` tall.
+- Pomodoro spans the top row and TODO / Work Log share the lower row.
+- Narrow stacked layout is not supported; keep the workspace row-based.
 - Keep TODO and Work Log inputs near the top of their sections when sections are tall, so input actions stay visually close to the current content.
 - Long TODO and Work Log content should scroll inside the list area, not push other sections out of view.
 - TODO and Work Log list areas should fit their content when short, and use internal scrolling when content exceeds the available window height.

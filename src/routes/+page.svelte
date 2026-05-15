@@ -421,7 +421,7 @@
   }
 
   :global(body) {
-    min-width: 360px;
+    min-width: 860px;
     height: 100vh;
     margin: 0;
     overflow: hidden;
@@ -475,40 +475,5 @@
 
   .log-slot {
     grid-area: log;
-  }
-
-  @media (max-width: 860px) {
-    :global(body) {
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .app-shell {
-      height: 100vh;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .workspace {
-      grid-template-areas:
-        "pomodoro"
-        "todo"
-        "log";
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
-      height: calc(100vh - 1.6rem);
-      min-height: 0;
-    }
-  }
-
-  @media (max-width: 560px) {
-    .app-shell {
-      padding: 0;
-    }
-
-    .workspace {
-      height: 100vh;
-      padding: 0.55rem;
-    }
   }
 </style>

@@ -1067,29 +1067,4 @@
     white-space: nowrap;
   }
 
-  @media (max-width: 860px) {
-    .inline-header {
-      align-items: center;
-      flex-direction: row;
-    }
-
-    .hint-row {
-      justify-content: flex-end;
-      flex-wrap: nowrap;
-    }
-
-    .task-list-shell {
-      flex: 0 1 auto;
-    }
-  }
-
-  @media (max-width: 560px) {
-    .panel {
-      padding: 0.8rem;
-    }
-
-    .task-title {
-      white-space: normal;
-    }
-  }
 </style>
