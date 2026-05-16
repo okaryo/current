@@ -207,6 +207,7 @@
     tick().then(() => {
       target.selectionStart = insertion.cursorPosition;
       target.selectionEnd = insertion.cursorPosition;
+      scrollTextareaToCaret(target);
     });
   }
 
@@ -221,11 +222,36 @@
     const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
     const maxHeight =
       lineHeight * MAX_TEXTAREA_ROWS + paddingTop + paddingBottom;
+    const minHeight = lineHeight + paddingTop + paddingBottom;
+
+    if (value.length === 0) {
+      textareaElement.style.height = `${minHeight}px`;
+      textareaElement.style.overflowY = "hidden";
+      return;
+    }
 
     textareaElement.style.height = "auto";
-    textareaElement.style.height = `${Math.min(textareaElement.scrollHeight, maxHeight)}px`;
-    textareaElement.style.overflowY =
-      textareaElement.scrollHeight > maxHeight ? "auto" : "hidden";
+    textareaElement.style.height = `${Math.max(
+      Math.min(textareaElement.scrollHeight, maxHeight),
+      minHeight,
+    )}px`;
+    const shouldScroll = textareaElement.scrollHeight > maxHeight;
+
+    textareaElement.style.overflowY = shouldScroll ? "auto" : "hidden";
+
+    if (shouldScroll) {
+      scrollTextareaToCaret(textareaElement);
+    }
+  }
+
+  function scrollTextareaToCaret(textarea: HTMLTextAreaElement) {
+    const isCaretAtEnd = textarea.selectionStart >= textarea.value.length;
+
+    if (!isCaretAtEnd) {
+      return;
+    }
+
+    textarea.scrollTop = textarea.scrollHeight;
   }
 
   function errorMessage(submitError: unknown) {
@@ -489,6 +515,14 @@
     font-weight: 700;
   }
 
+  .mode-button-todo {
+    color: rgba(114, 223, 144, 0.72);
+  }
+
+  .mode-button-log {
+    color: rgba(134, 169, 255, 0.72);
+  }
+
   .mode-button-todo.mode-active {
     border-color: rgba(68, 209, 107, 0.48);
     color: #72df90;
@@ -549,8 +583,10 @@
   }
 
   textarea {
+    display: block;
     width: 100%;
     min-width: 0;
+    height: 1.45em;
     max-height: 8rem;
     border: 0;
     padding: 0;
