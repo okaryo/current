@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy } from "svelte";
+  import GlobalEntryInput from "$lib/components/GlobalEntryInput.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
@@ -14,7 +15,6 @@
   };
 
   type TodoCommand =
-    | "focusAdd"
     | "focusPreferred"
     | "moveDown"
     | "moveUp"
@@ -27,6 +27,7 @@
     | "clearSelection";
 
   type PomodoroCommand = "toggle" | "reset" | "startFocus";
+  type WorkLogCommand = "focusPreferred";
 
   const sections: Section[] = [
     { id: "pomodoro", title: "Pomodoro", shortcut: "⌘1" },
@@ -45,7 +46,12 @@
     null,
   );
   let todoCommandRequestId = 0;
-  let workLogFocusRequest = $state(0);
+  let workLogCommandRequest = $state<{
+    id: number;
+    command: WorkLogCommand;
+  } | null>(null);
+  let workLogCommandRequestId = 0;
+  let globalEntryFocusRequest = $state(0);
   let pomodoroRunning = $state(false);
   let reminderEnabled = $state(true);
   let reminderStartedAtMs = $state<number | null>(null);
@@ -70,10 +76,6 @@
     stopRhythmReminder();
   });
 
-  onMount(() => {
-    focusWorkLogInput();
-  });
-
   function handleKeydown(event: KeyboardEvent) {
     const sectionShortcut = sectionFromShortcut(event);
 
@@ -91,6 +93,18 @@
       return;
     }
 
+    if (
+      event.key === "i" &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.shiftKey
+    ) {
+      event.preventDefault();
+      requestGlobalEntryFocus();
+      return;
+    }
+
     switch (activeSection) {
       case "pomodoro":
         handlePomodoroSectionKeydown(event);
@@ -99,7 +113,6 @@
         handleTodoSectionKeydown(event);
         break;
       case "log":
-        handleLogSectionKeydown(event);
         break;
     }
   }
@@ -139,10 +152,6 @@
         event.preventDefault();
         requestTodoCommand("toggleComplete");
         break;
-      case "i":
-        event.preventDefault();
-        requestTodoCommand("focusAdd");
-        break;
       case "e":
         event.preventDefault();
         requestTodoCommand("edit");
@@ -162,16 +171,8 @@
     }
   }
 
-  function handleLogSectionKeydown(event: KeyboardEvent) {
-    if (event.key === "i") {
-      event.preventDefault();
-      focusWorkLogInput();
-    }
-  }
-
-  function focusWorkLogInput() {
-    setActiveSection("log", { preserveFocus: true });
-    workLogFocusRequest += 1;
+  function requestGlobalEntryFocus() {
+    globalEntryFocusRequest += 1;
   }
 
   function activateSectionFromShortcut(section: SectionId) {
@@ -182,7 +183,8 @@
     }
 
     if (section === "log") {
-      focusWorkLogInput();
+      setActiveSection("log");
+      requestWorkLogCommand("focusPreferred");
       return;
     }
 
@@ -214,8 +216,27 @@
     };
   }
 
+  function requestWorkLogCommand(command: WorkLogCommand) {
+    workLogCommandRequest = {
+      id: ++workLogCommandRequestId,
+      command,
+    };
+  }
+
   function startPomodoroFocus() {
     requestPomodoroCommand("startFocus");
+  }
+
+  function restoreSectionFromGlobalEntry(section: SectionId) {
+    setActiveSection(section);
+
+    if (section === "todo") {
+      requestTodoCommand("focusPreferred");
+    }
+
+    if (section === "log") {
+      requestWorkLogCommand("focusPreferred");
+    }
   }
 
   function handlePomodoroRunningChange(nextRunning: boolean) {
@@ -387,7 +408,7 @@
         active={activeSection === "log"}
         title={sections[2].title}
         shortcut={sections[2].shortcut}
-        focusRequest={workLogFocusRequest}
+        commandRequest={workLogCommandRequest}
         {reminderEnabled}
         {reminderProgress}
         {reminderRemainingLabel}
@@ -396,6 +417,12 @@
       />
     </div>
   </div>
+
+  <GlobalEntryInput
+    {activeSection}
+    focusRequest={globalEntryFocusRequest}
+    onCancel={restoreSectionFromGlobalEntry}
+  />
 </main>
 
 <style>

@@ -1,15 +1,21 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-  import { createWorkLog, listWorkLogs, type WorkLog } from "$lib/api/workLogs";
+  import { listWorkLogs, type WorkLog } from "$lib/api/workLogs";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
-  import { insertMarkdownNewLine } from "$lib/work-log/markdown";
+
+  type WorkLogCommand = "focusPreferred";
+
+  type WorkLogCommandRequest = {
+    id: number;
+    command: WorkLogCommand;
+  } | null;
 
   type Props = {
     active: boolean;
     title: string;
     shortcut: string;
-    focusRequest: number;
+    commandRequest: WorkLogCommandRequest;
     reminderEnabled: boolean;
     reminderProgress: number;
     reminderRemainingLabel: string;
@@ -29,7 +35,7 @@
     active,
     title,
     shortcut,
-    focusRequest,
+    commandRequest,
     reminderEnabled,
     reminderProgress,
     reminderRemainingLabel,
@@ -38,18 +44,11 @@
   }: Props = $props();
 
   let workLogs = $state<WorkLog[]>([]);
-  let workLogInput = $state("");
   let workLogError = $state<string | null>(null);
   let isLoadingWorkLogs = $state(true);
-  let isCreatingWorkLog = $state(false);
-  let isWorkLogInputFocused = $state(false);
-  let isComposingWorkLogInput = false;
-  let shouldIgnoreNextEnterAfterComposition = false;
-  let workLogInputElement = $state<HTMLTextAreaElement>();
   let workLogListElement = $state<HTMLOListElement>();
-  let lastFocusRequest = 0;
+  let lastCommandRequestId = 0;
   let unlistenWorkLogCreated: UnlistenFn | undefined;
-  const shouldShowFooterActions = $derived(active && !isWorkLogInputFocused);
   const visibleWorkLogGroups = $derived(groupVisibleWorkLogs(workLogs));
 
   onMount(() => {
@@ -71,12 +70,17 @@
   });
 
   $effect(() => {
-    if (focusRequest === 0 || focusRequest === lastFocusRequest) {
+    if (!commandRequest || commandRequest.id === lastCommandRequestId) {
       return;
     }
 
-    lastFocusRequest = focusRequest;
-    void focusInput();
+    lastCommandRequestId = commandRequest.id;
+
+    switch (commandRequest.command) {
+      case "focusPreferred":
+        void focusList();
+        break;
+    }
   });
 
   async function loadWorkLogs() {
@@ -94,81 +98,10 @@
     }
   }
 
-  async function submitWorkLog() {
-    if (isCreatingWorkLog) {
-      return;
-    }
-
-    const body = workLogInput.trim();
-
-    if (!body) {
-      return;
-    }
-
-    isCreatingWorkLog = true;
-    workLogError = null;
-
-    try {
-      const workLog = await createWorkLog(body);
-      addWorkLog(workLog);
-      workLogInput = "";
-    } catch (error) {
-      workLogError = errorMessage(error);
-    } finally {
-      isCreatingWorkLog = false;
-    }
-  }
-
-  function handleWorkLogKeydown(event: KeyboardEvent) {
-    if (event.key !== "Enter") {
-      return;
-    }
-
-    if (isComposingEnter(event)) {
-      return;
-    }
-
-    if (event.metaKey) {
-      event.preventDefault();
-      void submitWorkLog();
-      return;
-    }
-
-    if (event.shiftKey || event.ctrlKey || event.altKey) {
-      return;
-    }
-
-    event.preventDefault();
-    insertMarkdownNewLineInTextarea(event.currentTarget);
-  }
-
-  function handleWorkLogCompositionStart() {
-    isComposingWorkLogInput = true;
-    shouldIgnoreNextEnterAfterComposition = false;
-  }
-
-  function handleWorkLogCompositionEnd() {
-    isComposingWorkLogInput = false;
-    shouldIgnoreNextEnterAfterComposition = true;
-
-    window.setTimeout(() => {
-      shouldIgnoreNextEnterAfterComposition = false;
-    });
-  }
-
-  function isComposingEnter(event: KeyboardEvent) {
-    return (
-      event.isComposing ||
-      event.keyCode === 229 ||
-      isComposingWorkLogInput ||
-      shouldIgnoreNextEnterAfterComposition
-    );
-  }
-
-  async function focusInput() {
+  async function focusList() {
     onActivate();
     await tick();
-    workLogInputElement?.focus();
+    workLogListElement?.focus({ preventScroll: true });
   }
 
   async function scrollLogListToTop() {
@@ -291,25 +224,6 @@
     }).format(new Date(createdAtMs));
   }
 
-  function insertMarkdownNewLineInTextarea(textarea: EventTarget | null) {
-    if (!(textarea instanceof HTMLTextAreaElement)) {
-      return;
-    }
-
-    const insertion = insertMarkdownNewLine(
-      textarea.value,
-      textarea.selectionStart,
-      textarea.selectionEnd,
-    );
-
-    workLogInput = insertion.value;
-
-    tick().then(() => {
-      textarea.selectionStart = insertion.cursorPosition;
-      textarea.selectionEnd = insertion.cursorPosition;
-    });
-  }
-
   function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
   }
@@ -354,43 +268,13 @@
 
   <h2 id="log-title" class="sr-only">Work Log</h2>
 
-  <form
-    class="log-input"
-    onsubmit={(event) => {
-      event.preventDefault();
-      void submitWorkLog();
-    }}
-  >
-    <span class="log-prompt" aria-hidden="true">&gt;</span>
-    <div class="log-input-field">
-      <textarea
-        rows="2"
-        placeholder="Write a work log..."
-        aria-describedby="work-log-input-help"
-        bind:value={workLogInput}
-        bind:this={workLogInputElement}
-        disabled={isCreatingWorkLog}
-        onfocus={() => {
-          isWorkLogInputFocused = true;
-          onActivate();
-        }}
-        onblur={() => {
-          isWorkLogInputFocused = false;
-          isComposingWorkLogInput = false;
-          shouldIgnoreNextEnterAfterComposition = false;
-        }}
-        oncompositionstart={handleWorkLogCompositionStart}
-        oncompositionend={handleWorkLogCompositionEnd}
-        onkeydown={handleWorkLogKeydown}
-      ></textarea>
-      <p id="work-log-input-help" class="log-input-help">
-        Enter for new line, Cmd+Enter to submit
-      </p>
-    </div>
-  </form>
-
   <div class="log-list-shell">
-    <ol class="log-list" aria-label="Work log" bind:this={workLogListElement}>
+    <ol
+      class="log-list"
+      aria-label="Work log"
+      tabindex="-1"
+      bind:this={workLogListElement}
+    >
       {#if isLoadingWorkLogs}
         <li class="log-empty">Loading logs...</li>
       {:else if workLogs.length === 0 || visibleWorkLogGroups.length === 0}
@@ -412,13 +296,6 @@
       {/if}
     </ol>
 
-    {#if shouldShowFooterActions}
-      <footer class="log-footer">
-        <div class="log-footer-actions" aria-label="Log shortcuts">
-          <span><KeyboardKey value="i" />Focus Input</span>
-        </div>
-      </footer>
-    {/if}
   </div>
 
   {#if workLogError}
@@ -468,14 +345,6 @@
       0 0 0 1px rgba(91, 143, 249, 0.35),
       0 0 0 4px rgba(91, 143, 249, 0.08),
       0 0.8rem 2rem rgba(91, 143, 249, 0.11);
-  }
-
-  textarea {
-    font: inherit;
-  }
-
-  textarea:focus-visible {
-    outline: none;
   }
 
   .panel-header {
@@ -623,6 +492,10 @@
     list-style: none;
   }
 
+  .log-list:focus {
+    outline: none;
+  }
+
   .log-date-group {
     display: block;
   }
@@ -671,97 +544,10 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .log-input {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: start;
-    gap: 0.7rem;
-    flex: 0 0 auto;
-    margin-bottom: 0.7rem;
-    border: 1px solid rgba(91, 143, 249, 0.72);
-    border-radius: 8px;
-    padding: 0.65rem 0.8rem;
-    color: #7f8794;
-    background: rgba(4, 8, 12, 0.28);
-  }
-
-  .log-input:focus-within {
-    border-color: #5b8ff9;
-    box-shadow:
-      0 0 0 1px rgba(91, 143, 249, 0.35),
-      0 0 0 4px rgba(91, 143, 249, 0.08);
-  }
-
-  .log-prompt {
-    color: #5b8ff9;
-    font-weight: 700;
-  }
-
-  .log-input-field {
-    display: grid;
-    gap: 0.3rem;
-    min-width: 0;
-  }
-
-  .log-input textarea {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    border: 0;
-    color: #e8ecf2;
-    caret-color: #5b8ff9;
-    background: transparent;
-    resize: none;
-  }
-
-  .log-input textarea:disabled {
-    opacity: 0.65;
-  }
-
-  .log-input textarea::placeholder {
-    color: #858d9a;
-  }
-
-  .log-input-help {
-    margin: 0;
-    color: #858d9a;
-    font-size: 0.78rem;
-    line-height: 1.3;
-  }
-
   .log-error {
     margin: 0.55rem 0 0;
     color: #ff8a93;
     font-size: 0.88rem;
-  }
-
-  .log-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex: 0 0 auto;
-    min-height: 2.4rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 0.45rem 0.75rem;
-    color: #9ba3b0;
-    font-size: 0.76rem;
-    background: rgba(9, 12, 16, 0.18);
-  }
-
-  .log-footer-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.62rem;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  .log-footer-actions span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    flex: 0 0 auto;
   }
 
   .sr-only {

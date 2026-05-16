@@ -31,7 +31,7 @@ Layout decisions:
 - The app window opens at its minimum size, `860px` wide and `630px` tall.
 - Pomodoro spans the top row and TODO / Work Log share the lower row.
 - Narrow stacked layout is not supported; keep the workspace row-based.
-- Keep TODO and Work Log inputs near the top of their sections when sections are tall, so input actions stay visually close to the current content.
+- Use a shared Todo / Work Log quick input at the bottom center of the main window, so section space stays focused on display and navigation.
 - Long TODO and Work Log content should scroll inside the list area, not push other sections out of view.
 - TODO and Work Log list areas should fit their content when short, and use internal scrolling when content exceeds the available window height.
 
@@ -52,19 +52,19 @@ Layout decisions:
 ### TODO UX
 
 - [x] Support keyboard-first TODO operations
-- [x] Add shortcut for creating TODO
+- [x] Add shortcut for creating TODO through the shared quick input
 - [x] Add shortcut for toggling completion
 - [x] Add shortcut for deleting TODO
 - [x] Add shortcut for moving selection
-- [x] Add add-input focus behavior for new TODOs
+- [x] Add shared quick input focus behavior for new TODOs
 - [x] Add shortcut for indenting TODOs
 - [x] Add shortcut for outdenting TODOs
 
 Keyboard decisions:
 
-- TODO shortcuts are scoped to the active TODO section.
+- TODO list-operation shortcuts are scoped to the active TODO section.
 - Keyboard key labels use uppercase letters; shortcuts that require uppercase letters use `Shift+Letter` notation.
-- `i`: focus the add input
+- `i`: focus the shared Todo / Work Log quick input from anywhere in the main app when a text input is not already focused.
 - `j` / `k` and `ArrowDown` / `ArrowUp`: move selection
 - `Tab`: indent the selected TODO
 - `Shift+Tab`: outdent the selected TODO
@@ -75,12 +75,13 @@ Keyboard decisions:
 - `Escape`: cancel edit or clear selection
 - Delete intentionally does not use plain `d`.
 - Delete does not have undo for now.
-- Focusing the add input clears TODO selection.
-- Creating a TODO keeps focus on the add input and does not select the created TODO.
-- When the add input is focused, the TODO header hint shows only `Esc`: focus the TODO list; add confirmation stays in the input placeholder.
-- Pressing `Esc` from the add input focuses the TODO list and selects the first TODO item when one exists.
+- Creating a TODO keeps focus on the shared quick input and does not select the created TODO.
+- `Tab` switches the shared quick input between Todo and Log modes.
+- `Cmd+Enter` submits both Todo and Log entries from the shared quick input.
+- Todo mode prevents plain `Enter` from creating a newline; pasted multiline Todo text is normalized into a single-line title.
+- Pressing `Esc` from the shared quick input restores focus to the section that was active before input started.
 - When a TODO item is selected, the TODO header hint shows section-level movement and focus shortcuts only; Arrow movement remains supported but is not shown because it is conventional.
-- Item-specific shortcuts stay in the TODO list shell footer while a TODO item is selected, wrap when narrow, remain visible while the list scrolls, and are removed from layout while the add input is focused.
+- Item-specific shortcuts stay in the TODO list shell footer while a TODO item is selected, wrap when narrow, remain visible while the list scrolls, and are removed from layout while the selected TODO is being edited.
 - Focused text inputs should avoid native blue outlines and use caret/container border emphasis instead.
 
 ### Nested TODO
@@ -155,16 +156,16 @@ Now behavior:
 
 ### Work Log UX
 
-- [x] Add keyboard shortcut for focusing log input
+- [x] Add keyboard shortcut for focusing the shared Todo / Work Log quick input
 - [x] Add quick log submission flow
 
 Work Log decisions:
 
-- Work Log shortcuts are scoped to the active Log section.
-- `i`: focus the work log input
-- Log input focus shortcut stays in the Work Log list shell footer while the input is not focused, and is removed from layout while the input is focused.
-- `Enter`: insert a newline with Markdown continuation support
-- `Cmd+Enter`: submit the current work log
+- Work Log list shortcuts are scoped to the active Log section.
+- `i`: focus the shared Todo / Work Log quick input from anywhere in the main app when a text input is not already focused.
+- The shared quick input defaults to Log mode, is compact and semi-transparent when unfocused, and expands while focused.
+- In Log mode, plain `Enter` inserts a newline with Markdown continuation support.
+- In Log mode, `Cmd+Enter` submits the current work log.
 - Work logs are persisted to SQLite with creation timestamps.
 - Work logs display the latest seven local calendar days, grouped by day.
 - Work logs are displayed newest first within each day.
@@ -174,6 +175,7 @@ Work Log decisions:
 - Markdown helper behavior is deferred until the basic logging flow feels right.
 - Keep logging flow lightweight: avoid extra confirmations, categories, tags, and other metadata-heavy interactions.
 - Creating a work log emits a Tauri `work-log:created` event so the main window can refresh when Quick Log writes to SQLite.
+- Creating a TODO emits a Tauri `todo:created` event so the main window can refresh when the shared quick input writes to SQLite.
 
 ---
 
@@ -254,11 +256,11 @@ Section shortcut decisions:
 - `Cmd+2`: activate TODO section
 - `Cmd+3`: activate Log section
 - Log is the initial active section for now.
-- `Cmd+2` keeps the current TODO selection when possible; otherwise it selects Now, then the first TODO, then focuses the add input.
-- `Cmd+3` focuses the Work Log input.
-- Global shortcuts should be limited to app-wide actions such as section switching.
+- `Cmd+2` keeps the current TODO selection when possible; otherwise it selects Now, then the first TODO, then focuses the TODO list.
+- `Cmd+3` focuses the Work Log list.
+- `i` is an app-wide shortcut for the shared Todo / Work Log quick input.
+- Global shortcuts should be limited to app-wide actions such as section switching and shared quick input.
 - Section-specific shortcuts should only run inside the active section.
-- Reusing keys like `i` across sections is acceptable when the active section gives the key a clear local meaning.
 
 ---
 

@@ -1,0 +1,606 @@
+<script lang="ts">
+  import { tick } from "svelte";
+  import { fade } from "svelte/transition";
+  import { createTodo } from "$lib/api/todos";
+  import { createWorkLog } from "$lib/api/workLogs";
+  import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import { insertMarkdownNewLine } from "$lib/work-log/markdown";
+
+  type SectionId = "pomodoro" | "todo" | "log";
+  type EntryMode = "todo" | "log";
+
+  type Props = {
+    activeSection: SectionId;
+    focusRequest: number;
+    onCancel: (section: SectionId) => void;
+  };
+
+  const MAX_TEXTAREA_ROWS = 5;
+
+  let { activeSection, focusRequest, onCancel }: Props = $props();
+
+  let mode = $state<EntryMode>("log");
+  let value = $state("");
+  let isFocused = $state(false);
+  let isSubmitting = $state(false);
+  let error = $state<string | null>(null);
+  let restoreSection = $state<SectionId>("log");
+  let textareaElement = $state<HTMLTextAreaElement>();
+  let panelElement = $state<HTMLElement>();
+  let lastFocusRequest = 0;
+  let isComposingInput = false;
+  let shouldIgnoreNextEnterAfterComposition = false;
+
+  const placeholder = $derived(
+    mode === "log"
+      ? "Write a log... (Cmd+Enter to submit)"
+      : "Add a todo... (Cmd+Enter to submit)",
+  );
+
+  $effect(() => {
+    if (focusRequest === 0 || focusRequest === lastFocusRequest) {
+      return;
+    }
+
+    lastFocusRequest = focusRequest;
+    restoreSection = activeSection;
+    void focusInput();
+  });
+
+  $effect(() => {
+    value;
+    isFocused;
+    void tick().then(adjustTextareaHeight);
+  });
+
+  async function focusInput() {
+    isFocused = true;
+    await tick();
+    textareaElement?.focus();
+  }
+
+  function toggleMode() {
+    mode = mode === "log" ? "todo" : "log";
+    void tick().then(() => textareaElement?.focus());
+  }
+
+  function setMode(nextMode: EntryMode) {
+    mode = nextMode;
+    void tick().then(() => textareaElement?.focus());
+  }
+
+  function handleCompactClick() {
+    restoreSection = activeSection;
+    void focusInput();
+  }
+
+  function handleFocusOut() {
+    window.setTimeout(() => {
+      if (!isFocused) {
+        return;
+      }
+
+      if (panelElement?.contains(document.activeElement)) {
+        return;
+      }
+
+      isFocused = false;
+      isComposingInput = false;
+      shouldIgnoreNextEnterAfterComposition = false;
+    });
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === "Tab") {
+      event.preventDefault();
+      toggleMode();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      textareaElement?.blur();
+      isFocused = false;
+      onCancel(restoreSection);
+      return;
+    }
+
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    if (isComposingEnter(event)) {
+      return;
+    }
+
+    if (event.metaKey) {
+      event.preventDefault();
+      void submit();
+      return;
+    }
+
+    if (mode === "todo") {
+      event.preventDefault();
+      return;
+    }
+
+    if (event.shiftKey || event.ctrlKey || event.altKey) {
+      return;
+    }
+
+    event.preventDefault();
+    insertMarkdownNewLineInTextarea(event.currentTarget);
+  }
+
+  function handleCompositionStart() {
+    isComposingInput = true;
+    shouldIgnoreNextEnterAfterComposition = false;
+  }
+
+  function handleCompositionEnd() {
+    isComposingInput = false;
+    shouldIgnoreNextEnterAfterComposition = true;
+
+    window.setTimeout(() => {
+      shouldIgnoreNextEnterAfterComposition = false;
+    });
+  }
+
+  function isComposingEnter(event: KeyboardEvent) {
+    return (
+      event.isComposing ||
+      event.keyCode === 229 ||
+      isComposingInput ||
+      shouldIgnoreNextEnterAfterComposition
+    );
+  }
+
+  async function submit() {
+    if (isSubmitting) {
+      return;
+    }
+
+    const body = value.trim();
+
+    if (!body) {
+      return;
+    }
+
+    isSubmitting = true;
+    error = null;
+
+    try {
+      if (mode === "todo") {
+        await createTodo(normalizeTodoTitle(body));
+      } else {
+        await createWorkLog(body);
+      }
+
+      value = "";
+      await tick();
+      adjustTextareaHeight();
+      textareaElement?.focus();
+    } catch (submitError) {
+      error = errorMessage(submitError);
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  function normalizeTodoTitle(title: string) {
+    return title.replace(/\s+/g, " ").trim();
+  }
+
+  function insertMarkdownNewLineInTextarea(target: EventTarget | null) {
+    if (!(target instanceof HTMLTextAreaElement)) {
+      return;
+    }
+
+    const insertion = insertMarkdownNewLine(
+      target.value,
+      target.selectionStart,
+      target.selectionEnd,
+    );
+
+    value = insertion.value;
+
+    tick().then(() => {
+      target.selectionStart = insertion.cursorPosition;
+      target.selectionEnd = insertion.cursorPosition;
+    });
+  }
+
+  function adjustTextareaHeight() {
+    if (!textareaElement) {
+      return;
+    }
+
+    const style = window.getComputedStyle(textareaElement);
+    const lineHeight = Number.parseFloat(style.lineHeight) || 21;
+    const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+    const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
+    const maxHeight =
+      lineHeight * MAX_TEXTAREA_ROWS + paddingTop + paddingBottom;
+
+    textareaElement.style.height = "auto";
+    textareaElement.style.height = `${Math.min(textareaElement.scrollHeight, maxHeight)}px`;
+    textareaElement.style.overflowY =
+      textareaElement.scrollHeight > maxHeight ? "auto" : "hidden";
+  }
+
+  function errorMessage(submitError: unknown) {
+    return submitError instanceof Error
+      ? submitError.message
+      : String(submitError);
+  }
+</script>
+
+<div class="global-entry-shell">
+  <div
+    class="global-entry-frame"
+    class:global-entry-frame-focused={isFocused}
+    bind:this={panelElement}
+    onfocusout={handleFocusOut}
+  >
+    {#if isFocused}
+      <section
+        class="global-entry-panel"
+        aria-label="Quick Todo and Log input"
+        transition:fade={{ duration: 90 }}
+      >
+        <div class="entry-toolbar">
+          <div class="mode-tabs" aria-label="Input type">
+            <button
+              class:mode-active={mode === "todo"}
+              class="mode-button mode-button-todo"
+              type="button"
+              aria-pressed={mode === "todo"}
+              onmousedown={(event) => event.preventDefault()}
+              onclick={() => setMode("todo")}
+            >
+              Todo
+            </button>
+            <button
+              class:mode-active={mode === "log"}
+              class="mode-button mode-button-log"
+              type="button"
+              aria-pressed={mode === "log"}
+              onmousedown={(event) => event.preventDefault()}
+              onclick={() => setMode("log")}
+            >
+              Log
+            </button>
+          </div>
+
+          <button
+            class="submit-button"
+            type="button"
+            disabled={isSubmitting || value.trim().length === 0}
+            onmousedown={(event) => event.preventDefault()}
+            onclick={submit}
+          >
+            <KeyboardKey value="⌘Enter" label="Command Enter" /> Submit
+          </button>
+        </div>
+
+        <div class="entry-input" class:entry-input-todo={mode === "todo"}>
+          <span class="entry-prompt" aria-hidden="true">&gt;</span>
+          <textarea
+            rows="1"
+            {placeholder}
+            bind:value
+            bind:this={textareaElement}
+            disabled={isSubmitting}
+            onkeydown={handleKeydown}
+            oncompositionstart={handleCompositionStart}
+            oncompositionend={handleCompositionEnd}
+          ></textarea>
+        </div>
+
+        <div class="entry-help" aria-label="Quick input shortcuts">
+          <span><KeyboardKey value="Tab" />Switch</span>
+          <span><KeyboardKey value="⌘Enter" label="Command Enter" />Submit</span
+          >
+          <span><KeyboardKey value="Esc" label="Escape" />Close</span>
+        </div>
+
+        {#if error}
+          <p class="entry-error" role="alert">{error}</p>
+        {/if}
+      </section>
+    {:else}
+      <button
+        class="global-entry-compact"
+        type="button"
+        aria-label="Focus input to add Todo or Log"
+        onclick={handleCompactClick}
+        transition:fade={{ duration: 90 }}
+      >
+        <span class="compact-prompt" aria-hidden="true">&gt;</span>
+        <span class="compact-placeholder">
+          Add <span class="compact-todo">Todo</span> /
+          <span class="compact-log">Log</span>
+        </span>
+        <strong>Focus with <KeyboardKey value="i" /></strong>
+      </button>
+    {/if}
+  </div>
+</div>
+
+<style>
+  .global-entry-shell {
+    position: fixed;
+    right: 0.8rem;
+    bottom: 0.8rem;
+    left: 0.8rem;
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .global-entry-frame {
+    overflow: hidden;
+    width: calc(100vw - 2.4rem);
+    max-width: 28rem;
+    max-height: 2.5rem;
+    border: 1px solid rgba(91, 143, 249, 0.34);
+    border-radius: 8px;
+    padding: 0.5rem 0.72rem;
+    color: rgba(232, 236, 242, 0.84);
+    background: rgba(7, 11, 15, 0.78);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+      0 0.7rem 2rem rgba(0, 0, 0, 0.22);
+    opacity: 0.72;
+    backdrop-filter: blur(14px);
+    pointer-events: auto;
+    transition:
+      max-width 180ms ease,
+      max-height 180ms ease,
+      border-color 180ms ease,
+      background 180ms ease,
+      box-shadow 180ms ease,
+      opacity 180ms ease,
+      padding 180ms ease,
+      transform 180ms ease;
+  }
+
+  .global-entry-frame-focused {
+    max-width: 44rem;
+    max-height: 15rem;
+    border-color: rgba(255, 255, 255, 0.18);
+    padding: 0.75rem 0.8rem;
+    color: #e8ecf2;
+    background: rgba(16, 20, 25, 0.9);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 1.2rem 3rem rgba(0, 0, 0, 0.38);
+    opacity: 1;
+    backdrop-filter: blur(18px);
+  }
+
+  .global-entry-frame:not(.global-entry-frame-focused):hover,
+  .global-entry-frame:not(.global-entry-frame-focused):focus-within {
+    border-color: rgba(91, 143, 249, 0.68);
+    opacity: 0.96;
+    transform: translateY(-1px);
+  }
+
+  .global-entry-panel,
+  .global-entry-compact {
+    pointer-events: auto;
+  }
+
+  .global-entry-compact {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.62rem;
+    width: 100%;
+    min-height: calc(2.5rem - 1rem);
+    border: 0;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .global-entry-compact:focus-visible {
+    outline: none;
+  }
+
+  .compact-prompt {
+    color: #5b8ff9;
+    font-weight: 800;
+  }
+
+  .compact-placeholder {
+    overflow: hidden;
+    min-width: 0;
+    color: #9ba3b0;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .compact-todo {
+    color: #72df90;
+    font-weight: 700;
+  }
+
+  .compact-log {
+    color: #86a9ff;
+    font-weight: 700;
+  }
+
+  .global-entry-compact strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #aecaef;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .global-entry-panel {
+    display: grid;
+    gap: 0.6rem;
+    min-width: 0;
+  }
+
+  .entry-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    min-width: 0;
+  }
+
+  .mode-tabs {
+    display: inline-flex;
+    gap: 0.2rem;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px;
+    padding: 0.2rem;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  button {
+    font: inherit;
+  }
+
+  .mode-button,
+  .submit-button {
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: #9ba3b0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .mode-button {
+    min-width: 4.6rem;
+    padding: 0.32rem 0.65rem;
+    font-weight: 700;
+  }
+
+  .mode-button-todo.mode-active {
+    border-color: rgba(68, 209, 107, 0.48);
+    color: #72df90;
+    background: rgba(68, 209, 107, 0.12);
+  }
+
+  .mode-button-log.mode-active {
+    border-color: rgba(91, 143, 249, 0.5);
+    color: #86a9ff;
+    background: rgba(91, 143, 249, 0.13);
+  }
+
+  .submit-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.62rem;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .submit-button:not(:disabled):hover {
+    border-color: rgba(91, 143, 249, 0.42);
+    color: #e8ecf2;
+  }
+
+  .submit-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .entry-input {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.62rem;
+    border: 1px solid rgba(91, 143, 249, 0.72);
+    border-radius: 8px;
+    padding: 0.6rem 0.7rem;
+    background: rgba(4, 8, 12, 0.38);
+    box-shadow:
+      0 0 0 1px rgba(91, 143, 249, 0.28),
+      0 0 0 4px rgba(91, 143, 249, 0.07);
+  }
+
+  .entry-input-todo {
+    border-color: rgba(68, 209, 107, 0.74);
+    box-shadow:
+      0 0 0 1px rgba(68, 209, 107, 0.28),
+      0 0 0 4px rgba(68, 209, 107, 0.07);
+  }
+
+  .entry-prompt {
+    color: #5b8ff9;
+    font-weight: 800;
+    line-height: 1.45;
+  }
+
+  .entry-input-todo .entry-prompt {
+    color: #44d16b;
+  }
+
+  textarea {
+    width: 100%;
+    min-width: 0;
+    max-height: 8rem;
+    border: 0;
+    padding: 0;
+    color: #e8ecf2;
+    font: inherit;
+    line-height: 1.45;
+    caret-color: #5b8ff9;
+    background: transparent;
+    resize: none;
+  }
+
+  .entry-input-todo textarea {
+    caret-color: #44d16b;
+  }
+
+  textarea:focus-visible {
+    outline: none;
+  }
+
+  textarea:disabled {
+    opacity: 0.65;
+  }
+
+  textarea::placeholder {
+    color: #858d9a;
+  }
+
+  .entry-help {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    color: #858d9a;
+    font-size: 0.78rem;
+  }
+
+  .entry-help span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+  }
+
+  .entry-error {
+    margin: 0;
+    color: #ff8a93;
+    font-size: 0.86rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .global-entry-frame {
+      transition: none;
+    }
+  }
+</style>

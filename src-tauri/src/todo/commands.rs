@@ -1,6 +1,6 @@
 use super::model::Todo;
 use super::service;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 #[tauri::command]
 pub fn list_todos(app: AppHandle) -> Result<Vec<Todo>, String> {
@@ -9,7 +9,11 @@ pub fn list_todos(app: AppHandle) -> Result<Vec<Todo>, String> {
 
 #[tauri::command]
 pub fn create_todo(title: String, app: AppHandle) -> Result<Todo, String> {
-    service::create_todo(&app, &title)
+    let todo = service::create_todo(&app, &title)?;
+
+    let _ = app.emit_to("main", "todo:created", &todo);
+
+    Ok(todo)
 }
 
 #[tauri::command]

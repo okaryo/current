@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
+  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import {
-    createTodo,
     deleteTodo,
     listTodos,
     moveTodoUnderPreviousRoot,
@@ -13,7 +13,6 @@
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
 
   type TodoCommand =
-    | "focusAdd"
     | "focusPreferred"
     | "moveDown"
     | "moveUp"
@@ -43,33 +42,35 @@
     $props();
 
   let todos = $state<Todo[]>([]);
-  let todoInput = $state("");
   let todoError = $state<string | null>(null);
   let isLoadingTodos = $state(true);
-  let isCreatingTodo = $state(false);
   let selectedTodoId = $state<number | null>(null);
   let nowTodoId = $state<number | null>(null);
   let editingTodoId = $state<number | null>(null);
   let editingTitle = $state("");
   let isSavingEdit = $state(false);
-  let isAddInputFocused = $state(false);
-  let addTodoInput = $state<HTMLInputElement>();
   let editTodoInput = $state<HTMLInputElement>();
   let taskListElement = $state<HTMLUListElement>();
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
+  let unlistenTodoCreated: UnlistenFn | undefined;
   const selectedTodo = $derived(
     todos.find((todo) => todo.id === selectedTodoId) ?? null,
   );
   const shouldShowFooterActions = $derived(
-    active &&
-      !isAddInputFocused &&
-      selectedTodo !== null &&
-      editingTodoId !== selectedTodo.id,
+    active && selectedTodo !== null && editingTodoId !== selectedTodo.id,
   );
 
   onMount(() => {
     void loadTodos();
+
+    if (isTauriRuntime()) {
+      void listen<Todo>("todo:created", (event) => {
+        addTodo(event.payload);
+      }).then((unlisten) => {
+        unlistenTodoCreated = unlisten;
+      });
+    }
 
     scheduleNextDayRefresh();
 
@@ -78,6 +79,10 @@
         clearTimeout(dayRefreshTimeout);
       }
     };
+  });
+
+  onDestroy(() => {
+    unlistenTodoCreated?.();
   });
 
   $effect(() => {
@@ -143,34 +148,6 @@
     return Math.max(nextLocalDay.getTime() - now.getTime(), 1000);
   }
 
-  async function submitTodo(event: SubmitEvent) {
-    event.preventDefault();
-
-    if (isCreatingTodo) {
-      return;
-    }
-
-    const title = todoInput.trim();
-
-    if (!title) {
-      return;
-    }
-
-    isCreatingTodo = true;
-    todoError = null;
-
-    try {
-      const todo = await createTodo(title);
-      todos = sortTodos([...todos, todo]);
-      selectedTodoId = null;
-      todoInput = "";
-    } catch (error) {
-      todoError = errorMessage(error);
-    } finally {
-      isCreatingTodo = false;
-    }
-  }
-
   async function toggleTodoCompletion(id: number) {
     onActivate();
     todoError = null;
@@ -224,9 +201,6 @@
 
   async function handleCommand(command: TodoCommand) {
     switch (command) {
-      case "focusAdd":
-        await focusAddTodoInput();
-        break;
       case "focusPreferred":
         await focusPreferredTodoTarget();
         break;
@@ -399,35 +373,13 @@
     editingTitle = "";
   }
 
-  async function focusAddTodoInput() {
-    onActivate();
-    clearTodoSelection();
-    await tick();
-    addTodoInput?.focus();
-  }
-
-  async function focusTodoListFromAddInput() {
-    const firstTodoId = todos[0]?.id ?? null;
-
-    addTodoInput?.blur();
-    selectedTodoId = firstTodoId;
-    editingTodoId = null;
-    editingTitle = "";
-
-    if (firstTodoId === null) {
-      return;
-    }
-
-    await tick();
-
-    taskListElement?.focus({ preventScroll: true });
-  }
-
   async function focusPreferredTodoTarget() {
     onActivate();
 
     if (hasSelectableTodo(selectedTodoId)) {
       cancelEdit();
+      await tick();
+      taskListElement?.focus({ preventScroll: true });
       return;
     }
 
@@ -437,10 +389,14 @@
     if (nextSelectedTodo) {
       selectedTodoId = nextSelectedTodo.id;
       cancelEdit();
+      await tick();
+      taskListElement?.focus({ preventScroll: true });
       return;
     }
 
-    await focusAddTodoInput();
+    clearTodoSelection();
+    await tick();
+    taskListElement?.focus({ preventScroll: true });
   }
 
   function clearTodoSelection() {
@@ -463,6 +419,15 @@
     if (!todos.some((todo) => todo.id === nowTodoId)) {
       nowTodoId = null;
     }
+  }
+
+  function addTodo(todo: Todo) {
+    if (todos.some((existingTodo) => existingTodo.id === todo.id)) {
+      return;
+    }
+
+    todos = sortTodos([...todos, todo]);
+    ensureSelectedTodo();
   }
 
   function hasSelectableTodo(id: number | null) {
@@ -533,6 +498,10 @@
   function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
   }
+
+  function isTauriRuntime() {
+    return "__TAURI_INTERNALS__" in window;
+  }
 </script>
 
 <section
@@ -547,43 +516,12 @@
     </div>
     {#if active}
       <div class="hint-row" aria-label="Todo shortcuts">
-        {#if isAddInputFocused}
-          <span><KeyboardKey value="Esc" label="Escape" />Focus List</span>
-        {:else}
-          <span><KeyboardKey value="i" />Focus Add</span>
-          <span><KeyboardKey value="j" />/<KeyboardKey value="k" />Move</span>
-        {/if}
+        <span><KeyboardKey value="j" />/<KeyboardKey value="k" />Move</span>
       </div>
     {/if}
   </header>
 
   <h2 id="todo-title" class="sr-only">Todo</h2>
-
-  <form class="quick-input" onsubmit={submitTodo}>
-    <span aria-hidden="true">+</span>
-    <input
-      type="text"
-      placeholder="Add a new task... (Enter to confirm)"
-      bind:value={todoInput}
-      bind:this={addTodoInput}
-      disabled={isCreatingTodo}
-      onfocus={() => {
-        isAddInputFocused = true;
-        onActivate();
-        clearTodoSelection();
-      }}
-      onkeydown={(event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          event.stopPropagation();
-          void focusTodoListFromAddInput();
-        }
-      }}
-      onblur={() => {
-        isAddInputFocused = false;
-      }}
-    />
-  </form>
 
   <div class="task-list-shell">
     <ul
@@ -980,44 +918,6 @@
 
   .task-empty {
     grid-template-columns: 1fr;
-    color: #858d9a;
-  }
-
-  .quick-input {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 0.7rem;
-    flex: 0 0 auto;
-    margin-bottom: 0.7rem;
-    border: 1px solid rgba(68, 209, 107, 0.52);
-    border-radius: 8px;
-    padding: 0.65rem 0.8rem;
-    color: #7f8794;
-    background: rgba(4, 8, 12, 0.28);
-  }
-
-  .quick-input input {
-    min-width: 0;
-    border: 0;
-    color: #e8ecf2;
-    caret-color: #44d16b;
-    background: transparent;
-    resize: none;
-  }
-
-  .quick-input:focus-within {
-    border-color: #44d16b;
-    box-shadow:
-      0 0 0 1px rgba(68, 209, 107, 0.35),
-      0 0 0 4px rgba(68, 209, 107, 0.08);
-  }
-
-  .quick-input input:disabled {
-    opacity: 0.65;
-  }
-
-  .quick-input input::placeholder {
     color: #858d9a;
   }
 
