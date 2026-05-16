@@ -59,13 +59,26 @@
   }
 
   function toggleMode() {
-    mode = mode === "log" ? "todo" : "log";
-    void tick().then(() => textareaElement?.focus());
+    switchMode(mode === "log" ? "todo" : "log");
   }
 
   function setMode(nextMode: EntryMode) {
+    switchMode(nextMode);
+  }
+
+  function switchMode(nextMode: EntryMode) {
+    if (nextMode === "todo") {
+      value = normalizeTodoTitle(value);
+    }
+
     mode = nextMode;
-    void tick().then(() => textareaElement?.focus());
+    void tick().then(() => {
+      textareaElement?.focus();
+      textareaElement?.setSelectionRange(
+        textareaElement.value.length,
+        textareaElement.value.length,
+      );
+    });
   }
 
   function handleCompactClick() {

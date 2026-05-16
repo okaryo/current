@@ -97,13 +97,23 @@
   }
 
   function setMode(nextMode: EntryMode) {
-    mode = nextMode;
-    void tick().then(() => textarea?.focus());
+    switchMode(nextMode);
   }
 
   function toggleMode() {
-    mode = mode === "log" ? "todo" : "log";
-    void tick().then(() => textarea?.focus());
+    switchMode(mode === "log" ? "todo" : "log");
+  }
+
+  function switchMode(nextMode: EntryMode) {
+    if (nextMode === "todo") {
+      value = normalizeTodoTitle(value);
+    }
+
+    mode = nextMode;
+    void tick().then(() => {
+      textarea?.focus();
+      textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
+    });
   }
 
   function handleKeydown(event: KeyboardEvent) {
