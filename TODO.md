@@ -173,6 +173,7 @@ Work Log decisions:
 - Empty list marker lines exit the list and keep only indentation.
 - Markdown helper behavior is deferred until the basic logging flow feels right.
 - Keep logging flow lightweight: avoid extra confirmations, categories, tags, and other metadata-heavy interactions.
+- Creating a work log emits a Tauri `work-log:created` event so the main window can refresh when Quick Log writes to SQLite.
 
 ---
 

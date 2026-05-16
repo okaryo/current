@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
+  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { createWorkLog, listWorkLogs, type WorkLog } from "$lib/api/workLogs";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import { insertMarkdownNewLine } from "$lib/work-log/markdown";
@@ -47,11 +48,26 @@
   let workLogInputElement = $state<HTMLTextAreaElement>();
   let workLogListElement = $state<HTMLOListElement>();
   let lastFocusRequest = 0;
+  let unlistenWorkLogCreated: UnlistenFn | undefined;
   const shouldShowFooterActions = $derived(active && !isWorkLogInputFocused);
   const visibleWorkLogGroups = $derived(groupVisibleWorkLogs(workLogs));
 
   onMount(() => {
     void loadWorkLogs();
+
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    void listen<WorkLog>("work-log:created", (event) => {
+      addWorkLog(event.payload);
+    }).then((unlisten) => {
+      unlistenWorkLogCreated = unlisten;
+    });
+  });
+
+  onDestroy(() => {
+    unlistenWorkLogCreated?.();
   });
 
   $effect(() => {
@@ -94,9 +110,8 @@
 
     try {
       const workLog = await createWorkLog(body);
-      workLogs = [...workLogs, workLog].sort(compareWorkLogs);
+      addWorkLog(workLog);
       workLogInput = "";
-      await scrollLogListToTop();
     } catch (error) {
       workLogError = errorMessage(error);
     } finally {
@@ -172,28 +187,41 @@
     return b.id - a.id;
   }
 
+  function addWorkLog(workLog: WorkLog) {
+    if (workLogs.some((existingWorkLog) => existingWorkLog.id === workLog.id)) {
+      return;
+    }
+
+    workLogs = [...workLogs, workLog].sort(compareWorkLogs);
+    void scrollLogListToTop();
+  }
+
   function groupVisibleWorkLogs(logs: WorkLog[]): WorkLogGroup[] {
     const todayStartMs = startOfLocalDay(Date.now());
-    const groups = new Map<string, WorkLogGroup>();
+    const groups: WorkLogGroup[] = [];
+    const groupByDateKey: Record<string, WorkLogGroup> = {};
 
     for (const log of logs) {
       const date = new Date(log.createdAtMs);
       const dateKey = localDateKey(date);
-      const group = groups.get(dateKey);
+      const group = groupByDateKey[dateKey];
 
       if (group) {
         group.logs.push(log);
         continue;
       }
 
-      groups.set(dateKey, {
+      const nextGroup = {
         dateKey,
         label: formatLogDateLabel(date, todayStartMs),
         logs: [log],
-      });
+      };
+
+      groupByDateKey[dateKey] = nextGroup;
+      groups.push(nextGroup);
     }
 
-    return Array.from(groups.values());
+    return groups;
   }
 
   function oldestVisibleDayStartMs() {
@@ -205,14 +233,26 @@
 
   function startOfLocalDay(timestampMs: number) {
     const date = new Date(timestampMs);
-    date.setHours(0, 0, 0, 0);
-    return date.getTime();
+
+    return new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    ).getTime();
   }
 
   function addLocalDays(timestampMs: number, dayOffset: number) {
     const date = new Date(timestampMs);
-    date.setDate(date.getDate() + dayOffset);
-    return date.getTime();
+
+    return new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate() + dayOffset,
+      date.getHours(),
+      date.getMinutes(),
+      date.getSeconds(),
+      date.getMilliseconds(),
+    ).getTime();
   }
 
   function localDateKey(date: Date) {
@@ -272,6 +312,10 @@
 
   function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
+  }
+
+  function isTauriRuntime() {
+    return "__TAURI_INTERNALS__" in window;
   }
 </script>
 
@@ -727,5 +771,4 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
   }
-
 </style>

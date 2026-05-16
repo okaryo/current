@@ -1,6 +1,6 @@
 use super::model::WorkLog;
 use super::service;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 #[tauri::command]
 pub fn list_work_logs(oldest_created_at_ms: i64, app: AppHandle) -> Result<Vec<WorkLog>, String> {
@@ -9,5 +9,9 @@ pub fn list_work_logs(oldest_created_at_ms: i64, app: AppHandle) -> Result<Vec<W
 
 #[tauri::command]
 pub fn create_work_log(body: String, app: AppHandle) -> Result<WorkLog, String> {
-    service::create_work_log(&app, &body)
+    let work_log = service::create_work_log(&app, &body)?;
+
+    let _ = app.emit_to("main", "work-log:created", &work_log);
+
+    Ok(work_log)
 }
