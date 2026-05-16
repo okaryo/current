@@ -337,7 +337,9 @@
 
   .global-entry-frame {
     overflow: hidden;
+    flex: 0 1 calc(100vw - 2.4rem);
     width: calc(100vw - 2.4rem);
+    min-width: 0;
     max-width: 28rem;
     max-height: 2.5rem;
     border: 1px solid rgba(91, 143, 249, 0.34);
@@ -442,6 +444,7 @@
   .global-entry-panel {
     display: grid;
     gap: 0.6rem;
+    width: 100%;
     min-width: 0;
   }
 
