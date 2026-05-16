@@ -12,11 +12,27 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Current",
         "width": 860,
         "height": 630,
         "minWidth": 860,
         "minHeight": 630
+      },
+      {
+        "label": "quick-log",
+        "title": "Quick Log",
+        "url": "/quick-log/",
+        "width": 560,
+        "height": 230,
+        "minWidth": 420,
+        "minHeight": 190,
+        "resizable": false,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "focus": false
       }
     ],
     "security": {

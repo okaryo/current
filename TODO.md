@@ -239,7 +239,6 @@ Rhythm Reminder decisions:
 ### Global Navigation
 
 - [x] Add section switching shortcuts
-- [ ] Add global hotkey for showing app
 
 ### Keyboard UX
 
@@ -351,6 +350,7 @@ Initial release workflow decisions:
 ### Keyboard Workflow
 
 - [ ] Add keyboard shortcut for focusing timer section
+- [x] Add global hotkey for showing a Quick Log window
 
 ### Work Log
 
@@ -364,3 +364,10 @@ Work Log post-release decisions:
 - Editing work logs should stay lightweight.
 - A likely amend flow is: bring the latest log back into the input, edit it, then submit to update it.
 - The shortcut for amending the latest log is undecided.
+- The global hotkey is a post-initial-release feature and should show a dedicated Quick Log window, not just bring the main application window to the front.
+- First, prototype the Quick Log window with Tauri's standard multi-window APIs and verify whether the interaction feels right.
+- The current Tauri-only Quick Log window appears to satisfy the intended quick logging workflow, so keep this approach.
+- `Cmd+Shift+L` opens the Quick Log window through Tauri's global shortcut plugin.
+- Quick Log closes when it loses focus, including when the user clicks the main Current window or another app.
+- Rounded native-looking Quick Log window corners are deferred; Tauri transparent window styling did not produce the desired result.
+- A macOS-native Quick Log implementation is not planned for now. Reconsider it only if the Tauri-based window reveals a concrete limitation in normal use.
