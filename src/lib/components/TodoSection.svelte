@@ -329,14 +329,11 @@
       return;
     }
 
-    if (selectedTodo.parentId !== null) {
-      todoError = "Subtasks can only be added to root tasks for now.";
-      return;
-    }
+    const parentId = selectedTodo.parentId ?? selectedTodo.id;
 
     todoError = null;
     cancelEdit();
-    draftSubtaskParentId = selectedTodo.id;
+    draftSubtaskParentId = parentId;
     draftSubtaskTitle = "";
     await tick();
     draftSubtaskInput?.focus();
@@ -730,9 +727,11 @@
                 : "Set Now"}
             </span>
           {/if}
-          {#if selectedTodo.parentId === null}
-            <span><KeyboardKey value="t" />Subtask</span>
-          {/if}
+          <span>
+            <KeyboardKey value="t" />{selectedTodo.parentId === null
+              ? "Subtask"
+              : "Sibling"}
+          </span>
           {#if selectedTodo.parentId === null}
             <span><KeyboardKey value="Tab" />Indent</span>
           {:else}

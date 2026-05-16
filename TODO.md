@@ -97,7 +97,7 @@ Nested TODO decisions:
 
 - `Tab`: indent the selected TODO under the previous TODO when possible.
 - `Shift+Tab`: outdent the selected TODO when possible.
-- `t`: opens an inline subtask input at the end of the selected root TODO's children.
+- `t`: opens an inline subtask input at the end of the selected root TODO's children; when a subtask is selected, it adds a sibling under the same parent.
 - Initial release supports one nested level only.
 - Parent completion does not change child completion.
 - Child completion does not automatically complete the parent.
