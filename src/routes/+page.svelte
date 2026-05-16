@@ -367,8 +367,12 @@
   }
 
   function sectionFromShortcut(event: KeyboardEvent): SectionId | null {
-    if (!event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+    if (!event.metaKey || event.ctrlKey || event.altKey) {
       return null;
+    }
+
+    if (event.shiftKey) {
+      return adjacentSectionFromShortcut(event);
     }
 
     switch (event.key) {
@@ -381,6 +385,27 @@
       default:
         return null;
     }
+  }
+
+  function adjacentSectionFromShortcut(event: KeyboardEvent): SectionId | null {
+    switch (event.code) {
+      case "BracketLeft":
+        return adjacentSection(-1);
+      case "BracketRight":
+        return adjacentSection(1);
+      default:
+        return null;
+    }
+  }
+
+  function adjacentSection(offset: number): SectionId {
+    const activeIndex = sections.findIndex(
+      (section) => section.id === activeSection,
+    );
+    const nextIndex =
+      (activeIndex + offset + sections.length) % sections.length;
+
+    return sections[nextIndex].id;
   }
 
   function isTextInputTarget(target: EventTarget | null) {

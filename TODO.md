@@ -258,9 +258,12 @@ Section shortcut decisions:
 - `Cmd+1`: activate Pomodoro section
 - `Cmd+2`: activate TODO section
 - `Cmd+3`: activate Log section
+- `Cmd+Shift+[`: activate the previous section, wrapping from Pomodoro to Log.
+- `Cmd+Shift+]`: activate the next section, wrapping from Log to Pomodoro.
 - Log is the initial active section for now.
 - `Cmd+2` keeps the current TODO selection when possible; otherwise it selects Now, then the first TODO, then focuses the TODO list.
 - `Cmd+3` focuses the Work Log list.
+- Adjacent section shortcuts are implicit power-user shortcuts and are not shown in section hints for now.
 - `i` is an app-wide shortcut for the shared Todo / Work Log quick input.
 - Global shortcuts should be limited to app-wide actions such as section switching and shared quick input.
 - Section-specific shortcuts should only run inside the active section.
