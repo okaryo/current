@@ -2,6 +2,7 @@
   import { onDestroy, onMount, tick } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import {
+    createSubtask,
     deleteTodo,
     listTodos,
     moveTodoUnderPreviousRoot,
@@ -19,6 +20,7 @@
     | "toggleComplete"
     | "edit"
     | "toggleNow"
+    | "addSubtask"
     | "indent"
     | "outdent"
     | "delete"
@@ -50,6 +52,10 @@
   let editingTitle = $state("");
   let isSavingEdit = $state(false);
   let editTodoInput = $state<HTMLInputElement>();
+  let draftSubtaskParentId = $state<number | null>(null);
+  let draftSubtaskTitle = $state("");
+  let isSavingSubtask = $state(false);
+  let draftSubtaskInput = $state<HTMLInputElement>();
   let taskListElement = $state<HTMLUListElement>();
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -88,6 +94,7 @@
   $effect(() => {
     if (!active) {
       cancelEdit();
+      cancelDraftSubtask();
     }
   });
 
@@ -221,6 +228,9 @@
       case "toggleNow":
         toggleNowTodo();
         break;
+      case "addSubtask":
+        await startAddSubtaskForSelectedTodo();
+        break;
       case "indent":
         await indentSelectedTodo();
         break;
@@ -306,6 +316,64 @@
     } catch (error) {
       todoError = errorMessage(error);
     }
+  }
+
+  async function startAddSubtaskForSelectedTodo() {
+    if (selectedTodoId === null) {
+      return;
+    }
+
+    const selectedTodo = todos.find((todo) => todo.id === selectedTodoId);
+
+    if (!selectedTodo) {
+      return;
+    }
+
+    if (selectedTodo.parentId !== null) {
+      todoError = "Subtasks can only be added to root tasks for now.";
+      return;
+    }
+
+    todoError = null;
+    cancelEdit();
+    draftSubtaskParentId = selectedTodo.id;
+    draftSubtaskTitle = "";
+    await tick();
+    draftSubtaskInput?.focus();
+  }
+
+  async function submitDraftSubtask(event: SubmitEvent) {
+    event.preventDefault();
+
+    if (isSavingSubtask || draftSubtaskParentId === null) {
+      return;
+    }
+
+    const title = draftSubtaskTitle.trim();
+
+    if (!title) {
+      cancelDraftSubtask();
+      return;
+    }
+
+    isSavingSubtask = true;
+    todoError = null;
+
+    try {
+      const createdTodo = await createSubtask(draftSubtaskParentId, title);
+      todos = sortTodos(await listTodos());
+      selectedTodoId = createdTodo.id;
+      cancelDraftSubtask();
+    } catch (error) {
+      todoError = errorMessage(error);
+    } finally {
+      isSavingSubtask = false;
+    }
+  }
+
+  function cancelDraftSubtask() {
+    draftSubtaskParentId = null;
+    draftSubtaskTitle = "";
   }
 
   function selectTodo(id: number) {
@@ -403,6 +471,7 @@
     selectedTodoId = null;
     editingTodoId = null;
     editingTitle = "";
+    cancelDraftSubtask();
   }
 
   function ensureSelectedTodo() {
@@ -432,6 +501,24 @@
 
   function hasSelectableTodo(id: number | null) {
     return id !== null && todos.some((todo) => todo.id === id);
+  }
+
+  function shouldShowDraftSubtaskAfter(todo: Todo) {
+    if (draftSubtaskParentId === null) {
+      return false;
+    }
+
+    if (
+      todo.id !== draftSubtaskParentId &&
+      todo.parentId !== draftSubtaskParentId
+    ) {
+      return false;
+    }
+
+    const index = todos.findIndex((item) => item.id === todo.id);
+    const nextTodo = todos[index + 1];
+
+    return nextTodo?.parentId !== draftSubtaskParentId;
   }
 
   async function scrollSelectedTodoIntoView() {
@@ -602,6 +689,27 @@
               {/if}
             </div>
           </li>
+          {#if shouldShowDraftSubtaskAfter(todo)}
+            <li class="task-child task-draft">
+              <span class="task-check task-check-placeholder"></span>
+              <form class="task-edit" onsubmit={submitDraftSubtask}>
+                <input
+                  type="text"
+                  bind:this={draftSubtaskInput}
+                  bind:value={draftSubtaskTitle}
+                  disabled={isSavingSubtask}
+                  placeholder="Add a subtask..."
+                  onkeydown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      cancelDraftSubtask();
+                    }
+                  }}
+                />
+              </form>
+              <div class="task-meta"></div>
+            </li>
+          {/if}
         {/each}
       {/if}
     </ul>
@@ -621,6 +729,9 @@
                 ? "Unset Now"
                 : "Set Now"}
             </span>
+          {/if}
+          {#if selectedTodo.parentId === null}
+            <span><KeyboardKey value="t" />Subtask</span>
           {/if}
           {#if selectedTodo.parentId === null}
             <span><KeyboardKey value="Tab" />Indent</span>
@@ -850,6 +961,11 @@
     border-color: #44d16b;
   }
 
+  .task-check-placeholder {
+    border-style: dashed;
+    opacity: 0.45;
+  }
+
   .task-completed .task-check {
     border-color: #44d16b;
     color: #0b0d10;
@@ -893,6 +1009,10 @@
     color: #e8ecf2;
     caret-color: #44d16b;
     background: transparent;
+  }
+
+  .task-draft .task-edit input::placeholder {
+    color: #707987;
   }
 
   .task-edit:focus-within {

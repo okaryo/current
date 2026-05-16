@@ -17,6 +17,15 @@ pub fn create_todo(title: String, app: AppHandle) -> Result<Todo, String> {
 }
 
 #[tauri::command]
+pub fn create_subtask(parent_id: u32, title: String, app: AppHandle) -> Result<Todo, String> {
+    let todo = service::create_subtask(&app, parent_id, &title)?;
+
+    let _ = app.emit_to("main", "todo:created", &todo);
+
+    Ok(todo)
+}
+
+#[tauri::command]
 pub fn toggle_todo(id: u32, app: AppHandle) -> Result<Todo, String> {
     service::toggle_todo(&app, id)
 }

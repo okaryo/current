@@ -19,6 +19,13 @@ pub fn create_todo(app: &AppHandle, title: &str) -> Result<Todo, String> {
     repository::create(&connection, title, now_ms()?)
 }
 
+pub fn create_subtask(app: &AppHandle, parent_id: u32, title: &str) -> Result<Todo, String> {
+    let title = normalize_title(title)?;
+    let connection = db::open(app)?;
+
+    repository::create_child(&connection, parent_id, title, now_ms()?)
+}
+
 pub fn toggle_todo(app: &AppHandle, id: u32) -> Result<Todo, String> {
     let connection = db::open(app)?;
     let todo =

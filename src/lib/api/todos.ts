@@ -18,6 +18,10 @@ export function createTodo(title: string) {
   return invoke<Todo>("create_todo", { title });
 }
 
+export function createSubtask(parentId: number, title: string) {
+  return invoke<Todo>("create_subtask", { parentId, title });
+}
+
 export function toggleTodo(id: number) {
   return invoke<Todo>("toggle_todo", { id });
 }

@@ -59,6 +59,7 @@ Layout decisions:
 - [x] Add shared quick input focus behavior for new TODOs
 - [x] Add shortcut for indenting TODOs
 - [x] Add shortcut for outdenting TODOs
+- [x] Add shortcut for adding a subtask to the selected TODO
 
 Keyboard decisions:
 
@@ -71,6 +72,7 @@ Keyboard decisions:
 - `Space`: toggle completion for the selected TODO
 - `e`: edit the selected TODO
 - `Enter`: set/unset the selected TODO as Now
+- `t`: add a subtask to the selected TODO when it is a root task
 - `Shift+D`: delete the selected TODO immediately
 - `Escape`: cancel edit or clear selection
 - Delete intentionally does not use plain `d`.
@@ -95,6 +97,7 @@ Nested TODO decisions:
 
 - `Tab`: indent the selected TODO under the previous TODO when possible.
 - `Shift+Tab`: outdent the selected TODO when possible.
+- `t`: opens an inline subtask input at the end of the selected root TODO's children.
 - Initial release supports one nested level only.
 - Parent completion does not change child completion.
 - Child completion does not automatically complete the parent.

@@ -21,6 +21,7 @@
     | "toggleComplete"
     | "edit"
     | "toggleNow"
+    | "addSubtask"
     | "indent"
     | "outdent"
     | "delete"
@@ -156,9 +157,27 @@
         event.preventDefault();
         requestTodoCommand("edit");
         break;
+      case "t":
+        if (
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.altKey &&
+          !event.shiftKey
+        ) {
+          event.preventDefault();
+          requestTodoCommand("addSubtask");
+        }
+        break;
       case "Enter":
-        event.preventDefault();
-        requestTodoCommand("toggleNow");
+        if (
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.altKey &&
+          !event.shiftKey
+        ) {
+          event.preventDefault();
+          requestTodoCommand("toggleNow");
+        }
         break;
       case "Tab":
         event.preventDefault();

@@ -34,6 +34,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             todo::commands::list_todos,
             todo::commands::create_todo,
+            todo::commands::create_subtask,
             todo::commands::toggle_todo,
             todo::commands::update_todo_title,
             todo::commands::move_todo_under_previous_root,

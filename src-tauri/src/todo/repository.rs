@@ -71,6 +71,36 @@ pub fn create(connection: &Connection, title: &str, created_at_ms: i64) -> Resul
     get(connection, id)?.ok_or_else(|| format!("Todo #{id} was not found after creation."))
 }
 
+pub fn create_child(
+    connection: &Connection,
+    parent_id: u32,
+    title: &str,
+    created_at_ms: i64,
+) -> Result<Todo, String> {
+    let parent = get(connection, parent_id)?
+        .ok_or_else(|| format!("Parent todo #{parent_id} was not found."))?;
+
+    if parent.parent_id.is_some() {
+        return Err("Subtasks can only be added to root tasks for now.".to_string());
+    }
+
+    let position = next_position(connection, Some(parent.id))?;
+
+    connection
+        .execute(
+            "
+            INSERT INTO todos (title, completed, created_at_ms, completed_at_ms, parent_id, position)
+            VALUES (?1, ?2, ?3, NULL, ?4, ?5)
+            ",
+            params![title, false, created_at_ms, parent.id, position],
+        )
+        .map_err(|error| format!("Failed to create subtask: {error}"))?;
+
+    let id = row_id_to_u32(connection.last_insert_rowid())?;
+
+    get(connection, id)?.ok_or_else(|| format!("Todo #{id} was not found after creation."))
+}
+
 pub fn toggle(
     connection: &Connection,
     id: u32,
@@ -327,6 +357,40 @@ mod tests {
             todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
             vec![1, 2]
         );
+    }
+
+    #[test]
+    fn creates_child_todo_at_end_of_parent_children() {
+        let connection = migrated_connection();
+        let parent = create(&connection, "parent", 1000).expect("create parent todo");
+        let first_child =
+            create_child(&connection, parent.id, "first child", 2000).expect("create first child");
+        let second_child = create_child(&connection, parent.id, "second child", 3000)
+            .expect("create second child");
+        let sibling = create(&connection, "sibling", 4000).expect("create sibling todo");
+
+        let todos = list(&connection).expect("list todos");
+
+        assert_eq!(first_child.parent_id, Some(parent.id));
+        assert_eq!(first_child.position, 1);
+        assert_eq!(second_child.parent_id, Some(parent.id));
+        assert_eq!(second_child.position, 2);
+        assert_eq!(
+            todos.iter().map(|todo| todo.id).collect::<Vec<_>>(),
+            vec![parent.id, first_child.id, second_child.id, sibling.id]
+        );
+    }
+
+    #[test]
+    fn does_not_create_child_under_child_todo() {
+        let connection = migrated_connection();
+        let parent = create(&connection, "parent", 1000).expect("create parent todo");
+        let child = create_child(&connection, parent.id, "child", 2000).expect("create child");
+
+        let error = create_child(&connection, child.id, "grandchild", 3000)
+            .expect_err("create grandchild should fail");
+
+        assert_eq!(error, "Subtasks can only be added to root tasks for now.");
     }
 
     #[test]
