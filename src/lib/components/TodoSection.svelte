@@ -926,6 +926,7 @@
   .task-title {
     display: block;
     overflow: hidden;
+    font-size: 14px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -1066,5 +1067,4 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
   }
-
 </style>

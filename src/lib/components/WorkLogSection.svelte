@@ -651,9 +651,10 @@
 
   .log-item {
     display: grid;
-    grid-template-columns: 4rem minmax(0, 1fr);
-    gap: 0.9rem;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: 0.55rem;
     color: #d7dce4;
+    font-size: 14px;
   }
 
   .log-item span {
