@@ -21,7 +21,7 @@ pub fn run() {
                         .with_shortcuts(["CommandOrControl+Shift+L"])?
                         .with_handler(|app, _shortcut, event| {
                             if event.state == ShortcutState::Pressed {
-                                let _ = quick_log::commands::show_quick_log_window(app.clone());
+                                let _ = quick_log::commands::toggle_quick_log_window(app.clone());
                             }
                         })
                         .build(),
