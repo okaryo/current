@@ -295,7 +295,6 @@
         {/each}
       {/if}
     </ol>
-
   </div>
 
   {#if workLogError}
