@@ -4,42 +4,42 @@ use tauri::{AppHandle, Emitter, LogicalPosition, Manager, WindowEvent};
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{NSApplicationActivationOptions, NSRunningApplication, NSWorkspace};
 
-const QUICK_LOG_WINDOW_LABEL: &str = "quick-log";
-const QUICK_LOG_WINDOW_WIDTH: f64 = 560.0;
-const QUICK_LOG_WINDOW_HEIGHT: f64 = 230.0;
+const QUICK_ENTRY_WINDOW_LABEL: &str = "quick-entry";
+const QUICK_ENTRY_WINDOW_WIDTH: f64 = 560.0;
+const QUICK_ENTRY_WINDOW_HEIGHT: f64 = 230.0;
 static PREVIOUS_FRONTMOST_APP_PID: Mutex<Option<i32>> = Mutex::new(None);
 
-pub fn toggle_quick_log_window(app: AppHandle) -> Result<(), String> {
-    let window = quick_log_window(&app)?;
+pub fn toggle_quick_entry_window(app: AppHandle) -> Result<(), String> {
+    let window = quick_entry_window(&app)?;
 
     if window.is_visible().map_err(|error| error.to_string())? {
-        return hide_quick_log_window(app);
+        return hide_quick_entry_window(app);
     }
 
-    show_quick_log_window(app)
+    show_quick_entry_window(app)
 }
 
 #[tauri::command]
-pub fn show_quick_log_window(app: AppHandle) -> Result<(), String> {
-    let window = quick_log_window(&app)?;
+pub fn show_quick_entry_window(app: AppHandle) -> Result<(), String> {
+    let window = quick_entry_window(&app)?;
 
     remember_frontmost_app();
     position_window_on_cursor_monitor(&app, &window)?;
     window.show().map_err(|error| error.to_string())?;
     window.set_focus().map_err(|error| error.to_string())?;
-    app.emit_to(QUICK_LOG_WINDOW_LABEL, "quick-log:focus", ())
+    app.emit_to(QUICK_ENTRY_WINDOW_LABEL, "quick-entry:focus", ())
         .map_err(|error| error.to_string())?;
 
     Ok(())
 }
 
-pub fn setup_quick_log_window(app: &AppHandle) -> Result<(), String> {
-    let window = quick_log_window(app)?;
+pub fn setup_quick_entry_window(app: &AppHandle) -> Result<(), String> {
+    let window = quick_entry_window(app)?;
     let app_handle = window.app_handle().clone();
 
     window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Focused(false)) {
-            let _ = hide_quick_log_window_without_restoring(app_handle.clone());
+            let _ = hide_quick_entry_window_without_restoring(app_handle.clone());
         }
     });
 
@@ -47,8 +47,8 @@ pub fn setup_quick_log_window(app: &AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn hide_quick_log_window(app: AppHandle) -> Result<(), String> {
-    let window = quick_log_window(&app)?;
+pub fn hide_quick_entry_window(app: AppHandle) -> Result<(), String> {
+    let window = quick_entry_window(&app)?;
 
     window.hide().map_err(|error| error.to_string())?;
     restore_previous_frontmost_app();
@@ -56,15 +56,15 @@ pub fn hide_quick_log_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn hide_quick_log_window_without_restoring(app: AppHandle) -> Result<(), String> {
-    let window = quick_log_window(&app)?;
+fn hide_quick_entry_window_without_restoring(app: AppHandle) -> Result<(), String> {
+    let window = quick_entry_window(&app)?;
 
     window.hide().map_err(|error| error.to_string())
 }
 
-fn quick_log_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
-    app.get_webview_window(QUICK_LOG_WINDOW_LABEL)
-        .ok_or_else(|| "Quick Log window was not found".to_string())
+fn quick_entry_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
+    app.get_webview_window(QUICK_ENTRY_WINDOW_LABEL)
+        .ok_or_else(|| "Quick Entry window was not found".to_string())
 }
 
 fn position_window_on_cursor_monitor(
@@ -101,9 +101,10 @@ fn position_window_on_cursor_monitor(
     let scale_factor = monitor.scale_factor();
     let work_area_position = work_area.position.to_logical::<f64>(scale_factor);
     let work_area_size = work_area.size.to_logical::<f64>(scale_factor);
-    let x = work_area_position.x + ((work_area_size.width - QUICK_LOG_WINDOW_WIDTH) / 2.0).max(0.0);
+    let x =
+        work_area_position.x + ((work_area_size.width - QUICK_ENTRY_WINDOW_WIDTH) / 2.0).max(0.0);
     let y =
-        work_area_position.y + ((work_area_size.height - QUICK_LOG_WINDOW_HEIGHT) / 3.0).max(0.0);
+        work_area_position.y + ((work_area_size.height - QUICK_ENTRY_WINDOW_HEIGHT) / 3.0).max(0.0);
 
     window
         .set_position(LogicalPosition::new(x, y))

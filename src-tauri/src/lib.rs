@@ -1,5 +1,5 @@
 mod db;
-mod quick_log;
+mod quick_entry;
 mod todo;
 mod work_log;
 
@@ -10,7 +10,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             db::init(app.handle()).map_err(std::io::Error::other)?;
-            quick_log::commands::setup_quick_log_window(app.handle())?;
+            quick_entry::commands::setup_quick_entry_window(app.handle())?;
 
             #[cfg(desktop)]
             {
@@ -21,7 +21,8 @@ pub fn run() {
                         .with_shortcuts(["CommandOrControl+Shift+L"])?
                         .with_handler(|app, _shortcut, event| {
                             if event.state == ShortcutState::Pressed {
-                                let _ = quick_log::commands::toggle_quick_log_window(app.clone());
+                                let _ =
+                                    quick_entry::commands::toggle_quick_entry_window(app.clone());
                             }
                         })
                         .build(),
@@ -40,8 +41,8 @@ pub fn run() {
             todo::commands::delete_todo,
             work_log::commands::list_work_logs,
             work_log::commands::create_work_log,
-            quick_log::commands::show_quick_log_window,
-            quick_log::commands::hide_quick_log_window
+            quick_entry::commands::show_quick_entry_window,
+            quick_entry::commands::hide_quick_entry_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

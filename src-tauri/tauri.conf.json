@@ -20,9 +20,9 @@
         "minHeight": 630
       },
       {
-        "label": "quick-log",
-        "title": "Quick Log",
-        "url": "/quick-log/",
+        "label": "quick-entry",
+        "title": "Quick Entry",
+        "url": "/quick-entry/",
         "width": 560,
         "height": 230,
         "minWidth": 420,

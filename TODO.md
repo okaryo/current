@@ -174,7 +174,7 @@ Work Log decisions:
 - Empty list marker lines exit the list and keep only indentation.
 - Markdown helper behavior is deferred until the basic logging flow feels right.
 - Keep logging flow lightweight: avoid extra confirmations, categories, tags, and other metadata-heavy interactions.
-- Creating a work log emits a Tauri `work-log:created` event so the main window can refresh when Quick Log writes to SQLite.
+- Creating a work log emits a Tauri `work-log:created` event so the main window can refresh when Quick Entry writes to SQLite.
 - Creating a TODO emits a Tauri `todo:created` event so the main window can refresh when the shared quick input writes to SQLite.
 
 ---
@@ -353,7 +353,7 @@ Initial release workflow decisions:
 ### Keyboard Workflow
 
 - [ ] Add keyboard shortcut for focusing timer section
-- [x] Add global hotkey for showing a Quick Log window
+- [x] Add global hotkey for showing a Quick Entry window
 
 ### Work Log
 
@@ -367,12 +367,13 @@ Work Log post-release decisions:
 - Editing work logs should stay lightweight.
 - A likely amend flow is: bring the latest log back into the input, edit it, then submit to update it.
 - The shortcut for amending the latest log is undecided.
-- The global hotkey is a post-initial-release feature and should show a dedicated Quick Log window, not just bring the main application window to the front.
-- First, prototype the Quick Log window with Tauri's standard multi-window APIs and verify whether the interaction feels right.
-- The current Tauri-only Quick Log window appears to satisfy the intended quick logging workflow, so keep this approach.
-- `Cmd+Shift+L` toggles the Quick Log window through Tauri's global shortcut plugin.
-- Quick Log closes when it loses focus, including when the user clicks the main Current window or another app.
-- When Quick Log closes through save, `Esc`, or hotkey toggle, macOS restores focus to the app that was frontmost before Quick Log opened.
-- When Quick Log closes because the user clicked outside it, focus restoration is skipped so the clicked app keeps focus.
-- Rounded native-looking Quick Log window corners are deferred; Tauri transparent window styling did not produce the desired result.
-- A macOS-native Quick Log implementation is not planned for now. Reconsider it only if the Tauri-based window reveals a concrete limitation in normal use.
+- The global hotkey is a post-initial-release feature and should show a dedicated Quick Entry window, not just bring the main application window to the front.
+- First, prototype the Quick Entry window with Tauri's standard multi-window APIs and verify whether the interaction feels right.
+- The current Tauri-only Quick Entry window appears to satisfy the intended quick entry workflow, so keep this approach.
+- Quick Entry supports adding either Todo or Log entries.
+- `Cmd+Shift+L` toggles the Quick Entry window through Tauri's global shortcut plugin.
+- Quick Entry closes when it loses focus, including when the user clicks the main Current window or another app.
+- When Quick Entry closes through save, `Esc`, or hotkey toggle, macOS restores focus to the app that was frontmost before Quick Entry opened.
+- When Quick Entry closes because the user clicked outside it, focus restoration is skipped so the clicked app keeps focus.
+- Rounded native-looking Quick Entry window corners are deferred; Tauri transparent window styling did not produce the desired result.
+- A macOS-native Quick Entry implementation is not planned for now. Reconsider it only if the Tauri-based window reveals a concrete limitation in normal use.
