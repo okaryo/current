@@ -370,5 +370,7 @@ Work Log post-release decisions:
 - The current Tauri-only Quick Log window appears to satisfy the intended quick logging workflow, so keep this approach.
 - `Cmd+Shift+L` toggles the Quick Log window through Tauri's global shortcut plugin.
 - Quick Log closes when it loses focus, including when the user clicks the main Current window or another app.
+- When Quick Log closes through save, `Esc`, or hotkey toggle, macOS restores focus to the app that was frontmost before Quick Log opened.
+- When Quick Log closes because the user clicked outside it, focus restoration is skipped so the clicked app keeps focus.
 - Rounded native-looking Quick Log window corners are deferred; Tauri transparent window styling did not produce the desired result.
 - A macOS-native Quick Log implementation is not planned for now. Reconsider it only if the Tauri-based window reveals a concrete limitation in normal use.

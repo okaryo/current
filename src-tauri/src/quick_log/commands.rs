@@ -1,8 +1,13 @@
+use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, LogicalPosition, Manager, WindowEvent};
+
+#[cfg(target_os = "macos")]
+use objc2_app_kit::{NSApplicationActivationOptions, NSRunningApplication, NSWorkspace};
 
 const QUICK_LOG_WINDOW_LABEL: &str = "quick-log";
 const QUICK_LOG_WINDOW_WIDTH: f64 = 560.0;
 const QUICK_LOG_WINDOW_HEIGHT: f64 = 230.0;
+static PREVIOUS_FRONTMOST_APP_PID: Mutex<Option<i32>> = Mutex::new(None);
 
 pub fn toggle_quick_log_window(app: AppHandle) -> Result<(), String> {
     let window = quick_log_window(&app)?;
@@ -18,6 +23,7 @@ pub fn toggle_quick_log_window(app: AppHandle) -> Result<(), String> {
 pub fn show_quick_log_window(app: AppHandle) -> Result<(), String> {
     let window = quick_log_window(&app)?;
 
+    remember_frontmost_app();
     position_window_on_cursor_monitor(&app, &window)?;
     window.show().map_err(|error| error.to_string())?;
     window.set_focus().map_err(|error| error.to_string())?;
@@ -33,7 +39,7 @@ pub fn setup_quick_log_window(app: &AppHandle) -> Result<(), String> {
 
     window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Focused(false)) {
-            let _ = hide_quick_log_window(app_handle.clone());
+            let _ = hide_quick_log_window_without_restoring(app_handle.clone());
         }
     });
 
@@ -42,6 +48,15 @@ pub fn setup_quick_log_window(app: &AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn hide_quick_log_window(app: AppHandle) -> Result<(), String> {
+    let window = quick_log_window(&app)?;
+
+    window.hide().map_err(|error| error.to_string())?;
+    restore_previous_frontmost_app();
+
+    Ok(())
+}
+
+fn hide_quick_log_window_without_restoring(app: AppHandle) -> Result<(), String> {
     let window = quick_log_window(&app)?;
 
     window.hide().map_err(|error| error.to_string())
@@ -93,4 +108,48 @@ fn position_window_on_cursor_monitor(
     window
         .set_position(LogicalPosition::new(x, y))
         .map_err(|error| error.to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn remember_frontmost_app() {
+    let previous_pid = NSWorkspace::sharedWorkspace()
+        .frontmostApplication()
+        .map(|application| application.processIdentifier() as i32);
+
+    if let Ok(mut pid) = PREVIOUS_FRONTMOST_APP_PID.lock() {
+        *pid = previous_pid;
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn remember_frontmost_app() {}
+
+#[cfg(target_os = "macos")]
+fn restore_previous_frontmost_app() {
+    let previous_pid = PREVIOUS_FRONTMOST_APP_PID
+        .lock()
+        .ok()
+        .and_then(|mut pid| pid.take());
+    let Some(previous_pid) = previous_pid else {
+        return;
+    };
+
+    if previous_pid < 0 {
+        return;
+    }
+
+    if let Some(application) =
+        NSRunningApplication::runningApplicationWithProcessIdentifier(previous_pid)
+    {
+        if !application.isTerminated() {
+            let _ = application.activateWithOptions(NSApplicationActivationOptions::empty());
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn restore_previous_frontmost_app() {
+    if let Ok(mut pid) = PREVIOUS_FRONTMOST_APP_PID.lock() {
+        *pid = None;
+    }
 }
