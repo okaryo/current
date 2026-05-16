@@ -5,6 +5,7 @@
   import { createWorkLog } from "$lib/api/workLogs";
   import { hideQuickEntryWindow } from "$lib/api/quickEntryWindow";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import { effectWithDeps } from "$lib/effectWithDeps.svelte";
   import { insertMarkdownNewLine } from "$lib/work-log/markdown";
 
   type EntryMode = "todo" | "log";
@@ -43,11 +44,12 @@
     unlistenFocus?.();
   });
 
-  $effect(() => {
-    value;
-    mode;
-    void tick().then(adjustTextareaHeight);
-  });
+  effectWithDeps(
+    () => {
+      void tick().then(adjustTextareaHeight);
+    },
+    () => [value, mode],
+  );
 
   async function submit() {
     if (isSubmitting) {

@@ -4,6 +4,7 @@
   import { createTodo } from "$lib/api/todos";
   import { createWorkLog } from "$lib/api/workLogs";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import { effectWithDeps } from "$lib/effectWithDeps.svelte";
   import { insertMarkdownNewLine } from "$lib/work-log/markdown";
 
   type SectionId = "pomodoro" | "todo" | "log";
@@ -46,11 +47,12 @@
     void focusInput();
   });
 
-  $effect(() => {
-    value;
-    isFocused;
-    void tick().then(adjustTextareaHeight);
-  });
+  effectWithDeps(
+    () => {
+      void tick().then(adjustTextareaHeight);
+    },
+    () => [value, isFocused],
+  );
 
   async function focusInput() {
     isFocused = true;
