@@ -313,11 +313,11 @@
         transition:fade={{ duration: 90 }}
       >
         <span class="compact-prompt" aria-hidden="true">&gt;</span>
+        <strong>Press<KeyboardKey value="i" />to focus</strong>
         <span class="compact-placeholder">
-          Add <span class="compact-todo">Todo</span> /
+          <span class="compact-todo">Todo</span> /
           <span class="compact-log">Log</span>
         </span>
-        <strong>Focus with <KeyboardKey value="i" /></strong>
       </button>
     {/if}
   </div>
@@ -337,10 +337,12 @@
 
   .global-entry-frame {
     overflow: hidden;
-    flex: 0 1 calc(100vw - 2.4rem);
-    width: calc(100vw - 2.4rem);
+    flex: 0 1 auto;
+    display: flex;
+    align-items: center;
+    width: auto;
     min-width: 0;
-    max-width: 28rem;
+    max-width: min(100%, 16rem);
     max-height: 2.5rem;
     border: 1px solid rgba(91, 143, 249, 0.34);
     border-radius: 8px;
@@ -365,6 +367,8 @@
   }
 
   .global-entry-frame-focused {
+    display: block;
+    width: calc(100vw - 2.4rem);
     max-width: 44rem;
     max-height: 15rem;
     border-color: rgba(255, 255, 255, 0.18);
@@ -391,15 +395,16 @@
   }
 
   .global-entry-compact {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    display: inline-flex;
     align-items: center;
-    gap: 0.62rem;
-    width: 100%;
-    min-height: calc(2.5rem - 1rem);
+    gap: 1rem;
+    width: max-content;
+    max-width: 100%;
+    min-height: 1.5rem;
     border: 0;
     padding: 0;
     color: inherit;
+    line-height: 1;
     background: transparent;
     cursor: pointer;
   }
@@ -409,6 +414,7 @@
   }
 
   .compact-prompt {
+    display: none;
     color: #5b8ff9;
     font-weight: 800;
   }
@@ -417,7 +423,6 @@
     overflow: hidden;
     min-width: 0;
     color: #9ba3b0;
-    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
