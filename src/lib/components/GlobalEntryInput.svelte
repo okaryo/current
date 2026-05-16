@@ -32,10 +32,9 @@
   let shouldIgnoreNextEnterAfterComposition = false;
 
   const placeholder = $derived(
-    mode === "log"
-      ? "Write a log... (Cmd+Enter to submit)"
-      : "Add a todo... (Cmd+Enter to submit)",
+    mode === "log" ? "Write a log... (Enter for newline)" : "Add a todo...",
   );
+  const hasValue = $derived(value.trim().length > 0);
 
   $effect(() => {
     if (focusRequest === 0 || focusRequest === lastFocusRequest) {
@@ -273,15 +272,18 @@
             </button>
           </div>
 
-          <button
-            class="submit-button"
-            type="button"
-            disabled={isSubmitting || value.trim().length === 0}
-            onmousedown={(event) => event.preventDefault()}
-            onclick={submit}
-          >
-            <KeyboardKey value="⌘Enter" label="Command Enter" /> Submit
-          </button>
+          <div class="entry-shortcuts" aria-label="Quick input shortcuts">
+            <span><KeyboardKey value="Tab" />Switch</span>
+            {#if hasValue}
+              <span
+                ><KeyboardKey
+                  value="⌘Enter"
+                  label="Command Enter"
+                />Submit</span
+              >
+            {/if}
+            <span><KeyboardKey value="Esc" label="Escape" />Close</span>
+          </div>
         </div>
 
         <div class="entry-input" class:entry-input-todo={mode === "todo"}>
@@ -296,13 +298,6 @@
             oncompositionstart={handleCompositionStart}
             oncompositionend={handleCompositionEnd}
           ></textarea>
-        </div>
-
-        <div class="entry-help" aria-label="Quick input shortcuts">
-          <span><KeyboardKey value="Tab" />Switch</span>
-          <span><KeyboardKey value="⌘Enter" label="Command Enter" />Submit</span
-          >
-          <span><KeyboardKey value="Esc" label="Escape" />Close</span>
         </div>
 
         {#if error}
@@ -454,16 +449,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.8rem;
+    gap: 0.65rem;
     min-width: 0;
   }
 
   .mode-tabs {
     display: inline-flex;
-    gap: 0.2rem;
+    gap: 0.15rem;
     border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 8px;
-    padding: 0.2rem;
+    border-radius: 7px;
+    padding: 0.14rem;
     background: rgba(255, 255, 255, 0.04);
   }
 
@@ -471,8 +466,7 @@
     font: inherit;
   }
 
-  .mode-button,
-  .submit-button {
+  .mode-button {
     border: 1px solid transparent;
     border-radius: 7px;
     color: #9ba3b0;
@@ -481,8 +475,9 @@
   }
 
   .mode-button {
-    min-width: 4.6rem;
-    padding: 0.32rem 0.65rem;
+    min-width: 3.85rem;
+    padding: 0.22rem 0.5rem;
+    font-size: 0.88rem;
     font-weight: 700;
   }
 
@@ -498,23 +493,20 @@
     background: rgba(91, 143, 249, 0.13);
   }
 
-  .submit-button {
+  .entry-shortcuts {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    color: #858d9a;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .entry-shortcuts span {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    padding: 0.35rem 0.62rem;
-    white-space: nowrap;
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .submit-button:not(:disabled):hover {
-    border-color: rgba(91, 143, 249, 0.42);
-    color: #e8ecf2;
-  }
-
-  .submit-button:disabled {
-    opacity: 0.5;
-    cursor: default;
+    gap: 0.32rem;
   }
 
   .entry-input {
@@ -576,20 +568,6 @@
 
   textarea::placeholder {
     color: #858d9a;
-  }
-
-  .entry-help {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    color: #858d9a;
-    font-size: 0.78rem;
-  }
-
-  .entry-help span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.32rem;
   }
 
   .entry-error {
