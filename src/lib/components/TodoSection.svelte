@@ -64,6 +64,7 @@
   let draftSubtaskInput = $state<HTMLInputElement>();
   let taskListElement = $state<HTMLUListElement>();
   let todoFooterElement = $state<HTMLElement>();
+  let hasScrollableTaskList = $state(false);
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
   let unlistenTodoCreated: UnlistenFn | undefined;
@@ -124,6 +125,14 @@
     }
 
     void scrollSelectedTodoIntoView();
+  });
+
+  $effect(() => {
+    todos;
+    isDraftingTodo;
+    draftSubtaskParentId;
+    shouldShowFooterActions;
+    void updateTaskListScrollState();
   });
 
   async function loadTodos() {
@@ -578,8 +587,21 @@
     return nextTodo?.parentId !== draftSubtaskParentId;
   }
 
+  async function updateTaskListScrollState() {
+    await tick();
+
+    if (!taskListElement) {
+      hasScrollableTaskList = false;
+      return;
+    }
+
+    hasScrollableTaskList =
+      taskListElement.scrollHeight > taskListElement.clientHeight + 1;
+  }
+
   async function scrollSelectedTodoIntoView() {
     await tick();
+    await updateTaskListScrollState();
 
     const selectedTodoElement = taskListElement?.querySelector<HTMLElement>(
       `[data-todo-id="${selectedTodoId}"]`,
@@ -693,7 +715,8 @@
   <div class="task-list-shell">
     <ul
       class="task-list"
-      class:task-list-footer-visible={shouldShowFooterActions}
+      class:task-list-footer-visible={shouldShowFooterActions &&
+        hasScrollableTaskList}
       aria-label="Todo list"
       tabindex="-1"
       bind:this={taskListElement}
