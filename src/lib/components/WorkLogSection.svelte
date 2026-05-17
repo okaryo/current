@@ -421,7 +421,7 @@
   .log-list-shell {
     display: flex;
     flex-direction: column;
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -430,7 +430,7 @@
   }
 
   .log-list {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     overflow-x: hidden;
     overflow-y: auto;
     min-height: 0;

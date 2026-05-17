@@ -188,6 +188,7 @@
   .panel {
     position: relative;
     min-width: 0;
+    container-type: inline-size;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     padding: 0.85rem;
@@ -267,6 +268,7 @@
   .timer-layout {
     display: grid;
     grid-template-columns: auto minmax(14rem, 1fr) minmax(13rem, auto);
+    grid-template-areas: "ring details shortcuts";
     align-items: center;
     gap: 1.4rem;
     min-height: 7.4rem;
@@ -277,6 +279,7 @@
   }
 
   .timer-ring {
+    grid-area: ring;
     display: grid;
     place-items: center;
     align-content: center;
@@ -321,6 +324,7 @@
   }
 
   .shortcut-list {
+    grid-area: shortcuts;
     display: grid;
     gap: 0.4rem;
     margin: 0;
@@ -334,21 +338,24 @@
     gap: 0.65rem;
   }
 
-  .shortcut-list dt,
-  .shortcut-list dd {
-    margin: 0;
+  .timer-details {
+    grid-area: details;
+    min-width: 0;
   }
 
-  @media (max-width: 860px) {
+  @container (max-width: 36rem) {
     .timer-layout {
-      grid-template-columns: auto minmax(9rem, 1fr) minmax(9.5rem, auto);
+      grid-template-areas:
+        "ring details"
+        "shortcuts shortcuts";
+      grid-template-columns: auto minmax(0, 1fr);
       gap: 0.8rem;
-      min-height: 5.8rem;
-      padding: 0.5rem;
+      min-height: 0;
+      padding: 0.6rem;
     }
 
     .timer-ring {
-      width: 5.5rem;
+      width: 5.7rem;
       border-width: 0.25rem;
       box-shadow:
         0 0 0 0.25rem rgba(240, 82, 96, 0.08),
@@ -371,14 +378,20 @@
     }
 
     .shortcut-list {
-      gap: 0.25rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.4rem;
       font-size: 0.86rem;
     }
 
     .shortcut-list div {
-      grid-template-columns: 2.6rem 1fr;
+      grid-template-columns: auto minmax(0, 1fr);
       gap: 0.45rem;
     }
+  }
+
+  .shortcut-list dt,
+  .shortcut-list dd {
+    margin: 0;
   }
 
   @media (max-width: 560px) {

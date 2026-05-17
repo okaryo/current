@@ -374,9 +374,9 @@
   .workspace {
     display: grid;
     grid-template-areas:
-      "pomodoro pomodoro"
+      "pomodoro log"
       "todo log";
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(18rem, 0.6fr) minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     gap: 0.75rem;
     width: min(100%, 104rem);
