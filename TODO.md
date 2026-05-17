@@ -61,6 +61,7 @@ Layout decisions:
 - [x] Add shortcut for deleting TODO
 - [x] Add shortcut for moving selection
 - [x] Add shared quick input focus behavior for new TODOs
+- [x] Add shortcut for adding a root TODO inline from the TODO section
 - [x] Add shortcut for indenting TODOs
 - [x] Add shortcut for outdenting TODOs
 - [x] Add shortcut for adding a subtask to the selected TODO
@@ -74,6 +75,7 @@ Keyboard decisions:
 - `Tab`: indent the selected TODO
 - `Shift+Tab`: outdent the selected TODO
 - `Space`: toggle completion for the selected TODO
+- `a`: add a root TODO inline at the top of the TODO list
 - `e`: edit the selected TODO
 - `Enter`: set/unset the selected TODO as Now
 - `t`: add a subtask to the selected TODO when it is a root task

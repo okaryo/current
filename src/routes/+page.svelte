@@ -19,6 +19,7 @@
     | "toggleComplete"
     | "edit"
     | "toggleNow"
+    | "addTodo"
     | "addSubtask"
     | "indent"
     | "outdent"
@@ -129,6 +130,17 @@
       case "e":
         event.preventDefault();
         requestTodoCommand("edit");
+        break;
+      case "a":
+        if (
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.altKey &&
+          !event.shiftKey
+        ) {
+          event.preventDefault();
+          requestTodoCommand("addTodo");
+        }
         break;
       case "t":
         if (

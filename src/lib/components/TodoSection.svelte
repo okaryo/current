@@ -2,6 +2,7 @@
   import { onDestroy, onMount, tick } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import {
+    createTodo,
     createSubtask,
     deleteTodo,
     listTodos,
@@ -20,6 +21,7 @@
     | "toggleComplete"
     | "edit"
     | "toggleNow"
+    | "addTodo"
     | "addSubtask"
     | "indent"
     | "outdent"
@@ -52,6 +54,10 @@
   let editingTitle = $state("");
   let isSavingEdit = $state(false);
   let editTodoInput = $state<HTMLInputElement>();
+  let isDraftingTodo = $state(false);
+  let draftTodoTitle = $state("");
+  let isSavingTodo = $state(false);
+  let draftTodoInput = $state<HTMLInputElement>();
   let draftSubtaskParentId = $state<number | null>(null);
   let draftSubtaskTitle = $state("");
   let isSavingSubtask = $state(false);
@@ -64,7 +70,7 @@
     todos.find((todo) => todo.id === selectedTodoId) ?? null,
   );
   const isInputMode = $derived(
-    editingTodoId !== null || draftSubtaskParentId !== null,
+    editingTodoId !== null || isDraftingTodo || draftSubtaskParentId !== null,
   );
   const shouldShowFooterActions = $derived(
     active && selectedTodo !== null && !isInputMode,
@@ -97,6 +103,7 @@
   $effect(() => {
     if (!active) {
       cancelEdit();
+      cancelDraftTodo();
       cancelDraftSubtask();
     }
   });
@@ -231,6 +238,9 @@
       case "toggleNow":
         toggleNowTodo();
         break;
+      case "addTodo":
+        await startAddTodo();
+        break;
       case "addSubtask":
         await startAddSubtaskForSelectedTodo();
         break;
@@ -336,10 +346,55 @@
 
     todoError = null;
     cancelEdit();
+    cancelDraftTodo();
     draftSubtaskParentId = parentId;
     draftSubtaskTitle = "";
     await tick();
     draftSubtaskInput?.focus();
+  }
+
+  async function startAddTodo() {
+    todoError = null;
+    cancelEdit();
+    cancelDraftSubtask();
+    isDraftingTodo = true;
+    draftTodoTitle = "";
+    await tick();
+    draftTodoInput?.focus();
+  }
+
+  async function submitDraftTodo(event: SubmitEvent) {
+    event.preventDefault();
+
+    if (isSavingTodo || !isDraftingTodo) {
+      return;
+    }
+
+    const title = draftTodoTitle.trim();
+
+    if (!title) {
+      cancelDraftTodo();
+      return;
+    }
+
+    isSavingTodo = true;
+    todoError = null;
+
+    try {
+      const createdTodo = await createTodo(title);
+      todos = sortTodos(await listTodos());
+      selectedTodoId = createdTodo.id;
+      cancelDraftTodo();
+    } catch (error) {
+      todoError = errorMessage(error);
+    } finally {
+      isSavingTodo = false;
+    }
+  }
+
+  function cancelDraftTodo() {
+    isDraftingTodo = false;
+    draftTodoTitle = "";
   }
 
   async function submitDraftSubtask(event: SubmitEvent) {
@@ -471,6 +526,7 @@
     selectedTodoId = null;
     editingTodoId = null;
     editingTitle = "";
+    cancelDraftTodo();
     cancelDraftSubtask();
   }
 
@@ -624,9 +680,30 @@
     >
       {#if isLoadingTodos}
         <li class="task-empty">Loading todos...</li>
-      {:else if todos.length === 0}
+      {:else if todos.length === 0 && !isDraftingTodo}
         <li class="task-empty">No todos yet.</li>
       {:else}
+        {#if isDraftingTodo}
+          <li class="task-draft">
+            <span class="task-check task-check-placeholder"></span>
+            <form class="task-edit" onsubmit={submitDraftTodo}>
+              <input
+                type="text"
+                bind:this={draftTodoInput}
+                bind:value={draftTodoTitle}
+                disabled={isSavingTodo}
+                placeholder="Add a todo..."
+                onkeydown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    cancelDraftTodo();
+                  }
+                }}
+              />
+            </form>
+            <div class="task-meta"></div>
+          </li>
+        {/if}
         {#each todos as todo (todo.id)}
           <li
             data-todo-id={todo.id}
@@ -722,6 +799,7 @@
     {#if shouldShowFooterActions && selectedTodo !== null}
       <footer class="todo-footer">
         <div class="todo-footer-actions" aria-label="Selected todo shortcuts">
+          <span><KeyboardKey value="a" />Add</span>
           <span><KeyboardKey value="e" />Edit</span>
           <span>
             <KeyboardKey value="Space" />{selectedTodo.completed
