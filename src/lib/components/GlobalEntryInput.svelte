@@ -94,6 +94,10 @@
         return;
       }
 
+      if (isSubmitting) {
+        return;
+      }
+
       if (panelElement?.contains(document.activeElement)) {
         return;
       }
@@ -199,6 +203,9 @@
       error = errorMessage(submitError);
     } finally {
       isSubmitting = false;
+      await tick();
+      adjustTextareaHeight();
+      textareaElement?.focus();
     }
   }
 
