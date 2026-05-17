@@ -5,6 +5,7 @@
   import { createWorkLog } from "$lib/api/workLogs";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import { effectWithDeps } from "$lib/effectWithDeps.svelte";
+  import { normalizeTodoTitle } from "$lib/entry/todo";
   import { insertMarkdownNewLine } from "$lib/work-log/markdown";
 
   type SectionId = "pomodoro" | "todo" | "log";
@@ -209,10 +210,6 @@
     }
   }
 
-  function normalizeTodoTitle(title: string) {
-    return title.replace(/\s+/g, " ").trim();
-  }
-
   function insertMarkdownNewLineInTextarea(target: EventTarget | null) {
     if (!(target instanceof HTMLTextAreaElement)) {
       return;
@@ -383,8 +380,8 @@
     right: calc(0.8rem + var(--workspace-outer-gap));
     bottom: 0.8rem;
     left: calc(
-      0.8rem + var(--workspace-outer-gap) +
-        var(--workspace-left-column-width) + var(--workspace-column-gap)
+      0.8rem + var(--workspace-outer-gap) + var(--workspace-left-column-width) +
+        var(--workspace-column-gap)
     );
     z-index: 20;
     display: flex;
@@ -409,7 +406,7 @@
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.035),
       0 0.7rem 2rem rgba(0, 0, 0, 0.22);
-    opacity: 0.80;
+    opacity: 0.8;
     backdrop-filter: blur(14px);
     pointer-events: auto;
     transition:

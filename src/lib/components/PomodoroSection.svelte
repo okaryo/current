@@ -2,6 +2,17 @@
   import { onDestroy } from "svelte";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import { sendPomodoroCompleteNotification } from "$lib/notifications";
+  import {
+    formatTime,
+    pomodoroPrimaryActionLabel,
+    pomodoroProgress,
+    pomodoroStatus,
+    resetPomodoro,
+    startFocusPomodoro,
+    tickPomodoro,
+    togglePomodoro,
+    type PomodoroState,
+  } from "$lib/pomodoro/timer";
 
   type PomodoroCommand = "toggle" | "reset" | "startFocus";
 
@@ -18,37 +29,19 @@
     onActivate: () => void;
   };
 
-  const FOCUS_DURATION_SECONDS = 25 * 60;
+  let { active, title, shortcut, commandRequest, onActivate }: Props = $props();
 
-  let {
-    active,
-    title,
-    shortcut,
-    commandRequest,
-    onActivate,
-  }: Props = $props();
-
-  let remainingSeconds = $state(FOCUS_DURATION_SECONDS);
-  let running = $state(false);
+  let pomodoroState = $state<PomodoroState>(resetPomodoro());
   let timerInterval: ReturnType<typeof setInterval> | undefined;
   let lastCommandRequestId = 0;
 
+  const remainingSeconds = $derived(pomodoroState.remainingSeconds);
   const formattedRemainingTime = $derived(formatTime(remainingSeconds));
-  const timerStatus = $derived(
-    running
-      ? "Focusing..."
-      : remainingSeconds < FOCUS_DURATION_SECONDS
-        ? "Paused"
-        : "",
-  );
+  const timerStatus = $derived(pomodoroStatus(pomodoroState));
   const primaryActionLabel = $derived(
-    running
-      ? "Pause"
-      : remainingSeconds < FOCUS_DURATION_SECONDS
-        ? "Continue"
-        : "Start",
+    pomodoroPrimaryActionLabel(pomodoroState),
   );
-  const timerProgress = $derived(remainingSeconds / FOCUS_DURATION_SECONDS);
+  const timerProgress = $derived(pomodoroProgress(pomodoroState));
 
   $effect(() => {
     if (!commandRequest || commandRequest.id === lastCommandRequestId) {
@@ -76,54 +69,42 @@
 
   function toggleTimer() {
     onActivate();
-
-    if (running) {
-      pauseTimer();
-      return;
-    }
-
-    startTimer();
-  }
-
-  function startTimer() {
-    if (remainingSeconds <= 0) {
-      remainingSeconds = FOCUS_DURATION_SECONDS;
-    }
-
-    setRunning(true);
-    restartInterval();
-  }
-
-  function pauseTimer() {
-    setRunning(false);
-    stopTimer();
+    pomodoroState = togglePomodoro(pomodoroState);
+    syncInterval();
   }
 
   function resetTimer() {
     onActivate();
-    setRunning(false);
-    stopTimer();
-    remainingSeconds = FOCUS_DURATION_SECONDS;
+    pomodoroState = resetPomodoro();
+    syncInterval();
   }
 
   function startFocusTimer() {
-    remainingSeconds = FOCUS_DURATION_SECONDS;
-    startTimer();
+    pomodoroState = startFocusPomodoro();
+    syncInterval();
+  }
+
+  function syncInterval() {
+    if (pomodoroState.running) {
+      restartInterval();
+      return;
+    }
+
+    stopTimer();
   }
 
   function restartInterval() {
     stopTimer();
-
     timerInterval = setInterval(() => {
-      if (remainingSeconds <= 1) {
-        setRunning(false);
-        stopTimer();
-        remainingSeconds = FOCUS_DURATION_SECONDS;
+      const result = tickPomodoro(pomodoroState);
+
+      pomodoroState = result.state;
+
+      if (result.completed) {
+        syncInterval();
         void sendPomodoroCompleteNotification();
         return;
       }
-
-      remainingSeconds -= 1;
     }, 1000);
   }
 
@@ -132,21 +113,6 @@
       clearInterval(timerInterval);
       timerInterval = undefined;
     }
-  }
-
-  function setRunning(nextRunning: boolean) {
-    if (running === nextRunning) {
-      return;
-    }
-
-    running = nextRunning;
-  }
-
-  function formatTime(totalSeconds: number) {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }
 </script>
 
@@ -192,7 +158,6 @@
       </button>
     </div>
   </div>
-
 </section>
 
 <style>

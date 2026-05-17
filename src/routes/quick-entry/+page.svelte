@@ -6,6 +6,7 @@
   import { hideQuickEntryWindow } from "$lib/api/quickEntryWindow";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import { effectWithDeps } from "$lib/effectWithDeps.svelte";
+  import { normalizeTodoTitle } from "$lib/entry/todo";
   import { insertMarkdownNewLine } from "$lib/work-log/markdown";
 
   type EntryMode = "todo" | "log";
@@ -179,10 +180,6 @@
       isComposing ||
       shouldIgnoreNextEnterAfterComposition
     );
-  }
-
-  function normalizeTodoTitle(title: string) {
-    return title.replace(/\s+/g, " ").trim();
   }
 
   function insertMarkdownNewLineInTextarea(target: EventTarget | null) {

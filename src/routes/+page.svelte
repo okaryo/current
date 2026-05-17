@@ -3,31 +3,22 @@
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
-
-  type SectionId = "pomodoro" | "todo" | "log";
+  import {
+    globalEntryShortcutRequested,
+    pomodoroCommandFromKeydown,
+    sectionFromShortcut,
+    todoCommandFromKeydown,
+    type PomodoroCommand,
+    type SectionId,
+    type TodoCommand,
+    type WorkLogCommand,
+  } from "$lib/keyboard";
 
   type Section = {
     id: SectionId;
     title: string;
     shortcut: string;
   };
-
-  type TodoCommand =
-    | "focusPreferred"
-    | "moveDown"
-    | "moveUp"
-    | "toggleComplete"
-    | "edit"
-    | "toggleNow"
-    | "addTodo"
-    | "addSubtask"
-    | "indent"
-    | "outdent"
-    | "delete"
-    | "clearSelection";
-
-  type PomodoroCommand = "toggle" | "reset" | "startFocus";
-  type WorkLogCommand = "focusPreferred";
 
   const sections: Section[] = [
     { id: "pomodoro", title: "Pomodoro", shortcut: "⌘1" },
@@ -52,7 +43,7 @@
   let globalEntryFocusRequest = $state(0);
 
   function handleKeydown(event: KeyboardEvent) {
-    const sectionShortcut = sectionFromShortcut(event);
+    const sectionShortcut = sectionFromShortcut(event, activeSection);
 
     if (sectionShortcut) {
       event.preventDefault();
@@ -68,13 +59,7 @@
       return;
     }
 
-    if (
-      event.key === "i" &&
-      !event.metaKey &&
-      !event.ctrlKey &&
-      !event.altKey &&
-      !event.shiftKey
-    ) {
+    if (globalEntryShortcutRequested(event)) {
       event.preventDefault();
       requestGlobalEntryFocus();
       return;
@@ -93,85 +78,20 @@
   }
 
   function handlePomodoroSectionKeydown(event: KeyboardEvent) {
-    switch (event.key) {
-      case " ":
-        event.preventDefault();
-        requestPomodoroCommand("toggle");
-        break;
-      case "r":
-        event.preventDefault();
-        requestPomodoroCommand("reset");
-        break;
+    const command = pomodoroCommandFromKeydown(event);
+
+    if (command) {
+      event.preventDefault();
+      requestPomodoroCommand(command);
     }
   }
 
   function handleTodoSectionKeydown(event: KeyboardEvent) {
-    switch (event.key) {
-      case "D":
-        if (event.shiftKey) {
-          event.preventDefault();
-          requestTodoCommand("delete");
-        }
-        break;
-      case "j":
-      case "ArrowDown":
-        event.preventDefault();
-        requestTodoCommand("moveDown");
-        break;
-      case "k":
-      case "ArrowUp":
-        event.preventDefault();
-        requestTodoCommand("moveUp");
-        break;
-      case " ":
-        event.preventDefault();
-        requestTodoCommand("toggleComplete");
-        break;
-      case "e":
-        event.preventDefault();
-        requestTodoCommand("edit");
-        break;
-      case "a":
-        if (
-          !event.metaKey &&
-          !event.ctrlKey &&
-          !event.altKey &&
-          !event.shiftKey
-        ) {
-          event.preventDefault();
-          requestTodoCommand("addTodo");
-        }
-        break;
-      case "t":
-        if (
-          !event.metaKey &&
-          !event.ctrlKey &&
-          !event.altKey &&
-          !event.shiftKey
-        ) {
-          event.preventDefault();
-          requestTodoCommand("addSubtask");
-        }
-        break;
-      case "Enter":
-        if (
-          !event.metaKey &&
-          !event.ctrlKey &&
-          !event.altKey &&
-          !event.shiftKey
-        ) {
-          event.preventDefault();
-          requestTodoCommand("toggleNow");
-        }
-        break;
-      case "Tab":
-        event.preventDefault();
-        requestTodoCommand(event.shiftKey ? "outdent" : "indent");
-        break;
-      case "Escape":
-        event.preventDefault();
-        requestTodoCommand("clearSelection");
-        break;
+    const command = todoCommandFromKeydown(event);
+
+    if (command) {
+      event.preventDefault();
+      requestTodoCommand(command);
     }
   }
 
@@ -241,48 +161,6 @@
     if (section === "log") {
       requestWorkLogCommand("focusPreferred");
     }
-  }
-
-  function sectionFromShortcut(event: KeyboardEvent): SectionId | null {
-    if (!event.metaKey || event.ctrlKey || event.altKey) {
-      return null;
-    }
-
-    if (event.shiftKey) {
-      return adjacentSectionFromShortcut(event);
-    }
-
-    switch (event.key) {
-      case "1":
-        return "pomodoro";
-      case "2":
-        return "todo";
-      case "3":
-        return "log";
-      default:
-        return null;
-    }
-  }
-
-  function adjacentSectionFromShortcut(event: KeyboardEvent): SectionId | null {
-    switch (event.code) {
-      case "BracketLeft":
-        return adjacentSection(-1);
-      case "BracketRight":
-        return adjacentSection(1);
-      default:
-        return null;
-    }
-  }
-
-  function adjacentSection(offset: number): SectionId {
-    const activeIndex = sections.findIndex(
-      (section) => section.id === activeSection,
-    );
-    const nextIndex =
-      (activeIndex + offset + sections.length) % sections.length;
-
-    return sections[nextIndex].id;
   }
 
   function isTextInputTarget(target: EventTarget | null) {

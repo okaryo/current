@@ -4,6 +4,26 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 
+type NotificationRequest = {
+  title: string;
+  body: string;
+  failureMessage: string;
+};
+
+export type NotificationGateway = {
+  isPermissionGranted: () => Promise<boolean>;
+  requestPermission: () => Promise<NotificationPermission>;
+  sendNotification: (notification: { title: string; body: string }) => void;
+  warn: (message: string, error: unknown) => void;
+};
+
+const tauriNotificationGateway: NotificationGateway = {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+  warn: console.warn,
+};
+
 export async function sendPomodoroCompleteNotification() {
   await sendCurrentNotification({
     title: "Focus complete",
@@ -12,20 +32,15 @@ export async function sendPomodoroCompleteNotification() {
   });
 }
 
-async function sendCurrentNotification({
-  title,
-  body,
-  failureMessage,
-}: {
-  title: string;
-  body: string;
-  failureMessage: string;
-}) {
+export async function sendCurrentNotification(
+  { title, body, failureMessage }: NotificationRequest,
+  gateway = tauriNotificationGateway,
+) {
   try {
-    let permissionGranted = await isPermissionGranted();
+    let permissionGranted = await gateway.isPermissionGranted();
 
     if (!permissionGranted) {
-      const permission = await requestPermission();
+      const permission = await gateway.requestPermission();
 
       permissionGranted = permission === "granted";
     }
@@ -34,8 +49,8 @@ async function sendCurrentNotification({
       return;
     }
 
-    sendNotification({ title, body });
+    gateway.sendNotification({ title, body });
   } catch (error) {
-    console.warn(failureMessage, error);
+    gateway.warn(failureMessage, error);
   }
 }

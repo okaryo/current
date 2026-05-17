@@ -296,6 +296,7 @@ Testing decisions:
 - Frontend helper logic should be moved out of Svelte components when that makes it easier to test.
 - Rust-side persistence and migration behavior should be tested close to the database layer.
 - Command-level tests should be added when commands contain logic beyond thin Tauri wrappers.
+- Thin Tauri command wrappers do not need command-level tests when the service or repository layer already covers the behavior.
 - UI interaction tests can stay minimal until the keyboard workflow stabilizes.
 
 ---
@@ -316,15 +317,18 @@ Testing decisions:
 
 - [x] Add CI workflow
 - [x] Add release workflow
-- [ ] Test keyboard-only workflow
-- [ ] Test local persistence
-- [ ] Test notifications
+- [x] Extract keyboard shortcut mapping into a testable TypeScript module
+- [x] Add Vitest coverage for keyboard shortcut mapping
+- [x] Extract TODO UI-domain logic into testable TypeScript modules
+- [x] Add Vitest coverage for TODO selection, ordering, and Now task behavior
+- [x] Extract Pomodoro state logic into a testable TypeScript module
+- [x] Add Vitest coverage for Pomodoro state transitions
+- [x] Add Vitest coverage for quick input normalization and notification permission branching where practical
+- [x] Verify keyboard-only workflow manually in the development environment
 - [ ] Set completion sound when a task is completed
 - [ ] Build macOS release
-- [ ] Add Linux and Windows release builds
 - [x] Create application icon
 - [ ] Add updater support to detect available updates
-- [ ] Add Homebrew installation support
 - [ ] Write installation instructions
 - [ ] Prepare initial GitHub release
 
@@ -334,13 +338,24 @@ Initial release workflow decisions:
 - CI runs on Ubuntu for fast cross-platform checks; the release workflow should use macOS for packaging the desktop app.
 - Release workflow should be triggered by pushing `v*` tags.
 - Initial release workflow builds macOS app artifacts and creates a draft GitHub Release.
-- Release workflow should eventually build Linux and Windows artifacts too.
+- Initial release is macOS-only.
+- Linux and Windows release builds are deferred until after the initial release.
 - Distribution should support installing/downloading the app outside the repository.
-- Homebrew distribution should be supported after the basic GitHub Release flow is working.
+- Homebrew distribution is deferred until after the initial release.
+
+Initial release testing decisions:
+
+- Phase 11 testing should prioritize Vitest and Rust unit tests; Playwright should be added only for a small keyboard workflow smoke test if it stays low-cost.
+- OS-dependent behavior such as notification display, global shortcuts, Quick Entry focus restoration, packaged app behavior, and release artifact installation can be verified manually.
 
 ---
 
 ## Post Initial Release
+
+### Distribution
+
+- [ ] Add Linux and Windows release builds
+- [ ] Add Homebrew installation support
 
 ### Pomodoro Settings
 

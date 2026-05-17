@@ -14,6 +14,11 @@
   } from "$lib/api/todos";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import { effectWithDeps } from "$lib/effectWithDeps.svelte";
+  import {
+    moveTodoSelection,
+    sortTodos,
+    toggleNowTodo as toggleNowTodoState,
+  } from "$lib/todo/ui";
 
   type TodoCommand =
     | "focusPreferred"
@@ -132,7 +137,12 @@
     () => {
       void updateTaskListScrollState();
     },
-    () => [todos, isDraftingTodo, draftSubtaskParentId, shouldShowFooterActions],
+    () => [
+      todos,
+      isDraftingTodo,
+      draftSubtaskParentId,
+      shouldShowFooterActions,
+    ],
   );
 
   async function loadTodos() {
@@ -447,38 +457,15 @@
   }
 
   function moveSelection(direction: 1 | -1) {
-    if (todos.length === 0) {
-      selectedTodoId = null;
-      return;
-    }
-
-    const currentIndex = todos.findIndex((todo) => todo.id === selectedTodoId);
-    const nextIndex =
-      currentIndex === -1
-        ? direction === 1
-          ? 0
-          : todos.length - 1
-        : Math.min(Math.max(currentIndex + direction, 0), todos.length - 1);
-
-    selectedTodoId = todos[nextIndex]?.id ?? null;
+    selectedTodoId = moveTodoSelection(todos, selectedTodoId, direction);
   }
 
   function toggleNowTodo() {
-    if (selectedTodoId === null) {
-      return;
-    }
+    const result = toggleNowTodoState(todos, selectedTodoId, nowTodoId);
 
-    const selectedTodo = todos.find((todo) => todo.id === selectedTodoId);
+    nowTodoId = result.nowTodoId;
 
-    if (!selectedTodo || selectedTodo.completed) {
-      return;
-    }
-
-    const nextNowTodoId = nowTodoId === selectedTodoId ? null : selectedTodoId;
-
-    nowTodoId = nextNowTodoId;
-
-    if (nextNowTodoId !== null) {
+    if (result.shouldStartFocus) {
       onSetNow();
     }
   }
@@ -629,54 +616,6 @@
     if (overlap > 0) {
       taskListElement.scrollTop += overlap;
     }
-  }
-
-  type ChildrenByParent = Record<number, Todo[]>;
-
-  function compareTodos(a: Todo, b: Todo, childrenByParent: ChildrenByParent) {
-    const aCompleted = isSortCompleted(a, childrenByParent);
-    const bCompleted = isSortCompleted(b, childrenByParent);
-
-    if (aCompleted !== bCompleted) {
-      return Number(aCompleted) - Number(bCompleted);
-    }
-
-    if (a.position !== b.position) {
-      return a.position - b.position;
-    }
-
-    return a.id - b.id;
-  }
-
-  function isSortCompleted(todo: Todo, childrenByParent: ChildrenByParent) {
-    const children = childrenByParent[todo.id] ?? [];
-
-    return todo.completed && children.every((child) => child.completed);
-  }
-
-  function sortTodos(items: Todo[]) {
-    const ids = new Set(items.map((todo) => todo.id));
-    const childrenByParent: ChildrenByParent = {};
-    const roots: Todo[] = [];
-
-    for (const todo of items) {
-      if (todo.parentId === null || !ids.has(todo.parentId)) {
-        roots.push(todo);
-      } else {
-        const children = childrenByParent[todo.parentId] ?? [];
-        children.push(todo);
-        childrenByParent[todo.parentId] = children;
-      }
-    }
-
-    roots.sort((a, b) => compareTodos(a, b, childrenByParent));
-
-    return roots.flatMap((root) => [
-      root,
-      ...(childrenByParent[root.id] ?? []).sort((a, b) =>
-        compareTodos(a, b, childrenByParent),
-      ),
-    ]);
   }
 
   function errorMessage(error: unknown) {
@@ -838,7 +777,6 @@
         {/each}
       {/if}
     </ul>
-
   </div>
 
   {#if shouldShowFooterActions && selectedTodo !== null}
