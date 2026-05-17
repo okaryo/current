@@ -44,7 +44,7 @@
   class:has-symbol={hasSymbol}
   aria-label={displayLabel}
 >
-  {displayValue}
+  <span class="keyboard-key-label">{displayValue}</span>
 </kbd>
 
 <style>
@@ -70,6 +70,11 @@
       sans-serif;
     font-weight: 550;
     letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .keyboard-key-label {
+    display: block;
     line-height: 1;
   }
 

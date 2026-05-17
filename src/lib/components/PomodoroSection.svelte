@@ -34,8 +34,21 @@
   let lastCommandRequestId = 0;
 
   const formattedRemainingTime = $derived(formatTime(remainingSeconds));
-  const timerStatus = $derived(running ? "Focusing..." : "Paused");
-  const primaryActionLabel = $derived(running ? "Pause" : "Start");
+  const timerStatus = $derived(
+    running
+      ? "Focusing..."
+      : remainingSeconds < FOCUS_DURATION_SECONDS
+        ? "Paused"
+        : "",
+  );
+  const primaryActionLabel = $derived(
+    running
+      ? "Pause"
+      : remainingSeconds < FOCUS_DURATION_SECONDS
+        ? "Continue"
+        : "Start",
+  );
+  const timerProgress = $derived(remainingSeconds / FOCUS_DURATION_SECONDS);
 
   $effect(() => {
     if (!commandRequest || commandRequest.id === lastCommandRequestId) {
@@ -149,39 +162,37 @@
     </div>
   </header>
 
-  <div class="timer-layout">
-    <div class="timer-ring" aria-label={`${formattedRemainingTime} remaining`}>
+  <div
+    class="timer-layout"
+    aria-label={`${formattedRemainingTime} remaining`}
+    style={`--timer-progress: ${timerProgress}`}
+  >
+    <div class="timer-summary">
       <span class="time">{formattedRemainingTime}</span>
+      <span class="timer-status">{timerStatus}</span>
     </div>
 
-    <div class="timer-details">
-      <p class="timer-status">{timerStatus}</p>
-      <div class="timer-actions" aria-label="Pomodoro controls">
-        <button
-          class="primary-button"
-          type="button"
-          onfocus={onActivate}
-          onclick={toggleTimer}
-        >
-          {primaryActionLabel}
-        </button>
-        <button type="button" onfocus={onActivate} onclick={resetTimer}>
-          Reset
-        </button>
-      </div>
+    <div class="timer-bar" aria-hidden="true">
+      <span class="timer-bar-fill"></span>
     </div>
 
-    <dl class="shortcut-list" aria-label="Pomodoro shortcuts">
-      <div>
-        <dt><KeyboardKey value="Space" /></dt>
-        <dd>Start / Pause</dd>
-      </div>
-      <div>
-        <dt><KeyboardKey value="r" /></dt>
-        <dd>Reset</dd>
-      </div>
-    </dl>
+    <div class="timer-actions" aria-label="Pomodoro controls">
+      <button
+        class="primary-button"
+        type="button"
+        onfocus={onActivate}
+        onclick={toggleTimer}
+      >
+        <span>{primaryActionLabel}</span>
+        <KeyboardKey value="Space" />
+      </button>
+      <button type="button" onfocus={onActivate} onclick={resetTimer}>
+        <span>Reset</span>
+        <KeyboardKey value="r" />
+      </button>
+    </div>
   </div>
+
 </section>
 
 <style>
@@ -241,7 +252,7 @@
 
   .panel-header {
     display: flex;
-    align-items: start;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 0.6rem;
@@ -266,51 +277,62 @@
   }
 
   .timer-layout {
-    display: grid;
-    grid-template-columns: auto minmax(14rem, 1fr) minmax(13rem, auto);
-    grid-template-areas: "ring details shortcuts";
-    align-items: center;
-    gap: 1.4rem;
-    min-height: 7.4rem;
-    padding: 0.65rem;
+    --timer-progress: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.7rem;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 8px;
     background: rgba(9, 12, 16, 0.28);
   }
 
-  .timer-ring {
-    grid-area: ring;
-    display: grid;
-    place-items: center;
-    align-content: center;
-    width: clamp(6.4rem, 12vw, 7.6rem);
-    aspect-ratio: 1;
-    border: 0.3rem solid #f05260;
-    border-radius: 999px;
-    box-shadow:
-      0 0 0 0.35rem rgba(240, 82, 96, 0.08),
-      inset 0 0 2rem rgba(0, 0, 0, 0.22);
+  .timer-summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.8rem;
+    min-width: 0;
   }
 
   .time {
-    font-size: clamp(1.55rem, 3vw, 1.95rem);
+    font-size: 1.75rem;
     font-weight: 650;
     line-height: 1;
   }
 
   .timer-status {
-    margin: 0 0 0.75rem;
     color: #c7cdd6;
-    font-size: 1rem;
+    font-size: 0.92rem;
+  }
+
+  .timer-bar {
+    overflow: hidden;
+    height: 0.48rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .timer-bar-fill {
+    display: block;
+    width: calc(var(--timer-progress) * 100%);
+    height: 100%;
+    border-radius: inherit;
+    background: #f05260;
+    transition: width 160ms linear;
   }
 
   .timer-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.55rem;
   }
 
   .timer-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     min-width: 5.5rem;
     min-height: 2.45rem;
     padding: 0 0.85rem;
@@ -323,75 +345,20 @@
     background: #e94654;
   }
 
-  .shortcut-list {
-    grid-area: shortcuts;
-    display: grid;
-    gap: 0.4rem;
-    margin: 0;
-    color: #aeb5c1;
+  .timer-actions :global(kbd) {
+    min-width: 1.45rem;
+    height: 1.15rem;
+    border-color: currentColor;
+    color: currentColor;
+    background: transparent;
+    box-shadow: none;
+    font-size: 0.7rem;
+    line-height: 1;
+    opacity: 0.72;
   }
 
-  .shortcut-list div {
-    display: grid;
-    grid-template-columns: 3rem 1fr;
-    align-items: center;
-    gap: 0.65rem;
-  }
-
-  .timer-details {
-    grid-area: details;
-    min-width: 0;
-  }
-
-  @container (max-width: 36rem) {
-    .timer-layout {
-      grid-template-areas:
-        "ring details"
-        "shortcuts shortcuts";
-      grid-template-columns: auto minmax(0, 1fr);
-      gap: 0.8rem;
-      min-height: 0;
-      padding: 0.6rem;
-    }
-
-    .timer-ring {
-      width: 5.7rem;
-      border-width: 0.25rem;
-      box-shadow:
-        0 0 0 0.25rem rgba(240, 82, 96, 0.08),
-        inset 0 0 1.5rem rgba(0, 0, 0, 0.22);
-    }
-
-    .time {
-      font-size: 1.45rem;
-    }
-
-    .timer-status {
-      margin-bottom: 0.5rem;
-      font-size: 0.92rem;
-    }
-
-    .timer-actions button {
-      min-width: 4.8rem;
-      min-height: 2.15rem;
-      padding: 0 0.7rem;
-    }
-
-    .shortcut-list {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.4rem;
-      font-size: 0.86rem;
-    }
-
-    .shortcut-list div {
-      grid-template-columns: auto minmax(0, 1fr);
-      gap: 0.45rem;
-    }
-  }
-
-  .shortcut-list dt,
-  .shortcut-list dd {
-    margin: 0;
+  .timer-actions :global(.keyboard-key-label) {
+    transform: translateY(-0.08rem);
   }
 
   @media (max-width: 560px) {
