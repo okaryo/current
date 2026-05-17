@@ -27,13 +27,7 @@
 
   const RECENT_WORK_LOG_DAY_COUNT = 7;
 
-  let {
-    active,
-    title,
-    shortcut,
-    commandRequest,
-    onActivate,
-  }: Props = $props();
+  let { active, title, shortcut, commandRequest, onActivate }: Props = $props();
 
   let workLogs = $state<WorkLog[]>([]);
   let workLogError = $state<string | null>(null);
@@ -45,7 +39,9 @@
   let relativeTimeInterval: ReturnType<typeof setInterval> | undefined;
   const visibleWorkLogGroups = $derived(groupVisibleWorkLogs(workLogs));
   const lastWorkLog = $derived(workLogs[0] ?? null);
-  const lastLogLabel = $derived(formatLastLogLabel(lastWorkLog, relativeTimeNowMs));
+  const lastLogLabel = $derived(
+    formatLastLogLabel(lastWorkLog, relativeTimeNowMs),
+  );
 
   onMount(() => {
     void loadWorkLogs();
