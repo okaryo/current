@@ -15,7 +15,6 @@
     title: string;
     shortcut: string;
     commandRequest: PomodoroCommandRequest;
-    onRunningChange: (running: boolean) => void;
     onActivate: () => void;
   };
 
@@ -26,7 +25,6 @@
     title,
     shortcut,
     commandRequest,
-    onRunningChange,
     onActivate,
   }: Props = $props();
 
@@ -129,7 +127,6 @@
     }
 
     running = nextRunning;
-    onRunningChange(nextRunning);
   }
 
   function formatTime(totalSeconds: number) {

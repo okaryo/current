@@ -7,16 +7,8 @@ import {
 export async function sendPomodoroCompleteNotification() {
   await sendCurrentNotification({
     title: "Focus complete",
-    body: "Take a short break.",
+    body: "Write a quick log and lightly tidy Todo.",
     failureMessage: "Failed to send Pomodoro notification.",
-  });
-}
-
-export async function sendWorkLogReminderNotification() {
-  await sendCurrentNotification({
-    title: "Write a quick work log",
-    body: "Capture what you are working on.",
-    failureMessage: "Failed to send work log reminder notification.",
   });
 }
 
