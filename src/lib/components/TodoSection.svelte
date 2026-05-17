@@ -66,6 +66,9 @@
   const shouldShowFooterActions = $derived(
     active && selectedTodo !== null && editingTodoId !== selectedTodo.id,
   );
+  const isInputMode = $derived(
+    editingTodoId !== null || draftSubtaskParentId !== null,
+  );
 
   onMount(() => {
     void loadTodos();
@@ -600,7 +603,12 @@
     </div>
     {#if active}
       <div class="hint-row" aria-label="Todo shortcuts">
-        <span><KeyboardKey value="j" />/<KeyboardKey value="k" />Move</span>
+        {#if isInputMode}
+          <span><KeyboardKey value="Enter" />Save</span>
+          <span><KeyboardKey value="Esc" label="Escape" />Cancel</span>
+        {:else}
+          <span><KeyboardKey value="j" />/<KeyboardKey value="k" />Move</span>
+        {/if}
       </div>
     {/if}
   </header>
