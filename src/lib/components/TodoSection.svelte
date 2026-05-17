@@ -63,11 +63,11 @@
   const selectedTodo = $derived(
     todos.find((todo) => todo.id === selectedTodoId) ?? null,
   );
-  const shouldShowFooterActions = $derived(
-    active && selectedTodo !== null && editingTodoId !== selectedTodo.id,
-  );
   const isInputMode = $derived(
     editingTodoId !== null || draftSubtaskParentId !== null,
+  );
+  const shouldShowFooterActions = $derived(
+    active && selectedTodo !== null && !isInputMode,
   );
 
   onMount(() => {
