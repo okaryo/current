@@ -99,6 +99,23 @@
     adjustTextareaHeight();
   }
 
+  function handleWindowFocus() {
+    void focusInput();
+  }
+
+  function handleWindowKeydown(event: KeyboardEvent) {
+    if (event.key === "Tab") {
+      event.preventDefault();
+      toggleMode();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      void hideWindow();
+    }
+  }
+
   function setMode(nextMode: EntryMode) {
     switchMode(nextMode);
   }
@@ -120,18 +137,6 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === "Tab") {
-      event.preventDefault();
-      toggleMode();
-      return;
-    }
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      void hideWindow();
-      return;
-    }
-
     if (event.key !== "Enter") {
       return;
     }
@@ -258,6 +263,8 @@
 <svelte:head>
   <title>Quick Entry</title>
 </svelte:head>
+
+<svelte:window onfocus={handleWindowFocus} onkeydown={handleWindowKeydown} />
 
 <main class="quick-entry-shell" aria-label="Quick Entry">
   <form
