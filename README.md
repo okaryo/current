@@ -1,12 +1,12 @@
 # Current
 
-Current is a local-first desktop app designed to help you stay focused on the current task.
+Current is a local-first desktop app designed to help you stay focused on the task at hand.
 
 It combines:
 
-- Pomodoro timer
-- TODO management
-- Quick work logging
+- Work Log as a lightweight working memory
+- Todo as a current intention and direction cue
+- Pomodoro timer for rhythm support
 - Keyboard-first workflow
 
 Current is designed to reduce friction between thinking and doing.
@@ -16,17 +16,18 @@ Current is designed to reduce friction between thinking and doing.
 Current is designed to help you:
 
 - focus on the current task
+- keep track of working context
+- return to interrupted work
 - maintain a working rhythm
 
 Current focuses on the present, not optimization.
 
 ## Main Features
 
+- Work Log for context, notes, and progress
+- Lightweight Todo for current intention
 - Pomodoro timer
 - Keyboard-first workflow
-- Quick TODO management
-- Quick work logging
-- Rhythm reminders
 - Local data storage
 
 ## What Current Is NOT

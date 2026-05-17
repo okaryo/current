@@ -28,6 +28,9 @@
 Layout decisions:
 
 - Keep Pomodoro, TODO, and Work Log visible in the main window when possible.
+- Work Log is the primary surface for working memory, context retention, task recovery, light metacognition, focus support, and progress visibility.
+- Todo is a supporting surface for declaring the current intention and lightly guiding direction.
+- Pomodoro is a supporting surface for maintaining rhythm.
 - The app window opens at its minimum size, `860px` wide and `630px` tall.
 - Pomodoro spans the top row and TODO / Work Log share the lower row.
 - Narrow stacked layout is not supported; keep the workspace row-based.
