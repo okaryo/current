@@ -63,6 +63,7 @@
   let isSavingSubtask = $state(false);
   let draftSubtaskInput = $state<HTMLInputElement>();
   let taskListElement = $state<HTMLUListElement>();
+  let todoFooterElement = $state<HTMLElement>();
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
   let unlistenTodoCreated: UnlistenFn | undefined;
@@ -588,6 +589,24 @@
       block: "nearest",
       inline: "nearest",
     });
+
+    scrollSelectedTodoAboveFooter(selectedTodoElement);
+  }
+
+  function scrollSelectedTodoAboveFooter(
+    selectedTodoElement?: HTMLElement | null,
+  ) {
+    if (!selectedTodoElement || !taskListElement || !todoFooterElement) {
+      return;
+    }
+
+    const selectedRect = selectedTodoElement.getBoundingClientRect();
+    const footerRect = todoFooterElement.getBoundingClientRect();
+    const overlap = selectedRect.bottom - footerRect.top + 8;
+
+    if (overlap > 0) {
+      taskListElement.scrollTop += overlap;
+    }
   }
 
   type ChildrenByParent = Record<number, Todo[]>;
@@ -674,6 +693,7 @@
   <div class="task-list-shell">
     <ul
       class="task-list"
+      class:task-list-footer-visible={shouldShowFooterActions}
       aria-label="Todo list"
       tabindex="-1"
       bind:this={taskListElement}
@@ -796,38 +816,39 @@
       {/if}
     </ul>
 
-    {#if shouldShowFooterActions && selectedTodo !== null}
-      <footer class="todo-footer">
-        <div class="todo-footer-actions" aria-label="Selected todo shortcuts">
-          <span><KeyboardKey value="a" />Add</span>
-          <span><KeyboardKey value="e" />Edit</span>
-          <span>
-            <KeyboardKey value="Space" />{selectedTodo.completed
-              ? "Incomplete"
-              : "Complete"}
-          </span>
-          {#if !selectedTodo.completed}
-            <span>
-              <KeyboardKey value="Enter" />{nowTodoId === selectedTodo.id
-                ? "Unset Now"
-                : "Set Now"}
-            </span>
-          {/if}
-          <span>
-            <KeyboardKey value="t" />{selectedTodo.parentId === null
-              ? "Subtask"
-              : "Sibling"}
-          </span>
-          {#if selectedTodo.parentId === null}
-            <span><KeyboardKey value="Tab" />Indent</span>
-          {:else}
-            <span><KeyboardKey value="⇧Tab" />Outdent</span>
-          {/if}
-          <span><KeyboardKey value="D" />Delete</span>
-        </div>
-      </footer>
-    {/if}
   </div>
+
+  {#if shouldShowFooterActions && selectedTodo !== null}
+    <footer class="todo-footer" bind:this={todoFooterElement}>
+      <div class="todo-footer-actions" aria-label="Selected todo shortcuts">
+        <span><KeyboardKey value="a" />Add</span>
+        <span><KeyboardKey value="e" />Edit</span>
+        <span>
+          <KeyboardKey value="Space" />{selectedTodo.completed
+            ? "Incomplete"
+            : "Complete"}
+        </span>
+        {#if !selectedTodo.completed}
+          <span>
+            <KeyboardKey value="Enter" />{nowTodoId === selectedTodo.id
+              ? "Unset Now"
+              : "Set Now"}
+          </span>
+        {/if}
+        <span>
+          <KeyboardKey value="t" />{selectedTodo.parentId === null
+            ? "Subtask"
+            : "Sibling"}
+        </span>
+        {#if selectedTodo.parentId === null}
+          <span><KeyboardKey value="Tab" />Indent</span>
+        {:else}
+          <span><KeyboardKey value="⇧Tab" />Outdent</span>
+        {/if}
+        <span><KeyboardKey value="D" />Delete</span>
+      </div>
+    </footer>
+  {/if}
 
   {#if todoError}
     <p class="todo-error" role="alert">{todoError}</p>
@@ -968,6 +989,11 @@
     list-style: none;
   }
 
+  .task-list-footer-visible {
+    padding-bottom: 3.3rem;
+    scroll-padding-bottom: 3.3rem;
+  }
+
   .task-list:focus {
     outline: none;
   }
@@ -982,6 +1008,10 @@
     padding: 0.45rem 0.8rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     color: #e4e8ef;
+  }
+
+  .task-list li:last-child {
+    border-bottom: 0;
   }
 
   .task-selected {
@@ -1134,22 +1164,32 @@
   }
 
   .todo-footer {
+    position: absolute;
+    right: 0.8rem;
+    bottom: 0.8rem;
+    left: 0.8rem;
+    z-index: 1;
     display: flex;
     align-items: flex-end;
-    justify-content: flex-end;
-    flex: 0 0 auto;
-    min-height: 2.4rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 0.45rem 0.75rem;
+    justify-content: center;
+    min-height: 2.2rem;
+    border: 1px solid rgba(68, 209, 107, 0.24);
+    border-radius: 8px;
+    padding: 0.45rem 0.65rem;
     color: #9ba3b0;
     font-size: 0.76rem;
-    background: rgba(9, 12, 16, 0.18);
+    background: rgba(7, 11, 15, 0.78);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+      0 0.7rem 2rem rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(14px);
+    pointer-events: none;
   }
 
   .todo-footer-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     flex-wrap: wrap;
     gap: 0.32rem 0.62rem;
     width: 100%;
