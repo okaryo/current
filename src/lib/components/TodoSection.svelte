@@ -13,6 +13,7 @@
     type Todo,
   } from "$lib/api/todos";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import { effectWithDeps } from "$lib/effectWithDeps.svelte";
 
   type TodoCommand =
     | "focusPreferred"
@@ -127,13 +128,12 @@
     void scrollSelectedTodoIntoView();
   });
 
-  $effect(() => {
-    todos;
-    isDraftingTodo;
-    draftSubtaskParentId;
-    shouldShowFooterActions;
-    void updateTaskListScrollState();
-  });
+  effectWithDeps(
+    () => {
+      void updateTaskListScrollState();
+    },
+    () => [todos, isDraftingTodo, draftSubtaskParentId, shouldShowFooterActions],
+  );
 
   async function loadTodos() {
     isLoadingTodos = true;
