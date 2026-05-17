@@ -361,7 +361,7 @@
         transition:fade={{ duration: 90 }}
       >
         <span class="compact-prompt" aria-hidden="true">&gt;</span>
-        <strong>Press<KeyboardKey value="i" />to focus</strong>
+        <strong>Press<KeyboardKey value="i" />to add</strong>
         <span class="compact-placeholder">
           <span class="compact-todo">Todo</span> /
           <span class="compact-log">Log</span>
@@ -445,7 +445,7 @@
   .global-entry-compact {
     display: inline-flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
     width: max-content;
     max-width: 100%;
     min-height: 1.5rem;
