@@ -373,10 +373,19 @@
 
 <style>
   .global-entry-shell {
+    --workspace-width: min(calc(100vw - 1.6rem), 104rem);
+    --workspace-outer-gap: max(calc((100vw - 1.6rem - 104rem) / 2), 0px);
+    --workspace-column-gap: 0.75rem;
+    --workspace-left-column-width: calc(
+      (var(--workspace-width) - var(--workspace-column-gap)) * 0.375
+    );
     position: fixed;
-    right: 0.8rem;
+    right: calc(0.8rem + var(--workspace-outer-gap));
     bottom: 0.8rem;
-    left: 0.8rem;
+    left: calc(
+      0.8rem + var(--workspace-outer-gap) +
+        var(--workspace-left-column-width) + var(--workspace-column-gap)
+    );
     z-index: 20;
     display: flex;
     justify-content: center;
@@ -400,7 +409,7 @@
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.035),
       0 0.7rem 2rem rgba(0, 0, 0, 0.22);
-    opacity: 0.72;
+    opacity: 0.80;
     backdrop-filter: blur(14px);
     pointer-events: auto;
     transition:
@@ -416,7 +425,7 @@
 
   .global-entry-frame-focused {
     display: block;
-    width: calc(100vw - 2.4rem);
+    width: min(calc(100vw - 2.4rem), 100%);
     max-width: 44rem;
     max-height: 15rem;
     border-color: rgba(255, 255, 255, 0.18);
