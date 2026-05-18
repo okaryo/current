@@ -379,8 +379,7 @@
     padding: 1rem 1.05rem;
     overflow: hidden;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
-      #171c22;
+      linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent), #171c22;
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.05),
       inset 0 -2rem 4rem rgba(0, 0, 0, 0.18);
