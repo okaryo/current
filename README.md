@@ -41,8 +41,15 @@ Current is currently distributed for macOS only.
 3. Open the downloaded DMG and move Current to your Applications folder.
 4. Start Current from Applications.
 
-If macOS blocks the first launch because the app is from an unidentified developer, open
-System Settings, go to Privacy & Security, and allow Current from the security prompt.
+Current is not notarized with Apple Developer ID. If macOS says Current is damaged and
+can't be opened, run the following command after moving Current to Applications:
+
+```sh
+xattr -cr /Applications/Current.app
+```
+
+Then open Current again. This removes the quarantine attributes that macOS applies to
+downloaded apps.
 
 The `app.tar.gz`, `.sig`, and `latest.json` assets are used by the in-app updater and
 are not needed for manual installation.
