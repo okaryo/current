@@ -25,7 +25,12 @@
     logs: WorkLog[];
   };
 
+  type LastLogTone = "neutral" | "soon" | "late" | "stale";
+
   const RECENT_WORK_LOG_DAY_COUNT = 7;
+  const LOG_TONE_SOON_THRESHOLD_MS = 15 * 60 * 1000;
+  const LOG_TONE_LATE_THRESHOLD_MS = 30 * 60 * 1000;
+  const LOG_TONE_STALE_THRESHOLD_MS = 60 * 60 * 1000;
 
   let { active, title, shortcut, commandRequest, onActivate }: Props = $props();
 
@@ -41,6 +46,9 @@
   const lastWorkLog = $derived(workLogs[0] ?? null);
   const lastLogLabel = $derived(
     formatLastLogLabel(lastWorkLog, relativeTimeNowMs),
+  );
+  const lastLogTone = $derived(
+    formatLastLogTone(lastWorkLog, relativeTimeNowMs),
   );
 
   onMount(() => {
@@ -232,6 +240,31 @@
     return `Last log: ${formatRelativeTime(nowMs - workLog.createdAtMs)}`;
   }
 
+  function formatLastLogTone(
+    workLog: WorkLog | null,
+    nowMs: number,
+  ): LastLogTone {
+    if (!workLog) {
+      return "neutral";
+    }
+
+    const elapsedMs = Math.max(nowMs - workLog.createdAtMs, 0);
+
+    if (elapsedMs >= LOG_TONE_STALE_THRESHOLD_MS) {
+      return "stale";
+    }
+
+    if (elapsedMs >= LOG_TONE_LATE_THRESHOLD_MS) {
+      return "late";
+    }
+
+    if (elapsedMs >= LOG_TONE_SOON_THRESHOLD_MS) {
+      return "soon";
+    }
+
+    return "neutral";
+  }
+
   function formatRelativeTime(elapsedMs: number) {
     const totalSeconds = Math.max(Math.floor(elapsedMs / 1000), 0);
 
@@ -274,7 +307,14 @@
       <KeyboardKey value={shortcut} label="Command 3" />
     </div>
     <div class="hint-row" aria-label="Log recency">
-      <span class="last-log-status">{lastLogLabel}</span>
+      <span
+        class="last-log-status"
+        class:last-log-status-soon={lastLogTone === "soon"}
+        class:last-log-status-late={lastLogTone === "late"}
+        class:last-log-status-stale={lastLogTone === "stale"}
+      >
+        {lastLogLabel}
+      </span>
     </div>
   </header>
 
@@ -401,6 +441,28 @@
     color: #c9d4e8;
     font-variant-numeric: tabular-nums;
     background: rgba(91, 143, 249, 0.06);
+    transition:
+      border-color 120ms ease,
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .last-log-status-soon {
+    border-color: rgba(217, 171, 75, 0.28);
+    color: #ead4a6;
+    background: rgba(217, 171, 75, 0.1);
+  }
+
+  .last-log-status-late {
+    border-color: rgba(231, 160, 64, 0.36);
+    color: #f0c98d;
+    background: rgba(231, 160, 64, 0.16);
+  }
+
+  .last-log-status-stale {
+    border-color: rgba(232, 106, 96, 0.4);
+    color: #f0b0aa;
+    background: rgba(232, 106, 96, 0.17);
   }
 
   .section-label {

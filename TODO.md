@@ -240,6 +240,7 @@ Log rhythm decisions:
 
 - Check-in timer and periodic reminder notifications were removed.
 - The Log section header displays the elapsed time since the latest log, such as `Last log: 18m ago`.
+- The Last log badge keeps its normal background for 0-15 minutes, shifts to subtle yellow after 15 minutes, stronger yellow after 30 minutes, and subtle red after 60 minutes.
 - Pomodoro completion notifications lightly prompt the user to write a log and tidy Todo.
 
 ---
