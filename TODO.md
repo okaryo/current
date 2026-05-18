@@ -334,7 +334,7 @@ Testing decisions:
 - [ ] Build macOS release
 - [x] Create application icon
 - [x] Add updater support to detect available updates
-- [ ] Write installation instructions
+- [x] Write installation instructions
 - [ ] Prepare initial GitHub release
 
 Initial release workflow decisions:
