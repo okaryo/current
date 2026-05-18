@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+  import { createCurrentAudio } from "$lib/audio/player";
+  import { todoCompletionSounds } from "$lib/audio/sounds";
   import {
     createTodo,
     createSubtask,
@@ -74,6 +76,10 @@
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
   let unlistenTodoCreated: UnlistenFn | undefined;
+  const todoCompletionAudio = createCurrentAudio({
+    src: todoCompletionSounds[0].src,
+    failureMessage: "Failed to play TODO completion sound.",
+  });
   const selectedTodo = $derived(
     todos.find((todo) => todo.id === selectedTodoId) ?? null,
   );
@@ -85,6 +91,7 @@
   );
 
   onMount(() => {
+    todoCompletionAudio.load();
     void loadTodos();
 
     if (isTauriRuntime()) {
@@ -106,6 +113,7 @@
 
   onDestroy(() => {
     unlistenTodoCreated?.();
+    todoCompletionAudio.dispose();
   });
 
   $effect(() => {
@@ -188,6 +196,13 @@
   async function toggleTodoCompletion(id: number) {
     onActivate();
     todoError = null;
+
+    const todo = todos.find((todo) => todo.id === id);
+    const shouldPlayCompletionSound = todo !== undefined && !todo.completed;
+
+    if (shouldPlayCompletionSound) {
+      todoCompletionAudio.play();
+    }
 
     try {
       const updatedTodo = await toggleTodo(id);

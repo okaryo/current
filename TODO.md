@@ -330,7 +330,7 @@ Testing decisions:
 - [x] Add Vitest coverage for Pomodoro state transitions
 - [x] Add Vitest coverage for quick input normalization and notification permission branching where practical
 - [x] Verify keyboard-only workflow manually in the development environment
-- [ ] Set completion sound when a task is completed
+- [x] Set completion sound when a task is completed
 - [ ] Build macOS release
 - [x] Create application icon
 - [ ] Add updater support to detect available updates

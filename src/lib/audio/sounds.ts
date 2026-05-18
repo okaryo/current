@@ -27,3 +27,13 @@ export const pomodoroFocusLoopSounds = [
   pomodoroSounds.focusTock,
 ] as const;
 export const pomodoroCompletionSounds = [pomodoroSounds.completion] as const;
+
+export const todoSounds = {
+  completion: {
+    id: "complete",
+    label: "Complete",
+    src: "/sounds/todo-complete.mp3",
+  },
+} as const satisfies Record<string, SoundAsset>;
+
+export const todoCompletionSounds = [todoSounds.completion] as const;

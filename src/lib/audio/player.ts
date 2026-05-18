@@ -15,6 +15,7 @@ type AudioSequenceOptions = {
 };
 
 export type CurrentAudio = {
+  load: () => void;
   play: () => void;
   stop: () => void;
   dispose: () => void;
@@ -43,6 +44,9 @@ export function createCurrentAudio({
   }
 
   return {
+    load() {
+      getAudio()?.load();
+    },
     play() {
       const element = getAudio();
 
@@ -134,6 +138,9 @@ export function createCurrentAudioSequence({
   }
 
   return {
+    load() {
+      getAudio()?.load();
+    },
     play() {
       if (playing) {
         return;
