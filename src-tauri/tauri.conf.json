@@ -42,6 +42,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -49,5 +50,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkyQUM1QTIzMDIyMzk0MzcKUldRM2xDTUNJMXFza2dnYVppVkYya0V2MnlYNGs2cjJUN1l0VGcyT2lreUh6bGF3NkhGaS9FdUgK",
+      "endpoints": [
+        "https://github.com/okaryo/current/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

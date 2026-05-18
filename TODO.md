@@ -347,6 +347,8 @@ Initial release workflow decisions:
 - Linux and Windows release builds are deferred until after the initial release.
 - Distribution should support installing/downloading the app outside the repository.
 - Homebrew distribution is deferred until after the initial release.
+- Release workflow uses `tauri-apps/tauri-action` so updater artifacts, signatures, and `latest.json` are uploaded to GitHub Releases.
+- Release workflow requires `TAURI_SIGNING_PRIVATE_KEY` and, when the key has a password, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` GitHub secrets.
 
 Initial release testing decisions:
 
