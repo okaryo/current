@@ -297,9 +297,15 @@
 <style>
   :global(*) {
     box-sizing: border-box;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+    scrollbar-width: thin;
   }
 
   :global(html) {
+    --scrollbar-thumb: rgba(132, 151, 179, 0.44);
+    --scrollbar-thumb-hover: rgba(158, 177, 204, 0.56);
+    --scrollbar-thumb-border: rgba(9, 12, 16, 0.78);
+
     color: #e8ecf2;
     background: #0b0d10;
     font-family:
@@ -321,6 +327,28 @@
     height: 100vh;
     margin: 0;
     overflow: hidden;
+  }
+
+  :global(*::-webkit-scrollbar) {
+    width: 0.48rem;
+    height: 0.48rem;
+  }
+
+  :global(*::-webkit-scrollbar-track) {
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  :global(*::-webkit-scrollbar-thumb) {
+    border: 1px solid var(--scrollbar-thumb-border);
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+    background-clip: padding-box;
+  }
+
+  :global(*::-webkit-scrollbar-thumb:hover) {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: padding-box;
   }
 
   .app-shell {
