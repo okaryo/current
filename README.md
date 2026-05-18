@@ -1,6 +1,6 @@
 # Current
 
-Current is a local-first desktop app designed to help you stay focused on the task at hand.
+Current is a simple desktop app designed to help you stay focused on the task at hand.
 
 It combines:
 
@@ -35,14 +35,17 @@ Current focuses on the present, not optimization.
 Current is currently distributed for macOS only.
 
 1. Open the [latest release on GitHub](https://github.com/okaryo/current/releases/latest).
-2. Download the macOS artifact for your Mac:
-   - Apple Silicon: `aarch64-apple-darwin`
-   - Intel: `x86_64-apple-darwin`
-3. Open the downloaded installer or archive and move Current to your Applications folder.
+2. Download the DMG for your Mac:
+   - Apple Silicon: the file ending in `_aarch64.dmg`
+   - Intel: the file ending in `_x64.dmg`
+3. Open the downloaded DMG and move Current to your Applications folder.
 4. Start Current from Applications.
 
 If macOS blocks the first launch because the app is from an unidentified developer, open
 System Settings, go to Privacy & Security, and allow Current from the security prompt.
+
+The `app.tar.gz`, `.sig`, and `latest.json` assets are used by the in-app updater and
+are not needed for manual installation.
 
 ## What Current Is NOT
 

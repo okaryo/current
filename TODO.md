@@ -331,11 +331,11 @@ Testing decisions:
 - [x] Add Vitest coverage for quick input normalization and notification permission branching where practical
 - [x] Verify keyboard-only workflow manually in the development environment
 - [x] Set completion sound when a task is completed
-- [ ] Build macOS release
+- [x] Build macOS release
 - [x] Create application icon
 - [x] Add updater support to detect available updates
 - [x] Write installation instructions
-- [ ] Prepare initial GitHub release
+- [x] Prepare initial GitHub release
 
 Initial release workflow decisions:
 

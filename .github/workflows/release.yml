@@ -62,7 +62,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ inputs.tag_name || github.ref_name }}
-          releaseName: "Current ${{ inputs.tag_name || github.ref_name }}"
+          releaseName: ${{ inputs.tag_name || github.ref_name }}
           releaseBody: "macOS build for Current."
           releaseDraft: true
           prerelease: false
