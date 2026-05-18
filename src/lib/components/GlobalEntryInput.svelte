@@ -282,105 +282,98 @@
 
 <div class="global-entry-shell">
   <div
-    class="global-entry-frame"
-    class:global-entry-frame-focused={isFocused}
-    bind:this={panelElement}
-    onfocusout={handleFocusOut}
+    class="global-entry-compact-frame"
+    class:global-entry-compact-frame-active={isFocused}
   >
-    {#if isFocused}
-      <section
-        class="global-entry-panel"
-        aria-label="Quick Todo and Log input"
-        transition:fade={{ duration: 90 }}
-      >
-        <div class="entry-toolbar">
-          <div class="mode-tabs" aria-label="Input type">
-            <button
-              class:mode-active={mode === "todo"}
-              class="mode-button mode-button-todo"
-              type="button"
-              aria-pressed={mode === "todo"}
-              onmousedown={(event) => event.preventDefault()}
-              onclick={() => setMode("todo")}
-            >
-              Todo
-            </button>
-            <button
-              class:mode-active={mode === "log"}
-              class="mode-button mode-button-log"
-              type="button"
-              aria-pressed={mode === "log"}
-              onmousedown={(event) => event.preventDefault()}
-              onclick={() => setMode("log")}
-            >
-              Log
-            </button>
-          </div>
-
-          <div class="entry-shortcuts" aria-label="Quick input shortcuts">
-            <span><KeyboardKey value="Tab" />Switch</span>
-            {#if hasValue}
-              <span
-                ><KeyboardKey
-                  value="⌘Enter"
-                  label="Command Enter"
-                />Submit</span
-              >
-            {/if}
-            <span><KeyboardKey value="Esc" label="Escape" />Close</span>
-          </div>
-        </div>
-
-        <div class="entry-input" class:entry-input-todo={mode === "todo"}>
-          <span class="entry-prompt" aria-hidden="true">&gt;</span>
-          <textarea
-            rows="1"
-            {placeholder}
-            bind:value
-            bind:this={textareaElement}
-            disabled={isSubmitting}
-            onkeydown={handleKeydown}
-            oncompositionstart={handleCompositionStart}
-            oncompositionend={handleCompositionEnd}
-          ></textarea>
-        </div>
-
-        {#if error}
-          <p class="entry-error" role="alert">{error}</p>
-        {/if}
-      </section>
-    {:else}
-      <button
-        class="global-entry-compact"
-        type="button"
-        aria-label="Focus input to add Todo or Log"
-        onclick={handleCompactClick}
-        transition:fade={{ duration: 90 }}
-      >
-        <span class="compact-prompt" aria-hidden="true">&gt;</span>
-        <strong>Press<KeyboardKey value="i" />to add</strong>
-        <span class="compact-placeholder">
-          <span class="compact-todo">Todo</span> /
-          <span class="compact-log">Log</span>
-        </span>
-      </button>
-    {/if}
+    <button
+      class="global-entry-compact"
+      type="button"
+      aria-label="Focus input to add Todo or Log"
+      onclick={handleCompactClick}
+    >
+      <span class="compact-prompt" aria-hidden="true">&gt;</span>
+      <strong>Press<KeyboardKey value="i" />to add</strong>
+      <span class="compact-placeholder">
+        <span class="compact-todo">Todo</span> /
+        <span class="compact-log">Log</span>
+      </span>
+    </button>
   </div>
+
+  {#if isFocused}
+    <section
+      class="global-entry-panel-frame"
+      aria-label="Quick Todo and Log input"
+      bind:this={panelElement}
+      onfocusout={handleFocusOut}
+      transition:fade={{ duration: 90 }}
+    >
+      <div class="entry-toolbar">
+        <div class="mode-tabs" aria-label="Input type">
+          <button
+            class:mode-active={mode === "todo"}
+            class="mode-button mode-button-todo"
+            type="button"
+            aria-pressed={mode === "todo"}
+            onmousedown={(event) => event.preventDefault()}
+            onclick={() => setMode("todo")}
+          >
+            Todo
+          </button>
+          <button
+            class:mode-active={mode === "log"}
+            class="mode-button mode-button-log"
+            type="button"
+            aria-pressed={mode === "log"}
+            onmousedown={(event) => event.preventDefault()}
+            onclick={() => setMode("log")}
+          >
+            Log
+          </button>
+        </div>
+
+        <div class="entry-shortcuts" aria-label="Quick input shortcuts">
+          <span><KeyboardKey value="Tab" />Switch</span>
+          {#if hasValue}
+            <span
+              ><KeyboardKey value="⌘Enter" label="Command Enter" />Submit</span
+            >
+          {/if}
+          <span><KeyboardKey value="Esc" label="Escape" />Close</span>
+        </div>
+      </div>
+
+      <div class="entry-input" class:entry-input-todo={mode === "todo"}>
+        <span class="entry-prompt" aria-hidden="true">&gt;</span>
+        <textarea
+          rows="1"
+          {placeholder}
+          bind:value
+          bind:this={textareaElement}
+          disabled={isSubmitting}
+          onkeydown={handleKeydown}
+          oncompositionstart={handleCompositionStart}
+          oncompositionend={handleCompositionEnd}
+        ></textarea>
+      </div>
+
+      {#if error}
+        <p class="entry-error" role="alert">{error}</p>
+      {/if}
+    </section>
+  {/if}
 </div>
 
 <style>
   .global-entry-shell {
-    position: fixed;
-    right: 0.8rem;
-    bottom: 0.45rem;
-    left: 0.8rem;
+    position: relative;
     z-index: 20;
     display: flex;
     justify-content: center;
     pointer-events: none;
   }
 
-  .global-entry-frame {
+  .global-entry-compact-frame {
     overflow: hidden;
     flex: 0 1 auto;
     display: flex;
@@ -388,15 +381,15 @@
     width: auto;
     min-width: 0;
     max-width: min(100%, 13.5rem);
-    max-height: 2rem;
+    max-height: 1.75rem;
     border: 1px solid rgba(91, 143, 249, 0.34);
     border-radius: 8px;
-    padding: 0.34rem 0.56rem;
+    padding: 0.24rem 0.5rem;
     color: rgba(232, 236, 242, 0.84);
     background: rgba(7, 11, 15, 0.78);
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-      0 0.7rem 2rem rgba(0, 0, 0, 0.22);
+      0 0.35rem 1rem rgba(0, 0, 0, 0.2);
     opacity: 0.8;
     backdrop-filter: blur(14px);
     pointer-events: auto;
@@ -411,12 +404,18 @@
       transform 180ms ease;
   }
 
-  .global-entry-frame-focused {
+  .global-entry-panel-frame {
+    position: fixed;
+    right: 0.8rem;
+    bottom: 0.68rem;
+    left: 0.8rem;
+    margin: 0 auto;
     display: block;
     width: min(44rem, calc(100vw - 2.4rem));
     max-width: none;
     max-height: 15rem;
-    border-color: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
     padding: 0.75rem 0.8rem;
     color: #e8ecf2;
     background: rgba(16, 20, 25, 0.9);
@@ -425,16 +424,24 @@
       0 1.2rem 3rem rgba(0, 0, 0, 0.38);
     opacity: 1;
     backdrop-filter: blur(18px);
+    animation: entry-panel-in 140ms ease-out;
   }
 
-  .global-entry-frame:not(.global-entry-frame-focused):hover,
-  .global-entry-frame:not(.global-entry-frame-focused):focus-within {
+  .global-entry-compact-frame-active {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .global-entry-compact-frame:not(.global-entry-compact-frame-active):hover,
+  .global-entry-compact-frame:not(
+      .global-entry-compact-frame-active
+    ):focus-within {
     border-color: rgba(91, 143, 249, 0.68);
     opacity: 0.96;
     transform: translateY(-1px);
   }
 
-  .global-entry-panel,
+  .global-entry-panel-frame,
   .global-entry-compact {
     pointer-events: auto;
   }
@@ -445,7 +452,7 @@
     gap: 0.42rem;
     width: max-content;
     max-width: 100%;
-    min-height: 1.2rem;
+    min-height: 1rem;
     border: 0;
     padding: 0;
     color: inherit;
@@ -470,7 +477,7 @@
     color: #9ba3b0;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
   }
 
   .compact-todo {
@@ -488,14 +495,13 @@
     align-items: center;
     gap: 0.28rem;
     color: #aecaef;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 700;
   }
 
-  .global-entry-panel {
+  .global-entry-panel-frame {
     display: grid;
     gap: 0.6rem;
-    width: 100%;
     min-width: 0;
   }
 
@@ -641,8 +647,24 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .global-entry-frame {
+    .global-entry-compact-frame {
       transition: none;
+    }
+
+    .global-entry-panel-frame {
+      animation: none;
+    }
+  }
+
+  @keyframes entry-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.35rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 </style>

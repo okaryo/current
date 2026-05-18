@@ -40,6 +40,10 @@
 <footer class="app-footer" aria-label="Application controls">
   <time class="footer-date">{dateLabel}</time>
 
+  <div class="footer-entry">
+    <GlobalEntryInput {activeSection} {focusRequest} onCancel={onCancelEntry} />
+  </div>
+
   <div class="footer-actions">
     {#if showUpdateButton}
       <button
@@ -57,18 +61,19 @@
   </div>
 </footer>
 
-<GlobalEntryInput {activeSection} {focusRequest} onCancel={onCancelEntry} />
-
 <style>
   .app-footer {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(7rem, 1fr) minmax(13rem, auto) minmax(
+        7rem,
+        1fr
+      );
     align-items: center;
-    justify-content: space-between;
     gap: 0.75rem;
     width: min(100%, 104rem);
-    min-height: 2rem;
+    min-height: 2.45rem;
     margin: 0 auto;
-    padding: 0.38rem 0.15rem 0.45rem;
+    padding: 0.28rem 0.15rem 0.68rem;
     color: #aeb7c4;
   }
 
@@ -80,8 +85,14 @@
     letter-spacing: 0;
   }
 
+  .footer-entry {
+    justify-self: center;
+    min-width: 0;
+  }
+
   .footer-actions {
     display: flex;
+    justify-self: end;
     justify-content: flex-end;
     min-width: 0;
   }
