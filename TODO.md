@@ -198,6 +198,8 @@ Work Log decisions:
 - [x] Reset timer
 - [x] Display remaining time
 - [x] Add session end notification
+- [x] Add Pomodoro completion sound
+- [x] Add Pomodoro focus loop sound
 
 Pomodoro decisions:
 
@@ -205,6 +207,8 @@ Pomodoro decisions:
 - Focus duration is fixed at 25 minutes for now.
 - Timer stops and returns to `25:00` when focus completes.
 - Timer sends a system notification when focus completes.
+- Timer plays a completion sound when focus completes.
+- Timer plays a looping focus sound while focus is running.
 - Reset always stops the timer and returns to `25:00`.
 - Session count is not displayed or persisted for now.
 
@@ -372,7 +376,9 @@ Initial release testing decisions:
 
 ### Pomodoro Sound
 
-- [ ] Add optional white noise while the timer is running
+- [ ] Configure Pomodoro focus loop sound
+- [ ] Configure Pomodoro completion sound
+- [ ] Persist Pomodoro sound settings locally
 
 ### Keyboard Workflow
 

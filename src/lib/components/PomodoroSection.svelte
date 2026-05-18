@@ -1,5 +1,13 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import {
+    createCurrentAudio,
+    createCurrentAudioSequence,
+  } from "$lib/audio/player";
+  import {
+    pomodoroCompletionSounds,
+    pomodoroFocusLoopSounds,
+  } from "$lib/audio/sounds";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import { sendPomodoroCompleteNotification } from "$lib/notifications";
   import {
@@ -34,6 +42,14 @@
   let pomodoroState = $state<PomodoroState>(resetPomodoro());
   let timerInterval: ReturnType<typeof setInterval> | undefined;
   let lastCommandRequestId = 0;
+  const focusLoopAudio = createCurrentAudioSequence({
+    sources: pomodoroFocusLoopSounds.map((sound) => sound.src),
+    failureMessage: "Failed to play Pomodoro focus sound.",
+  });
+  const completionAudio = createCurrentAudio({
+    src: pomodoroCompletionSounds[0].src,
+    failureMessage: "Failed to play Pomodoro completion sound.",
+  });
 
   const remainingSeconds = $derived(pomodoroState.remainingSeconds);
   const formattedRemainingTime = $derived(formatTime(remainingSeconds));
@@ -65,6 +81,8 @@
 
   onDestroy(() => {
     stopTimer();
+    focusLoopAudio.dispose();
+    completionAudio.dispose();
   });
 
   function toggleTimer() {
@@ -86,10 +104,12 @@
 
   function syncInterval() {
     if (pomodoroState.running) {
+      focusLoopAudio.play();
       restartInterval();
       return;
     }
 
+    focusLoopAudio.stop();
     stopTimer();
   }
 
@@ -102,6 +122,7 @@
 
       if (result.completed) {
         syncInterval();
+        completionAudio.play();
         void sendPomodoroCompleteNotification();
         return;
       }
