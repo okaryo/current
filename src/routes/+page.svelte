@@ -1,4 +1,8 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { check, type Update } from "@tauri-apps/plugin-updater";
+  import { relaunch } from "@tauri-apps/plugin-process";
+  import AppUtilityBar from "$lib/components/AppUtilityBar.svelte";
   import GlobalEntryInput from "$lib/components/GlobalEntryInput.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
@@ -19,6 +23,13 @@
     title: string;
     shortcut: string;
   };
+  type UpdateState =
+    | "unavailable"
+    | "checking"
+    | "idle"
+    | "available"
+    | "installing"
+    | "error";
 
   const sections: Section[] = [
     { id: "pomodoro", title: "Pomodoro", shortcut: "⌘1" },
@@ -41,6 +52,21 @@
   } | null>(null);
   let workLogCommandRequestId = 0;
   let globalEntryFocusRequest = $state(0);
+  let dateLabel = $state(formatDateLabel());
+  let updateState = $state<UpdateState>("unavailable");
+  let availableUpdate = $state<Update | null>(null);
+
+  onMount(() => {
+    const dateInterval = window.setInterval(() => {
+      dateLabel = formatDateLabel();
+    }, 60_000);
+
+    void checkForUpdates();
+
+    return () => {
+      window.clearInterval(dateInterval);
+    };
+  });
 
   function handleKeydown(event: KeyboardEvent) {
     const sectionShortcut = sectionFromShortcut(event, activeSection);
@@ -170,6 +196,53 @@
       target instanceof HTMLSelectElement
     );
   }
+
+  async function checkForUpdates() {
+    if (!isTauriRuntime()) {
+      updateState = "unavailable";
+      return;
+    }
+
+    updateState = "checking";
+
+    try {
+      const update = await check();
+
+      availableUpdate = update;
+      updateState = update ? "available" : "idle";
+    } catch (error) {
+      console.warn("Update check failed", error);
+      updateState = "error";
+    }
+  }
+
+  async function installUpdate() {
+    if (!availableUpdate) {
+      return;
+    }
+
+    updateState = "installing";
+
+    try {
+      await availableUpdate.downloadAndInstall();
+      await relaunch();
+    } catch (error) {
+      console.warn("Update installation failed", error);
+      updateState = "error";
+    }
+  }
+
+  function formatDateLabel(date = new Date()) {
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }).format(date);
+  }
+
+  function isTauriRuntime() {
+    return "__TAURI_INTERNALS__" in window;
+  }
 </script>
 
 <svelte:head>
@@ -179,6 +252,8 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <main class="app-shell" aria-label="Current">
+  <AppUtilityBar {dateLabel} {updateState} onInstallUpdate={installUpdate} />
+
   <div class="workspace">
     <div class="section-slot pomodoro-slot">
       <PomodoroSection
@@ -270,7 +345,7 @@
     grid-template-rows: auto minmax(0, 1fr);
     gap: 0.75rem;
     width: min(100%, 104rem);
-    height: calc(100vh - 1.6rem);
+    height: calc(100vh - 4rem);
     min-height: 0;
     margin: 0 auto;
   }

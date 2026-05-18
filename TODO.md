@@ -333,7 +333,7 @@ Testing decisions:
 - [x] Set completion sound when a task is completed
 - [ ] Build macOS release
 - [x] Create application icon
-- [ ] Add updater support to detect available updates
+- [x] Add updater support to detect available updates
 - [ ] Write installation instructions
 - [ ] Prepare initial GitHub release
 
@@ -349,6 +349,10 @@ Initial release workflow decisions:
 - Homebrew distribution is deferred until after the initial release.
 - Release workflow uses `tauri-apps/tauri-action` so updater artifacts, signatures, and `latest.json` are uploaded to GitHub Releases.
 - Release workflow requires `TAURI_SIGNING_PRIVATE_KEY` and, when the key has a password, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` GitHub secrets.
+- Keep the native titlebar and avoid custom titlebar behavior for now because native window behavior should stay owned by the OS.
+- App-wide utility actions live in a thin in-app bar directly below the native titlebar.
+- The utility bar shows the current local date and hosts app-wide update actions on the right.
+- App settings entry points and shortcuts are deferred until settings features exist.
 
 Initial release testing decisions:
 
