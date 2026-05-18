@@ -335,7 +335,7 @@
 
   :global(html) {
     color: #e8ecf2;
-    background: #0b0d10;
+    background: transparent;
     font-family:
       Inter,
       ui-sans-serif,
@@ -356,16 +356,15 @@
     height: 100vh;
     margin: 0;
     overflow: hidden;
-    background: #0b0d10;
+    background: transparent;
   }
 
   .quick-entry-shell {
     display: grid;
     width: 100vw;
     height: 100vh;
-    padding: 0.7rem;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent), #0b0d10;
+    padding: 0;
+    background: transparent;
   }
 
   .quick-entry {
@@ -376,12 +375,15 @@
     min-width: 0;
     min-height: 0;
     border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 8px;
-    padding: 0.75rem 0.8rem;
-    background: rgba(16, 20, 25, 0.9);
+    border-radius: 14px;
+    padding: 1rem 1.05rem;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+      #171c22;
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.05),
-      0 1.2rem 3rem rgba(0, 0, 0, 0.38);
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      inset 0 -2rem 4rem rgba(0, 0, 0, 0.18);
   }
 
   header {

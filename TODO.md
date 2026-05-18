@@ -407,5 +407,5 @@ Work Log post-release decisions:
 - Quick Entry closes when it loses focus, including when the user clicks the main Current window or another app.
 - When Quick Entry closes through save, `Esc`, or hotkey toggle, macOS restores focus to the app that was frontmost before Quick Entry opened.
 - When Quick Entry closes because the user clicked outside it, focus restoration is skipped so the clicked app keeps focus.
-- Rounded native-looking Quick Entry window corners are deferred; Tauri transparent window styling did not produce the desired result.
+- Quick Entry uses a transparent undecorated Tauri window with rounded CSS chrome.
 - A macOS-native Quick Entry implementation is not planned for now. Reconsider it only if the Tauri-based window reveals a concrete limitation in normal use.
