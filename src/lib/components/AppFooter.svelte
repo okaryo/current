@@ -1,4 +1,7 @@
 <script lang="ts">
+  import GlobalEntryInput from "$lib/components/GlobalEntryInput.svelte";
+  import type { SectionId } from "$lib/keyboard";
+
   type UpdateState =
     | "unavailable"
     | "checking"
@@ -8,12 +11,22 @@
     | "error";
 
   type Props = {
+    activeSection: SectionId;
     dateLabel: string;
+    focusRequest: number;
     updateState: UpdateState;
+    onCancelEntry: (section: SectionId) => void;
     onInstallUpdate: () => void;
   };
 
-  let { dateLabel, updateState, onInstallUpdate }: Props = $props();
+  let {
+    activeSection,
+    dateLabel,
+    focusRequest,
+    updateState,
+    onCancelEntry,
+    onInstallUpdate,
+  }: Props = $props();
 
   const hasUpdate = $derived(updateState === "available");
   const isInstalling = $derived(updateState === "installing");
@@ -24,10 +37,10 @@
   );
 </script>
 
-<div class="utility-bar" aria-label="Application controls">
-  <time class="date-label">{dateLabel}</time>
+<footer class="app-footer" aria-label="Application controls">
+  <time class="footer-date">{dateLabel}</time>
 
-  <div class="utility-actions">
+  <div class="footer-actions">
     {#if showUpdateButton}
       <button
         type="button"
@@ -42,48 +55,51 @@
       </button>
     {/if}
   </div>
-</div>
+</footer>
+
+<GlobalEntryInput {activeSection} {focusRequest} onCancel={onCancelEntry} />
 
 <style>
-  .utility-bar {
+  .app-footer {
     display: flex;
-    min-height: 1.5rem;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.75rem;
     width: min(100%, 104rem);
-    margin: 0 auto 0.55rem;
-    padding: 0 0.15rem;
+    min-height: 2rem;
+    margin: 0 auto;
+    padding: 0.38rem 0.15rem 0.45rem;
     color: #aeb7c4;
   }
 
-  .date-label {
+  .footer-date {
+    justify-self: start;
     color: #9da7b6;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 560;
     letter-spacing: 0;
   }
 
-  .utility-actions {
+  .footer-actions {
     display: flex;
-    min-width: 6rem;
     justify-content: flex-end;
+    min-width: 0;
   }
 
   .update-button {
     display: inline-flex;
     min-width: 0;
-    height: 1.65rem;
+    height: 1.55rem;
     align-items: center;
     justify-content: center;
-    gap: 0.42rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 0.38rem;
+    border: 1px solid rgba(119, 196, 255, 0.34);
     border-radius: 6px;
-    padding: 0 0.48rem;
-    color: #d7dde6;
-    background: rgba(255, 255, 255, 0.045);
+    padding: 0 0.46rem;
+    color: #eaf6ff;
+    background: rgba(79, 156, 216, 0.15);
     font: inherit;
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     font-weight: 620;
     letter-spacing: 0;
     line-height: 1;
@@ -92,8 +108,8 @@
 
   .update-button:hover:not(:disabled),
   .update-button:focus-visible {
-    border-color: rgba(255, 255, 255, 0.18);
-    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(119, 196, 255, 0.52);
+    background: rgba(79, 156, 216, 0.22);
     outline: none;
   }
 
@@ -102,19 +118,9 @@
   }
 
   .status-dot {
-    width: 0.42rem;
-    height: 0.42rem;
+    width: 0.38rem;
+    height: 0.38rem;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.18);
-  }
-
-  .update-button {
-    border-color: rgba(119, 196, 255, 0.34);
-    color: #eaf6ff;
-    background: rgba(79, 156, 216, 0.15);
-  }
-
-  .update-button .status-dot {
     background: #77c4ff;
     box-shadow: 0 0 0.8rem rgba(119, 196, 255, 0.36);
   }

@@ -370,19 +370,10 @@
 
 <style>
   .global-entry-shell {
-    --workspace-width: min(calc(100vw - 1.6rem), 104rem);
-    --workspace-outer-gap: max(calc((100vw - 1.6rem - 104rem) / 2), 0px);
-    --workspace-column-gap: 0.75rem;
-    --workspace-left-column-width: calc(
-      (var(--workspace-width) - var(--workspace-column-gap)) * 0.375
-    );
     position: fixed;
-    right: calc(0.8rem + var(--workspace-outer-gap));
-    bottom: 0.8rem;
-    left: calc(
-      0.8rem + var(--workspace-outer-gap) + var(--workspace-left-column-width) +
-        var(--workspace-column-gap)
-    );
+    right: 0.8rem;
+    bottom: 0.45rem;
+    left: 0.8rem;
     z-index: 20;
     display: flex;
     justify-content: center;
@@ -396,11 +387,11 @@
     align-items: center;
     width: auto;
     min-width: 0;
-    max-width: min(100%, 16rem);
-    max-height: 2.5rem;
+    max-width: min(100%, 13.5rem);
+    max-height: 2rem;
     border: 1px solid rgba(91, 143, 249, 0.34);
     border-radius: 8px;
-    padding: 0.5rem 0.72rem;
+    padding: 0.34rem 0.56rem;
     color: rgba(232, 236, 242, 0.84);
     background: rgba(7, 11, 15, 0.78);
     box-shadow:
@@ -422,8 +413,8 @@
 
   .global-entry-frame-focused {
     display: block;
-    width: min(calc(100vw - 2.4rem), 100%);
-    max-width: 44rem;
+    width: min(44rem, calc(100vw - 2.4rem));
+    max-width: none;
     max-height: 15rem;
     border-color: rgba(255, 255, 255, 0.18);
     padding: 0.75rem 0.8rem;
@@ -451,10 +442,10 @@
   .global-entry-compact {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.42rem;
     width: max-content;
     max-width: 100%;
-    min-height: 1.5rem;
+    min-height: 1.2rem;
     border: 0;
     padding: 0;
     color: inherit;
@@ -479,6 +470,7 @@
     color: #9ba3b0;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 0.78rem;
   }
 
   .compact-todo {
@@ -494,9 +486,9 @@
   .global-entry-compact strong {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.28rem;
     color: #aecaef;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 700;
   }
 

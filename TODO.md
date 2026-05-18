@@ -350,8 +350,9 @@ Initial release workflow decisions:
 - Release workflow uses `tauri-apps/tauri-action` so updater artifacts, signatures, and `latest.json` are uploaded to GitHub Releases.
 - Release workflow requires `TAURI_SIGNING_PRIVATE_KEY` and, when the key has a password, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` GitHub secrets.
 - Keep the native titlebar and avoid custom titlebar behavior for now because native window behavior should stay owned by the OS.
-- App-wide utility actions live in a thin in-app bar directly below the native titlebar.
-- The utility bar shows the current local date and hosts app-wide update actions on the right.
+- App-wide utility actions live in a thin footer so global controls stay outside Todo, Log, and Pomodoro sections.
+- The footer shows the current local date on the left and app-wide update actions on the right.
+- The compact Todo/Log input trigger floats at the bottom center of the window, outside section ownership, and expands upward without resizing the main sections.
 - App settings entry points and shortcuts are deferred until settings features exist.
 
 Initial release testing decisions:

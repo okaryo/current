@@ -2,8 +2,7 @@
   import { onMount } from "svelte";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import { relaunch } from "@tauri-apps/plugin-process";
-  import AppUtilityBar from "$lib/components/AppUtilityBar.svelte";
-  import GlobalEntryInput from "$lib/components/GlobalEntryInput.svelte";
+  import AppFooter from "$lib/components/AppFooter.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
@@ -252,8 +251,6 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <main class="app-shell" aria-label="Current">
-  <AppUtilityBar {dateLabel} {updateState} onInstallUpdate={installUpdate} />
-
   <div class="workspace">
     <div class="section-slot pomodoro-slot">
       <PomodoroSection
@@ -287,10 +284,13 @@
     </div>
   </div>
 
-  <GlobalEntryInput
+  <AppFooter
     {activeSection}
+    {dateLabel}
     focusRequest={globalEntryFocusRequest}
-    onCancel={restoreSectionFromGlobalEntry}
+    {updateState}
+    onCancelEntry={restoreSectionFromGlobalEntry}
+    onInstallUpdate={installUpdate}
   />
 </main>
 
@@ -324,9 +324,12 @@
   }
 
   .app-shell {
+    display: flex;
+    flex-direction: column;
     height: 100vh;
+    min-height: 0;
     overflow: hidden;
-    padding: 0.8rem;
+    padding: 0.8rem 0.8rem 0rem;
     background:
       radial-gradient(
         circle at top left,
@@ -344,8 +347,8 @@
     grid-template-columns: minmax(18rem, 0.6fr) minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     gap: 0.75rem;
+    flex: 1 1 auto;
     width: min(100%, 104rem);
-    height: calc(100vh - 4rem);
     min-height: 0;
     margin: 0 auto;
   }
