@@ -9,6 +9,10 @@
   import type { PomodoroSoundSettings } from "$lib/api/settings";
 
   type SettingId = "quick-entry" | "focus-volume" | "completion-volume";
+  type ShortcutHint = {
+    keys: string[];
+    label: string;
+  };
 
   type Props = {
     open: boolean;
@@ -49,6 +53,7 @@
   const quickEntryShortcutKeys = $derived(
     shortcutToKeyboardKeys(quickEntryShortcut),
   );
+  const shortcutHints = $derived(shortcutHintsFor(activeSetting, isRecording));
   const settingIds: SettingId[] = [
     "quick-entry",
     "focus-volume",
@@ -147,7 +152,7 @@
     try {
       await onStartQuickEntryShortcutRecording();
       isRecording = true;
-      message = "Press a global shortcut.";
+      message = null;
     } catch (error) {
       message = errorMessage(error);
     } finally {
@@ -216,6 +221,7 @@
   }
 
   async function focusSetting(settingId: SettingId) {
+    activeSetting = settingId;
     await tick();
 
     switch (settingId) {
@@ -319,6 +325,32 @@
     }
 
     return Math.min(100, Math.max(0, Math.round(volume)));
+  }
+
+  function shortcutHintsFor(
+    settingId: SettingId | null,
+    recording: boolean,
+  ): ShortcutHint[] {
+    if (recording) {
+      return [{ keys: ["Esc"], label: "Cancel" }];
+    }
+
+    switch (settingId) {
+      case "focus-volume":
+      case "completion-volume":
+        return [
+          { keys: ["←", "→"], label: "Adjust" },
+          { keys: ["j", "k"], label: "Move" },
+          { keys: ["Esc"], label: "Close" },
+        ];
+      case "quick-entry":
+      default:
+        return [
+          { keys: ["Enter"], label: "Record" },
+          { keys: ["j", "k"], label: "Move" },
+          { keys: ["Esc"], label: "Close" },
+        ];
+    }
   }
 </script>
 
@@ -457,6 +489,22 @@
         </p>
       {/if}
     </div>
+
+    <footer class="settings-footer" aria-label="Settings shortcuts">
+      {#each shortcutHints as hint (`${hint.keys.join("-")}-${hint.label}`)}
+        <span class="shortcut-hint">
+          <span class="shortcut-keys">
+            {#each hint.keys as key, index (`${key}-${index}`)}
+              {#if index > 0}
+                <span class="shortcut-separator">/</span>
+              {/if}
+              <KeyboardKey value={key} />
+            {/each}
+          </span>
+          <span>{hint.label}</span>
+        </span>
+      {/each}
+    </footer>
   </div>
 {/if}
 
@@ -489,7 +537,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.78rem 0.9rem 0.42rem;
+    padding: 1.08rem 1.05rem 0.68rem;
   }
 
   h2,
@@ -559,7 +607,7 @@
   .settings-content {
     display: grid;
     gap: 0.8rem;
-    padding: 0.42rem 0.9rem 0.9rem;
+    padding: 0.42rem 0.9rem 0.85rem;
   }
 
   .settings-section {
@@ -656,5 +704,41 @@
   .setting-message {
     color: #aeb7c4;
     font-size: 0.76rem;
+  }
+
+  .settings-footer {
+    display: flex;
+    min-height: 2.7rem;
+    align-items: center;
+    gap: 0.82rem;
+    overflow: hidden;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.56rem 0.9rem 0.62rem;
+    color: #aeb7c4;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .shortcut-hint {
+    display: inline-flex;
+    min-width: 0;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.34rem;
+    font-size: 0.76rem;
+    font-weight: 560;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .shortcut-keys {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22rem;
+  }
+
+  .shortcut-separator {
+    color: #7d8795;
+    font-size: 0.72rem;
+    line-height: 1;
   }
 </style>
