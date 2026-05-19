@@ -3,6 +3,7 @@ import { browser } from "$app/environment";
 type AudioOptions = {
   src: string;
   loop?: boolean;
+  volume?: number;
   failureMessage: string;
   warn?: (message: string, error: unknown) => void;
 };
@@ -10,6 +11,7 @@ type AudioOptions = {
 type AudioSequenceOptions = {
   sources: string[];
   intervalMs?: number;
+  volume?: number;
   failureMessage: string;
   warn?: (message: string, error: unknown) => void;
 };
@@ -18,16 +20,19 @@ export type CurrentAudio = {
   load: () => void;
   play: () => void;
   stop: () => void;
+  setVolume: (volume: number) => void;
   dispose: () => void;
 };
 
 export function createCurrentAudio({
   src,
   loop = false,
+  volume = 1,
   failureMessage,
   warn = console.warn,
 }: AudioOptions): CurrentAudio {
   let audio: HTMLAudioElement | undefined;
+  let currentVolume = clampVolume(volume);
 
   function getAudio() {
     if (!browser) {
@@ -38,6 +43,7 @@ export function createCurrentAudio({
       audio = new Audio(src);
       audio.loop = loop;
       audio.preload = "auto";
+      audio.volume = currentVolume;
     }
 
     return audio;
@@ -67,6 +73,13 @@ export function createCurrentAudio({
       audio.pause();
       audio.currentTime = 0;
     },
+    setVolume(volume) {
+      currentVolume = clampVolume(volume);
+
+      if (audio) {
+        audio.volume = currentVolume;
+      }
+    },
     dispose() {
       this.stop();
       audio = undefined;
@@ -77,6 +90,7 @@ export function createCurrentAudio({
 export function createCurrentAudioSequence({
   sources,
   intervalMs = 1000,
+  volume = 1,
   failureMessage,
   warn = console.warn,
 }: AudioSequenceOptions): CurrentAudio {
@@ -84,6 +98,7 @@ export function createCurrentAudioSequence({
   let audioInterval: ReturnType<typeof setInterval> | undefined;
   let currentIndex = 0;
   let playing = false;
+  let currentVolume = clampVolume(volume);
 
   function getAudio() {
     if (!browser) {
@@ -93,6 +108,7 @@ export function createCurrentAudioSequence({
     if (!audio && sources[0]) {
       audio = new Audio(sources[0]);
       audio.preload = "auto";
+      audio.volume = currentVolume;
     }
 
     return audio;
@@ -108,6 +124,7 @@ export function createCurrentAudioSequence({
     element.pause();
     element.src = sources[currentIndex];
     element.currentTime = 0;
+    element.volume = currentVolume;
     void element.play().catch((error: unknown) => {
       stopPlayback();
       warn(failureMessage, error);
@@ -154,10 +171,21 @@ export function createCurrentAudioSequence({
     stop() {
       stopPlayback();
     },
+    setVolume(volume) {
+      currentVolume = clampVolume(volume);
+
+      if (audio) {
+        audio.volume = currentVolume;
+      }
+    },
     dispose() {
       this.stop();
 
       audio = undefined;
     },
   };
+}
+
+function clampVolume(volume: number) {
+  return Math.min(1, Math.max(0, volume));
 }

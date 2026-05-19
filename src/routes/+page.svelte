@@ -3,11 +3,14 @@
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import { relaunch } from "@tauri-apps/plugin-process";
   import {
+    DEFAULT_POMODORO_SOUND_VOLUME,
     DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
     getSettings,
     pauseQuickEntryGlobalShortcut,
     resumeQuickEntryGlobalShortcut,
+    updatePomodoroSoundSettings,
     updateQuickEntryGlobalShortcut,
+    type PomodoroSoundSettings,
   } from "$lib/api/settings";
   import AppFooter from "$lib/components/AppFooter.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
@@ -65,6 +68,9 @@
   let availableUpdate = $state<Update | null>(null);
   let settingsDialogOpen = $state(false);
   let quickEntryGlobalShortcut = $state(DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT);
+  let pomodoroFocusVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
+  let pomodoroCompletionVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
+  let pomodoroSoundSaveRequestId = 0;
 
   onMount(() => {
     const dateInterval = window.setInterval(() => {
@@ -269,6 +275,8 @@
     try {
       const settings = await getSettings();
       quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
+      pomodoroFocusVolume = settings.pomodoroSound.focusVolume;
+      pomodoroCompletionVolume = settings.pomodoroSound.completionVolume;
     } catch (error) {
       console.warn("Settings load failed", error);
     }
@@ -282,6 +290,26 @@
 
     const settings = await updateQuickEntryGlobalShortcut(shortcut);
     quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
+  }
+
+  async function savePomodoroSoundSettings(settings: PomodoroSoundSettings) {
+    const requestId = ++pomodoroSoundSaveRequestId;
+
+    pomodoroFocusVolume = settings.focusVolume;
+    pomodoroCompletionVolume = settings.completionVolume;
+
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    const savedSettings = await updatePomodoroSoundSettings(settings);
+
+    if (requestId !== pomodoroSoundSaveRequestId) {
+      return;
+    }
+
+    pomodoroFocusVolume = savedSettings.pomodoroSound.focusVolume;
+    pomodoroCompletionVolume = savedSettings.pomodoroSound.completionVolume;
   }
 
   async function pauseQuickEntryShortcutRecording() {
@@ -326,6 +354,8 @@
         active={activeSection === "pomodoro"}
         title={sections[0].title}
         shortcut={sections[0].shortcut}
+        focusVolume={pomodoroFocusVolume}
+        completionVolume={pomodoroCompletionVolume}
         commandRequest={pomodoroCommandRequest}
         onActivate={() => setActiveSection("pomodoro", { preserveFocus: true })}
       />
@@ -366,10 +396,13 @@
   <SettingsDialog
     open={settingsDialogOpen}
     quickEntryShortcut={quickEntryGlobalShortcut}
+    {pomodoroFocusVolume}
+    {pomodoroCompletionVolume}
     onClose={closeSettingsDialog}
     onStartQuickEntryShortcutRecording={pauseQuickEntryShortcutRecording}
     onCancelQuickEntryShortcutRecording={resumeQuickEntryShortcutRecording}
     onUpdateQuickEntryShortcut={saveQuickEntryGlobalShortcut}
+    onUpdatePomodoroSoundSettings={savePomodoroSoundSettings}
   />
 </main>
 
