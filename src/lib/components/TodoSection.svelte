@@ -86,9 +86,7 @@
   const isInputMode = $derived(
     editingTodoId !== null || isDraftingTodo || draftSubtaskParentId !== null,
   );
-  const shouldShowFooterActions = $derived(
-    active && selectedTodo !== null && !isInputMode,
-  );
+  const shouldShowFooterActions = $derived(active && !isInputMode);
 
   onMount(() => {
     todoCompletionAudio.load();
@@ -794,34 +792,36 @@
     </ul>
   </div>
 
-  {#if shouldShowFooterActions && selectedTodo !== null}
+  {#if shouldShowFooterActions}
     <footer class="todo-footer" bind:this={todoFooterElement}>
-      <div class="todo-footer-actions" aria-label="Selected todo shortcuts">
+      <div class="todo-footer-actions" aria-label="Todo shortcuts">
         <span><KeyboardKey value="a" />Add</span>
-        <span><KeyboardKey value="e" />Edit</span>
-        <span>
-          <KeyboardKey value="Space" />{selectedTodo.completed
-            ? "Incomplete"
-            : "Complete"}
-        </span>
-        {#if !selectedTodo.completed}
+        {#if selectedTodo !== null}
+          <span><KeyboardKey value="e" />Edit</span>
           <span>
-            <KeyboardKey value="Enter" />{nowTodoId === selectedTodo.id
-              ? "Unset Now"
-              : "Set Now"}
+            <KeyboardKey value="Space" />{selectedTodo.completed
+              ? "Incomplete"
+              : "Complete"}
           </span>
+          {#if !selectedTodo.completed}
+            <span>
+              <KeyboardKey value="Enter" />{nowTodoId === selectedTodo.id
+                ? "Unset Now"
+                : "Set Now"}
+            </span>
+          {/if}
+          <span>
+            <KeyboardKey value="t" />{selectedTodo.parentId === null
+              ? "Subtask"
+              : "Sibling"}
+          </span>
+          {#if selectedTodo.parentId === null}
+            <span><KeyboardKey value="Tab" />Indent</span>
+          {:else}
+            <span><KeyboardKey value="⇧Tab" />Outdent</span>
+          {/if}
+          <span><KeyboardKey value="D" />Delete</span>
         {/if}
-        <span>
-          <KeyboardKey value="t" />{selectedTodo.parentId === null
-            ? "Subtask"
-            : "Sibling"}
-        </span>
-        {#if selectedTodo.parentId === null}
-          <span><KeyboardKey value="Tab" />Indent</span>
-        {:else}
-          <span><KeyboardKey value="⇧Tab" />Outdent</span>
-        {/if}
-        <span><KeyboardKey value="D" />Delete</span>
       </div>
     </footer>
   {/if}
