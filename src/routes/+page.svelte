@@ -4,12 +4,14 @@
   import { relaunch } from "@tauri-apps/plugin-process";
   import AppFooter from "$lib/components/AppFooter.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
+  import SettingsDialog from "$lib/components/SettingsDialog.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
   import {
     globalEntryShortcutRequested,
     pomodoroCommandFromKeydown,
     sectionFromShortcut,
+    settingsShortcutRequested,
     todoCommandFromKeydown,
     type PomodoroCommand,
     type SectionId,
@@ -54,6 +56,7 @@
   let dateLabel = $state(formatDateLabel());
   let updateState = $state<UpdateState>("unavailable");
   let availableUpdate = $state<Update | null>(null);
+  let settingsDialogOpen = $state(false);
 
   onMount(() => {
     const dateInterval = window.setInterval(() => {
@@ -68,6 +71,16 @@
   });
 
   function handleKeydown(event: KeyboardEvent) {
+    if (settingsShortcutRequested(event)) {
+      event.preventDefault();
+      openSettingsDialog();
+      return;
+    }
+
+    if (settingsDialogOpen) {
+      return;
+    }
+
     const sectionShortcut = sectionFromShortcut(event, activeSection);
 
     if (sectionShortcut) {
@@ -122,6 +135,14 @@
 
   function requestGlobalEntryFocus() {
     globalEntryFocusRequest += 1;
+  }
+
+  function openSettingsDialog() {
+    settingsDialogOpen = true;
+  }
+
+  function closeSettingsDialog() {
+    settingsDialogOpen = false;
   }
 
   function activateSectionFromShortcut(section: SectionId) {
@@ -291,7 +312,10 @@
     {updateState}
     onCancelEntry={restoreSectionFromGlobalEntry}
     onInstallUpdate={installUpdate}
+    onOpenSettings={openSettingsDialog}
   />
+
+  <SettingsDialog open={settingsDialogOpen} onClose={closeSettingsDialog} />
 </main>
 
 <style>

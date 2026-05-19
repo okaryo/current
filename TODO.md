@@ -353,7 +353,9 @@ Initial release workflow decisions:
 - App-wide utility actions live in a thin footer so global controls stay outside Todo, Log, and Pomodoro sections.
 - The footer shows the current local date on the left and app-wide update actions on the right.
 - The compact Todo/Log input trigger floats at the bottom center of the window, outside section ownership, and expands upward without resizing the main sections.
-- App settings entry points and shortcuts are deferred until settings features exist.
+- App settings open from a compact footer icon button or `Cmd+,`.
+- Settings should behave as a general app preferences surface, starting with HotKey configuration and leaving room for Pomodoro sound settings.
+- HotKey settings start with a lightweight settings dialog; persistence and global shortcut re-registration are handled in a later step.
 
 Initial release testing decisions:
 

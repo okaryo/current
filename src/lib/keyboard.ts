@@ -81,6 +81,10 @@ export function globalEntryShortcutRequested(event: KeyboardShortcutEvent) {
   return event.key === "i" && isPlainKey(event);
 }
 
+export function settingsShortcutRequested(event: KeyboardShortcutEvent) {
+  return event.key === "," && event.metaKey && !event.ctrlKey && !event.altKey;
+}
+
 export function pomodoroCommandFromKeydown(
   event: Pick<KeyboardShortcutEvent, "key">,
 ): PomodoroCommand | null {

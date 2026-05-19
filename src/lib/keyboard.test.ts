@@ -4,6 +4,7 @@ import {
   globalEntryShortcutRequested,
   pomodoroCommandFromKeydown,
   sectionFromShortcut,
+  settingsShortcutRequested,
   todoCommandFromKeydown,
   type KeyboardShortcutEvent,
 } from "$lib/keyboard";
@@ -87,6 +88,25 @@ describe("globalEntryShortcutRequested", () => {
     expect(globalEntryShortcutRequested(key({ key: "i", metaKey: true }))).toBe(
       false,
     );
+  });
+});
+
+describe("settingsShortcutRequested", () => {
+  it("accepts Command+Comma", () => {
+    expect(settingsShortcutRequested(key({ key: ",", metaKey: true }))).toBe(
+      true,
+    );
+  });
+
+  it("ignores Command+Comma with ctrl or alt modifiers", () => {
+    expect(
+      settingsShortcutRequested(
+        key({ key: ",", metaKey: true, ctrlKey: true }),
+      ),
+    ).toBe(false);
+    expect(
+      settingsShortcutRequested(key({ key: ",", metaKey: true, altKey: true })),
+    ).toBe(false);
   });
 });
 
