@@ -1,23 +1,170 @@
 <script lang="ts">
   import { X } from "@lucide/svelte";
+  import { tick } from "svelte";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import {
+    shortcutFromKeydown,
+    shortcutToKeyboardKeys,
+  } from "$lib/globalShortcut";
 
   type Props = {
     open: boolean;
+    quickEntryShortcut: string;
     onClose: () => void;
+    onUpdateQuickEntryShortcut: (shortcut: string) => Promise<void>;
   };
 
-  let { open, onClose }: Props = $props();
+  let { open, quickEntryShortcut, onClose, onUpdateQuickEntryShortcut }: Props =
+    $props();
 
-  function handleKeydown(event: KeyboardEvent) {
-    if (!open || event.key !== "Escape") {
+  let hotkeyButton = $state<HTMLButtonElement>();
+  let closeButton = $state<HTMLButtonElement>();
+  let previousFocusedElement: HTMLElement | null = null;
+  let wasOpen = false;
+  let isRecording = $state(false);
+  let isSaving = $state(false);
+  let message = $state<string | null>(null);
+  const quickEntryShortcutKeys = $derived(
+    shortcutToKeyboardKeys(quickEntryShortcut),
+  );
+
+  $effect(() => {
+    if (open && !wasOpen) {
+      wasOpen = true;
+      previousFocusedElement = document.activeElement as HTMLElement | null;
+      void focusHotkeyButton();
       return;
     }
 
+    if (!open && wasOpen) {
+      wasOpen = false;
+      isRecording = false;
+      isSaving = false;
+      message = null;
+      void tick().then(() => previousFocusedElement?.focus());
+    }
+  });
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (!open) {
+      return;
+    }
+
+    if (isRecording) {
+      handleRecordingKeydown(event);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      closeDialog(event);
+      return;
+    }
+
+    if (event.key === "j" || event.key === "k") {
+      event.preventDefault();
+      event.stopPropagation();
+      void focusHotkeyButton();
+      return;
+    }
+
+    if (event.key === "Tab") {
+      trapFocus(event);
+    }
+  }
+
+  function handleRecordingKeydown(event: KeyboardEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    if (event.key === "Escape") {
+      isRecording = false;
+      message = null;
+      void focusHotkeyButton();
+      return;
+    }
+
+    if (event.repeat || isSaving) {
+      return;
+    }
+
+    const result = shortcutFromKeydown(event);
+
+    if (result.status === "pending") {
+      return;
+    }
+
+    if (result.status === "invalid") {
+      message = result.message;
+      return;
+    }
+
+    void updateShortcut(result.shortcut);
+  }
+
+  function closeDialog(event: KeyboardEvent) {
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
     onClose();
+  }
+
+  function startRecording() {
+    isRecording = true;
+    message = "Press a global shortcut.";
+    void focusHotkeyButton();
+  }
+
+  async function updateShortcut(shortcut: string) {
+    isSaving = true;
+    message = null;
+
+    try {
+      await onUpdateQuickEntryShortcut(shortcut);
+      isRecording = false;
+      message = "Updated.";
+    } catch (error) {
+      message = errorMessage(error);
+    } finally {
+      isSaving = false;
+      void focusHotkeyButton();
+    }
+  }
+
+  async function focusHotkeyButton() {
+    await tick();
+    hotkeyButton?.focus();
+  }
+
+  function trapFocus(event: KeyboardEvent) {
+    const focusableElements = [hotkeyButton, closeButton].filter(
+      (element): element is HTMLButtonElement => Boolean(element),
+    );
+
+    if (focusableElements.length === 0) {
+      return;
+    }
+
+    const activeIndex = focusableElements.findIndex(
+      (element) => element === document.activeElement,
+    );
+
+    if (activeIndex === -1) {
+      event.preventDefault();
+      focusableElements[0]?.focus();
+      return;
+    }
+
+    const nextIndex = event.shiftKey
+      ? (activeIndex - 1 + focusableElements.length) % focusableElements.length
+      : (activeIndex + 1) % focusableElements.length;
+
+    event.preventDefault();
+    focusableElements[nextIndex]?.focus();
+  }
+
+  function errorMessage(error: unknown) {
+    return error instanceof Error ? error.message : String(error);
   }
 </script>
 
@@ -38,6 +185,7 @@
         <h2 id="settings-title">Settings</h2>
       </div>
       <button
+        bind:this={closeButton}
         type="button"
         class="icon-button"
         aria-label="Close settings with Escape"
@@ -57,15 +205,32 @@
             <h4 id="quick-entry-hotkey-title">Quick Entry</h4>
           </div>
           <button
+            bind:this={hotkeyButton}
             type="button"
             class="hotkey-button"
+            class:is-recording={isRecording}
             aria-label="Quick Entry hotkey"
+            aria-describedby={message
+              ? "quick-entry-hotkey-message"
+              : undefined}
+            disabled={isSaving}
+            onclick={startRecording}
           >
-            <KeyboardKey value="⌘" label="Command" />
-            <KeyboardKey value="⇧" label="Shift" />
-            <KeyboardKey value="L" label="L" />
+            {#if isRecording}
+              <span class="recording-label">Press shortcut</span>
+            {:else}
+              {#each quickEntryShortcutKeys as key, index (`${key}-${index}`)}
+                <KeyboardKey value={key} label={key} />
+              {/each}
+            {/if}
           </button>
         </div>
+
+        {#if message}
+          <p id="quick-entry-hotkey-message" class="setting-message">
+            {message}
+          </p>
+        {/if}
       </section>
     </div>
   </div>
@@ -220,5 +385,27 @@
     border-color: rgba(255, 255, 255, 0.18);
     background: rgba(255, 255, 255, 0.07);
     outline: none;
+  }
+
+  .hotkey-button:disabled {
+    opacity: 0.68;
+  }
+
+  .is-recording {
+    border-color: rgba(119, 196, 255, 0.5);
+    background: rgba(79, 156, 216, 0.14);
+  }
+
+  .recording-label {
+    color: #dbeafe;
+    font-size: 0.78rem;
+    font-weight: 620;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .setting-message {
+    color: #aeb7c4;
+    font-size: 0.76rem;
   }
 </style>

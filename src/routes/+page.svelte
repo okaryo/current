@@ -2,6 +2,11 @@
   import { onMount } from "svelte";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import { relaunch } from "@tauri-apps/plugin-process";
+  import {
+    DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
+    getSettings,
+    updateQuickEntryGlobalShortcut,
+  } from "$lib/api/settings";
   import AppFooter from "$lib/components/AppFooter.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
@@ -57,6 +62,7 @@
   let updateState = $state<UpdateState>("unavailable");
   let availableUpdate = $state<Update | null>(null);
   let settingsDialogOpen = $state(false);
+  let quickEntryGlobalShortcut = $state(DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT);
 
   onMount(() => {
     const dateInterval = window.setInterval(() => {
@@ -64,6 +70,7 @@
     }, 60_000);
 
     void checkForUpdates();
+    void loadSettings();
 
     return () => {
       window.clearInterval(dateInterval);
@@ -252,6 +259,29 @@
     }
   }
 
+  async function loadSettings() {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    try {
+      const settings = await getSettings();
+      quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
+    } catch (error) {
+      console.warn("Settings load failed", error);
+    }
+  }
+
+  async function saveQuickEntryGlobalShortcut(shortcut: string) {
+    if (!isTauriRuntime()) {
+      quickEntryGlobalShortcut = shortcut;
+      return;
+    }
+
+    const settings = await updateQuickEntryGlobalShortcut(shortcut);
+    quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
+  }
+
   function formatDateLabel(date = new Date()) {
     return new Intl.DateTimeFormat(undefined, {
       weekday: "short",
@@ -315,7 +345,12 @@
     onOpenSettings={openSettingsDialog}
   />
 
-  <SettingsDialog open={settingsDialogOpen} onClose={closeSettingsDialog} />
+  <SettingsDialog
+    open={settingsDialogOpen}
+    quickEntryShortcut={quickEntryGlobalShortcut}
+    onClose={closeSettingsDialog}
+    onUpdateQuickEntryShortcut={saveQuickEntryGlobalShortcut}
+  />
 </main>
 
 <style>
