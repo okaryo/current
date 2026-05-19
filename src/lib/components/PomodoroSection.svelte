@@ -33,11 +33,21 @@
     active: boolean;
     title: string;
     shortcut: string;
+    focusVolume: number;
+    completionVolume: number;
     commandRequest: PomodoroCommandRequest;
     onActivate: () => void;
   };
 
-  let { active, title, shortcut, commandRequest, onActivate }: Props = $props();
+  let {
+    active,
+    title,
+    shortcut,
+    focusVolume,
+    completionVolume,
+    commandRequest,
+    onActivate,
+  }: Props = $props();
 
   let pomodoroState = $state<PomodoroState>(resetPomodoro());
   let timerInterval: ReturnType<typeof setInterval> | undefined;
@@ -58,6 +68,14 @@
     pomodoroPrimaryActionLabel(pomodoroState),
   );
   const timerProgress = $derived(pomodoroProgress(pomodoroState));
+
+  $effect(() => {
+    focusLoopAudio.setVolume(volumePercentToAudioVolume(focusVolume));
+  });
+
+  $effect(() => {
+    completionAudio.setVolume(volumePercentToAudioVolume(completionVolume));
+  });
 
   $effect(() => {
     if (!commandRequest || commandRequest.id === lastCommandRequestId) {
@@ -134,6 +152,10 @@
       clearInterval(timerInterval);
       timerInterval = undefined;
     }
+  }
+
+  function volumePercentToAudioVolume(volume: number) {
+    return Math.min(100, Math.max(0, volume)) / 100;
   }
 </script>
 

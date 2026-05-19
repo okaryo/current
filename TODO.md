@@ -386,9 +386,18 @@ Initial release testing decisions:
 
 ### Pomodoro Sound
 
+- [x] Configure Pomodoro focus loop volume
+- [x] Configure Pomodoro completion volume
 - [ ] Configure Pomodoro focus loop sound
 - [ ] Configure Pomodoro completion sound
-- [ ] Persist Pomodoro sound settings locally
+- [x] Persist Pomodoro sound volume settings locally
+
+Pomodoro sound decisions:
+
+- Pomodoro sound volume settings live in Settings under `Pomodoro sound`.
+- `Focus sound` and `Completion sound` each use a 0-100 slider.
+- Sound volume sliders are keyboard-operable with native arrow-key range behavior.
+- Settings dialog row movement continues to use `j` / `k`.
 
 ### Keyboard Workflow
 

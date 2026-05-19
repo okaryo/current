@@ -52,7 +52,9 @@ fn save_to_path(path: &Path, settings: &AppSettings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::settings::model::DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT;
+    use crate::settings::model::{
+        DEFAULT_POMODORO_SOUND_VOLUME, DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
+    };
 
     #[test]
     fn loads_defaults_when_settings_file_is_missing() {
@@ -67,6 +69,14 @@ mod tests {
             settings.global_shortcut.quick_entry,
             DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT
         );
+        assert_eq!(
+            settings.pomodoro_sound.focus_volume,
+            DEFAULT_POMODORO_SOUND_VOLUME
+        );
+        assert_eq!(
+            settings.pomodoro_sound.completion_volume,
+            DEFAULT_POMODORO_SOUND_VOLUME
+        );
     }
 
     #[test]
@@ -76,6 +86,14 @@ mod tests {
         assert_eq!(
             settings.global_shortcut.quick_entry,
             DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT
+        );
+        assert_eq!(
+            settings.pomodoro_sound.focus_volume,
+            DEFAULT_POMODORO_SOUND_VOLUME
+        );
+        assert_eq!(
+            settings.pomodoro_sound.completion_volume,
+            DEFAULT_POMODORO_SOUND_VOLUME
         );
     }
 

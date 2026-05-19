@@ -1,4 +1,4 @@
-use super::model::AppSettings;
+use super::model::{AppSettings, PomodoroSoundSettings};
 use super::service;
 use crate::quick_entry;
 use std::sync::Mutex;
@@ -88,6 +88,23 @@ pub fn update_quick_entry_global_shortcut(
     }
 
     state.set_quick_entry(shortcut)?;
+
+    Ok(settings)
+}
+
+#[tauri::command]
+pub fn update_pomodoro_sound_settings(
+    focus_volume: u8,
+    completion_volume: u8,
+    app: AppHandle,
+) -> Result<AppSettings, String> {
+    let mut settings = service::load(&app)?;
+
+    settings.pomodoro_sound = PomodoroSoundSettings {
+        focus_volume: focus_volume.min(100),
+        completion_volume: completion_volume.min(100),
+    };
+    service::save(&app, &settings)?;
 
     Ok(settings)
 }

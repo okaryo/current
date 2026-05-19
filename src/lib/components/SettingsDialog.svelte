@@ -6,36 +6,59 @@
     shortcutFromKeydown,
     shortcutToKeyboardKeys,
   } from "$lib/globalShortcut";
+  import type { PomodoroSoundSettings } from "$lib/api/settings";
+
+  type SettingId = "quick-entry" | "focus-volume" | "completion-volume";
+  type ShortcutHint = {
+    keys: string[];
+    label: string;
+  };
 
   type Props = {
     open: boolean;
     quickEntryShortcut: string;
+    pomodoroFocusVolume: number;
+    pomodoroCompletionVolume: number;
     onClose: () => void;
     onStartQuickEntryShortcutRecording: () => Promise<void>;
     onCancelQuickEntryShortcutRecording: () => Promise<void>;
     onUpdateQuickEntryShortcut: (shortcut: string) => Promise<void>;
+    onUpdatePomodoroSoundSettings: (
+      settings: PomodoroSoundSettings,
+    ) => Promise<void>;
   };
 
   let {
     open,
     quickEntryShortcut,
+    pomodoroFocusVolume,
+    pomodoroCompletionVolume,
     onClose,
     onStartQuickEntryShortcutRecording,
     onCancelQuickEntryShortcutRecording,
     onUpdateQuickEntryShortcut,
+    onUpdatePomodoroSoundSettings,
   }: Props = $props();
 
   let hotkeyButton = $state<HTMLButtonElement>();
+  let focusVolumeInput = $state<HTMLInputElement>();
+  let completionVolumeInput = $state<HTMLInputElement>();
   let closeButton = $state<HTMLButtonElement>();
   let previousFocusedElement: HTMLElement | null = null;
   let wasOpen = false;
   let isRecording = $state(false);
   let isSaving = $state(false);
-  let activeSetting = $state<"quick-entry" | null>(null);
+  let activeSetting = $state<SettingId | null>(null);
   let message = $state<string | null>(null);
   const quickEntryShortcutKeys = $derived(
     shortcutToKeyboardKeys(quickEntryShortcut),
   );
+  const shortcutHints = $derived(shortcutHintsFor(activeSetting, isRecording));
+  const settingIds: SettingId[] = [
+    "quick-entry",
+    "focus-volume",
+    "completion-volume",
+  ];
 
   $effect(() => {
     if (open && !wasOpen) {
@@ -73,7 +96,7 @@
     if (event.key === "j" || event.key === "k") {
       event.preventDefault();
       event.stopPropagation();
-      void focusHotkeyButton();
+      void focusAdjacentSetting(event.key === "j" ? 1 : -1);
       return;
     }
 
@@ -129,7 +152,7 @@
     try {
       await onStartQuickEntryShortcutRecording();
       isRecording = true;
-      message = "Press a global shortcut.";
+      message = null;
     } catch (error) {
       message = errorMessage(error);
     } finally {
@@ -183,9 +206,61 @@
     hotkeyButton?.focus();
   }
 
+  async function focusAdjacentSetting(offset: number) {
+    const currentSetting =
+      activeSetting ?? settingIdFromElement(document.activeElement);
+    const currentIndex = currentSetting
+      ? settingIds.indexOf(currentSetting)
+      : -1;
+    const nextIndex =
+      currentIndex === -1
+        ? 0
+        : (currentIndex + offset + settingIds.length) % settingIds.length;
+
+    await focusSetting(settingIds[nextIndex]);
+  }
+
+  async function focusSetting(settingId: SettingId) {
+    activeSetting = settingId;
+    await tick();
+
+    switch (settingId) {
+      case "quick-entry":
+        hotkeyButton?.focus();
+        break;
+      case "focus-volume":
+        focusVolumeInput?.focus();
+        break;
+      case "completion-volume":
+        completionVolumeInput?.focus();
+        break;
+    }
+  }
+
+  function settingIdFromElement(element: Element | null): SettingId | null {
+    if (element === hotkeyButton) {
+      return "quick-entry";
+    }
+
+    if (element === focusVolumeInput) {
+      return "focus-volume";
+    }
+
+    if (element === completionVolumeInput) {
+      return "completion-volume";
+    }
+
+    return null;
+  }
+
   function trapFocus(event: KeyboardEvent) {
-    const focusableElements = [hotkeyButton, closeButton].filter(
-      (element): element is HTMLButtonElement => Boolean(element),
+    const focusableElements = [
+      hotkeyButton,
+      focusVolumeInput,
+      completionVolumeInput,
+      closeButton,
+    ].filter((element): element is HTMLButtonElement | HTMLInputElement =>
+      Boolean(element),
     );
 
     if (focusableElements.length === 0) {
@@ -212,6 +287,70 @@
 
   function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
+  }
+
+  function handleFocusVolumeInput(event: Event) {
+    void updatePomodoroVolume(volumeFromEvent(event), pomodoroCompletionVolume);
+  }
+
+  function handleCompletionVolumeInput(event: Event) {
+    void updatePomodoroVolume(pomodoroFocusVolume, volumeFromEvent(event));
+  }
+
+  async function updatePomodoroVolume(
+    focusVolume: number,
+    completionVolume: number,
+  ) {
+    message = null;
+
+    try {
+      await onUpdatePomodoroSoundSettings({
+        focusVolume,
+        completionVolume,
+      });
+    } catch (error) {
+      message = errorMessage(error);
+    }
+  }
+
+  function volumeFromEvent(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+
+    return clampVolume(Number(input.value));
+  }
+
+  function clampVolume(volume: number) {
+    if (!Number.isFinite(volume)) {
+      return 0;
+    }
+
+    return Math.min(100, Math.max(0, Math.round(volume)));
+  }
+
+  function shortcutHintsFor(
+    settingId: SettingId | null,
+    recording: boolean,
+  ): ShortcutHint[] {
+    if (recording) {
+      return [{ keys: ["Esc"], label: "Cancel" }];
+    }
+
+    switch (settingId) {
+      case "focus-volume":
+      case "completion-volume":
+        return [
+          { keys: ["←", "→"], label: "Adjust" },
+          { keys: ["j", "k"], label: "Move" },
+          { keys: ["Esc"], label: "Close" },
+        ];
+      case "quick-entry":
+      default:
+        return [
+          { keys: ["Enter"], label: "Record" },
+          { keys: ["j", "k"], label: "Move" },
+          { keys: ["Esc"], label: "Close" },
+        ];
+    }
   }
 </script>
 
@@ -266,9 +405,7 @@
             class="hotkey-button"
             class:is-recording={isRecording}
             aria-label="Quick Entry hotkey"
-            aria-describedby={message
-              ? "quick-entry-hotkey-message"
-              : undefined}
+            aria-describedby={message ? "settings-message" : undefined}
             disabled={isSaving}
             onfocus={() => {
               activeSetting = "quick-entry";
@@ -286,14 +423,85 @@
             {/if}
           </button>
         </div>
-
-        {#if message}
-          <p id="quick-entry-hotkey-message" class="setting-message">
-            {message}
-          </p>
-        {/if}
       </section>
+
+      <section class="settings-section" aria-labelledby="pomodoro-sound-title">
+        <h3 id="pomodoro-sound-title">Pomodoro sound</h3>
+
+        <div
+          class="setting-row"
+          class:is-active={activeSetting === "focus-volume"}
+          aria-labelledby="pomodoro-focus-volume-title"
+        >
+          <div class="setting-copy">
+            <h4 id="pomodoro-focus-volume-title">Focus sound</h4>
+          </div>
+          <div class="volume-control">
+            <input
+              bind:this={focusVolumeInput}
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={pomodoroFocusVolume}
+              aria-label="Focus sound volume"
+              aria-valuetext={`${pomodoroFocusVolume}%`}
+              onfocus={() => {
+                activeSetting = "focus-volume";
+              }}
+              oninput={handleFocusVolumeInput}
+            />
+            <span class="volume-value">{pomodoroFocusVolume}%</span>
+          </div>
+        </div>
+
+        <div
+          class="setting-row"
+          class:is-active={activeSetting === "completion-volume"}
+          aria-labelledby="pomodoro-completion-volume-title"
+        >
+          <div class="setting-copy">
+            <h4 id="pomodoro-completion-volume-title">Completion sound</h4>
+          </div>
+          <div class="volume-control">
+            <input
+              bind:this={completionVolumeInput}
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={pomodoroCompletionVolume}
+              aria-label="Completion sound volume"
+              aria-valuetext={`${pomodoroCompletionVolume}%`}
+              onfocus={() => {
+                activeSetting = "completion-volume";
+              }}
+              oninput={handleCompletionVolumeInput}
+            />
+            <span class="volume-value">{pomodoroCompletionVolume}%</span>
+          </div>
+        </div>
+      </section>
+
+      {#if message}
+        <p id="settings-message" class="setting-message">
+          {message}
+        </p>
+      {/if}
     </div>
+
+    <footer class="settings-footer" aria-label="Settings shortcuts">
+      {#each shortcutHints as hint (`${hint.keys.join("-")}-${hint.label}`)}
+        <span class="shortcut-hint">
+          <span class="shortcut-keys">
+            {#each hint.keys as key, index (`${key}-${index}`)}
+              <KeyboardKey value={key} />
+            {/each}
+          </span>
+          <span>{hint.label}</span>
+        </span>
+      {/each}
+    </footer>
   </div>
 {/if}
 
@@ -326,7 +534,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.78rem 0.9rem 0.42rem;
+    padding: 1.08rem 1.05rem 0.68rem;
   }
 
   h2,
@@ -388,12 +596,15 @@
   }
 
   .icon-button:focus-visible,
-  .hotkey-button:focus-visible {
+  .hotkey-button:focus-visible,
+  input[type="range"]:focus-visible {
     box-shadow: 0 0 0 2px rgba(154, 185, 255, 0.22);
   }
 
   .settings-content {
-    padding: 0.42rem 0.9rem 0.9rem;
+    display: grid;
+    gap: 0.8rem;
+    padding: 0.42rem 0.9rem 0.85rem;
   }
 
   .settings-section {
@@ -459,8 +670,66 @@
     line-height: 1;
   }
 
+  .volume-control {
+    display: grid;
+    grid-template-columns: minmax(8.5rem, 1fr) 3rem;
+    flex: 0 1 12.6rem;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    min-width: 0;
+    accent-color: #77c4ff;
+    cursor: default;
+  }
+
+  input[type="range"]:focus-visible {
+    border-radius: 999px;
+    outline: none;
+  }
+
+  .volume-value {
+    color: #c9d0da;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-align: right;
+  }
+
   .setting-message {
     color: #aeb7c4;
     font-size: 0.76rem;
+  }
+
+  .settings-footer {
+    display: flex;
+    min-height: 2.7rem;
+    align-items: center;
+    gap: 0.82rem;
+    overflow: hidden;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.56rem 0.9rem 0.62rem;
+    color: #aeb7c4;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .shortcut-hint {
+    display: inline-flex;
+    min-width: 0;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.34rem;
+    font-size: 0.76rem;
+    font-weight: 560;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .shortcut-keys {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22rem;
   }
 </style>
