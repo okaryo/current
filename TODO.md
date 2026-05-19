@@ -353,7 +353,10 @@ Initial release workflow decisions:
 - App-wide utility actions live in a thin footer so global controls stay outside Todo, Log, and Pomodoro sections.
 - The footer shows the current local date on the left and app-wide update actions on the right.
 - The compact Todo/Log input trigger floats at the bottom center of the window, outside section ownership, and expands upward without resizing the main sections.
-- App settings entry points and shortcuts are deferred until settings features exist.
+- App settings open from a compact footer icon button or `Cmd+,`.
+- Settings should behave as a general app preferences surface, starting with HotKey configuration and leaving room for Pomodoro sound settings.
+- Global shortcut settings are updated from a lightweight settings dialog and persisted to `settings.json`.
+- Settings dialog keyboard workflow uses `j` / `k` for explicit row movement, keeps `Tab` available for standard focus movement, uses `Enter` / `Space` to start shortcut recording, and uses `Esc` to cancel recording or close the dialog.
 
 Initial release testing decisions:
 
@@ -408,7 +411,7 @@ Work Log post-release decisions:
 - First, prototype the Quick Entry window with Tauri's standard multi-window APIs and verify whether the interaction feels right.
 - The current Tauri-only Quick Entry window appears to satisfy the intended quick entry workflow, so keep this approach.
 - Quick Entry supports adding either Todo or Log entries.
-- `Cmd+Shift+L` toggles the Quick Entry window through Tauri's global shortcut plugin.
+- `Cmd+Shift+L` is the default Quick Entry global shortcut and can be changed from Settings.
 - Quick Entry closes when it loses focus, including when the user clicks the main Current window or another app.
 - When Quick Entry closes through save, `Esc`, or hotkey toggle, macOS restores focus to the app that was frontmost before Quick Entry opened.
 - When Quick Entry closes because the user clicked outside it, focus restoration is skipped so the clicked app keeps focus.

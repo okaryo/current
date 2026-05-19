@@ -1,5 +1,6 @@
 mod db;
 mod quick_entry;
+mod settings;
 mod todo;
 mod work_log;
 
@@ -16,19 +17,9 @@ pub fn run() {
 
             #[cfg(desktop)]
             {
-                use tauri_plugin_global_shortcut::ShortcutState;
-
-                app.handle().plugin(
-                    tauri_plugin_global_shortcut::Builder::new()
-                        .with_shortcuts(["CommandOrControl+Shift+L"])?
-                        .with_handler(|app, _shortcut, event| {
-                            if event.state == ShortcutState::Pressed {
-                                let _ =
-                                    quick_entry::commands::toggle_quick_entry_window(app.clone());
-                            }
-                        })
-                        .build(),
-                )?;
+                app.handle()
+                    .plugin(tauri_plugin_global_shortcut::Builder::new().build())?;
+                settings::commands::setup_global_shortcuts(app.handle())?;
             }
 
             Ok(())
@@ -44,6 +35,10 @@ pub fn run() {
             todo::commands::delete_todo,
             work_log::commands::list_work_logs,
             work_log::commands::create_work_log,
+            settings::commands::get_settings,
+            settings::commands::update_quick_entry_global_shortcut,
+            settings::commands::pause_quick_entry_global_shortcut,
+            settings::commands::resume_quick_entry_global_shortcut,
             quick_entry::commands::show_quick_entry_window,
             quick_entry::commands::hide_quick_entry_window
         ])

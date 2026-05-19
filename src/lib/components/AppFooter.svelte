@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Settings } from "@lucide/svelte";
   import GlobalEntryInput from "$lib/components/GlobalEntryInput.svelte";
   import type { SectionId } from "$lib/keyboard";
 
@@ -17,6 +18,7 @@
     updateState: UpdateState;
     onCancelEntry: (section: SectionId) => void;
     onInstallUpdate: () => void;
+    onOpenSettings: () => void;
   };
 
   let {
@@ -26,6 +28,7 @@
     updateState,
     onCancelEntry,
     onInstallUpdate,
+    onOpenSettings,
   }: Props = $props();
 
   const hasUpdate = $derived(updateState === "available");
@@ -45,6 +48,16 @@
   </div>
 
   <div class="footer-actions">
+    <button
+      type="button"
+      class="icon-button"
+      aria-label="Open settings with Command Comma"
+      title="Settings (Cmd+,)"
+      onclick={onOpenSettings}
+    >
+      <Settings size={15} strokeWidth={2} aria-hidden="true" />
+    </button>
+
     {#if showUpdateButton}
       <button
         type="button"
@@ -94,6 +107,8 @@
     display: flex;
     justify-self: end;
     justify-content: flex-end;
+    align-items: center;
+    gap: 0.45rem;
     min-width: 0;
   }
 
@@ -117,6 +132,27 @@
     cursor: default;
   }
 
+  .icon-button {
+    display: inline-flex;
+    width: 1.72rem;
+    height: 1.72rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 6px;
+    padding: 0;
+    color: #d7dde6;
+    background: transparent;
+    cursor: default;
+  }
+
+  .icon-button:hover,
+  .icon-button:focus-visible {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.075);
+    outline: none;
+  }
+
   .update-button:hover:not(:disabled),
   .update-button:focus-visible {
     border-color: rgba(119, 196, 255, 0.52);
@@ -124,6 +160,7 @@
     outline: none;
   }
 
+  .icon-button:focus-visible,
   .update-button:focus-visible {
     box-shadow: 0 0 0 2px rgba(154, 185, 255, 0.22);
   }

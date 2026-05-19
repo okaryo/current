@@ -2,14 +2,23 @@
   import { onMount } from "svelte";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import { relaunch } from "@tauri-apps/plugin-process";
+  import {
+    DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
+    getSettings,
+    pauseQuickEntryGlobalShortcut,
+    resumeQuickEntryGlobalShortcut,
+    updateQuickEntryGlobalShortcut,
+  } from "$lib/api/settings";
   import AppFooter from "$lib/components/AppFooter.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
+  import SettingsDialog from "$lib/components/SettingsDialog.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
   import {
     globalEntryShortcutRequested,
     pomodoroCommandFromKeydown,
     sectionFromShortcut,
+    settingsShortcutRequested,
     todoCommandFromKeydown,
     type PomodoroCommand,
     type SectionId,
@@ -54,6 +63,8 @@
   let dateLabel = $state(formatDateLabel());
   let updateState = $state<UpdateState>("unavailable");
   let availableUpdate = $state<Update | null>(null);
+  let settingsDialogOpen = $state(false);
+  let quickEntryGlobalShortcut = $state(DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT);
 
   onMount(() => {
     const dateInterval = window.setInterval(() => {
@@ -61,6 +72,7 @@
     }, 60_000);
 
     void checkForUpdates();
+    void loadSettings();
 
     return () => {
       window.clearInterval(dateInterval);
@@ -68,6 +80,16 @@
   });
 
   function handleKeydown(event: KeyboardEvent) {
+    if (settingsShortcutRequested(event)) {
+      event.preventDefault();
+      openSettingsDialog();
+      return;
+    }
+
+    if (settingsDialogOpen) {
+      return;
+    }
+
     const sectionShortcut = sectionFromShortcut(event, activeSection);
 
     if (sectionShortcut) {
@@ -122,6 +144,14 @@
 
   function requestGlobalEntryFocus() {
     globalEntryFocusRequest += 1;
+  }
+
+  function openSettingsDialog() {
+    settingsDialogOpen = true;
+  }
+
+  function closeSettingsDialog() {
+    settingsDialogOpen = false;
   }
 
   function activateSectionFromShortcut(section: SectionId) {
@@ -231,6 +261,45 @@
     }
   }
 
+  async function loadSettings() {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    try {
+      const settings = await getSettings();
+      quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
+    } catch (error) {
+      console.warn("Settings load failed", error);
+    }
+  }
+
+  async function saveQuickEntryGlobalShortcut(shortcut: string) {
+    if (!isTauriRuntime()) {
+      quickEntryGlobalShortcut = shortcut;
+      return;
+    }
+
+    const settings = await updateQuickEntryGlobalShortcut(shortcut);
+    quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
+  }
+
+  async function pauseQuickEntryShortcutRecording() {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    await pauseQuickEntryGlobalShortcut();
+  }
+
+  async function resumeQuickEntryShortcutRecording() {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    await resumeQuickEntryGlobalShortcut();
+  }
+
   function formatDateLabel(date = new Date()) {
     return new Intl.DateTimeFormat(undefined, {
       weekday: "short",
@@ -291,6 +360,16 @@
     {updateState}
     onCancelEntry={restoreSectionFromGlobalEntry}
     onInstallUpdate={installUpdate}
+    onOpenSettings={openSettingsDialog}
+  />
+
+  <SettingsDialog
+    open={settingsDialogOpen}
+    quickEntryShortcut={quickEntryGlobalShortcut}
+    onClose={closeSettingsDialog}
+    onStartQuickEntryShortcutRecording={pauseQuickEntryShortcutRecording}
+    onCancelQuickEntryShortcutRecording={resumeQuickEntryShortcutRecording}
+    onUpdateQuickEntryShortcut={saveQuickEntryGlobalShortcut}
   />
 </main>
 
