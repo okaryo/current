@@ -329,7 +329,7 @@
   }
 
   function formatDateLabel(date = new Date()) {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat("en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
