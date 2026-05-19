@@ -326,8 +326,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 1rem 1rem 0.92rem;
+    padding: 0.78rem 0.9rem 0.42rem;
   }
 
   h2,
@@ -394,7 +393,7 @@
   }
 
   .settings-content {
-    padding: 0.92rem 1rem 1rem;
+    padding: 0.42rem 0.9rem 0.9rem;
   }
 
   .settings-section {
