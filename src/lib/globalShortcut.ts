@@ -74,7 +74,7 @@ export function shortcutToKeyboardKeys(shortcut: string) {
       case "Space":
         return "Space";
       default:
-        return part;
+        return /^[A-Z]$/.test(part) ? part.toLowerCase() : part;
     }
   });
 }

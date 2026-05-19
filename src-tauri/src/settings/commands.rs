@@ -1,4 +1,4 @@
-use super::model::{AppSettings, DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT};
+use super::model::AppSettings;
 use super::service;
 use crate::quick_entry;
 use std::sync::Mutex;
@@ -58,6 +58,7 @@ pub fn update_quick_entry_global_shortcut(
     let mut settings = service::load(&app)?;
 
     if shortcut == current_shortcut {
+        ensure_quick_entry_shortcut_registered(&app, &shortcut)?;
         settings.global_shortcut.quick_entry = shortcut;
         service::save(&app, &settings)?;
         return Ok(settings);
@@ -81,13 +82,7 @@ pub fn update_quick_entry_global_shortcut(
 
     if let Err(error) = service::save(&app, &settings) {
         let _ = app.global_shortcut().unregister(shortcut.as_str());
-        if current_shortcut != DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT
-            || !app
-                .global_shortcut()
-                .is_registered(DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT)
-        {
-            let _ = register_quick_entry_shortcut(&app, &current_shortcut);
-        }
+        let _ = ensure_quick_entry_shortcut_registered(&app, &current_shortcut);
 
         return Err(error);
     }
@@ -95,6 +90,40 @@ pub fn update_quick_entry_global_shortcut(
     state.set_quick_entry(shortcut)?;
 
     Ok(settings)
+}
+
+#[tauri::command]
+pub fn pause_quick_entry_global_shortcut(
+    app: AppHandle,
+    state: State<GlobalShortcutState>,
+) -> Result<(), String> {
+    let shortcut = state.quick_entry()?;
+
+    if app.global_shortcut().is_registered(shortcut.as_str()) {
+        app.global_shortcut()
+            .unregister(shortcut.as_str())
+            .map_err(|error| format!("Failed to pause global shortcut: {error}"))?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn resume_quick_entry_global_shortcut(
+    app: AppHandle,
+    state: State<GlobalShortcutState>,
+) -> Result<(), String> {
+    let shortcut = state.quick_entry()?;
+
+    ensure_quick_entry_shortcut_registered(&app, &shortcut)
+}
+
+fn ensure_quick_entry_shortcut_registered(app: &AppHandle, shortcut: &str) -> Result<(), String> {
+    if app.global_shortcut().is_registered(shortcut) {
+        return Ok(());
+    }
+
+    register_quick_entry_shortcut(app, shortcut)
 }
 
 fn register_quick_entry_shortcut(app: &AppHandle, shortcut: &str) -> Result<(), String> {

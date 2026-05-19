@@ -5,6 +5,8 @@
   import {
     DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
     getSettings,
+    pauseQuickEntryGlobalShortcut,
+    resumeQuickEntryGlobalShortcut,
     updateQuickEntryGlobalShortcut,
   } from "$lib/api/settings";
   import AppFooter from "$lib/components/AppFooter.svelte";
@@ -282,6 +284,22 @@
     quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
   }
 
+  async function pauseQuickEntryShortcutRecording() {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    await pauseQuickEntryGlobalShortcut();
+  }
+
+  async function resumeQuickEntryShortcutRecording() {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    await resumeQuickEntryGlobalShortcut();
+  }
+
   function formatDateLabel(date = new Date()) {
     return new Intl.DateTimeFormat(undefined, {
       weekday: "short",
@@ -349,6 +367,8 @@
     open={settingsDialogOpen}
     quickEntryShortcut={quickEntryGlobalShortcut}
     onClose={closeSettingsDialog}
+    onStartQuickEntryShortcutRecording={pauseQuickEntryShortcutRecording}
+    onCancelQuickEntryShortcutRecording={resumeQuickEntryShortcutRecording}
     onUpdateQuickEntryShortcut={saveQuickEntryGlobalShortcut}
   />
 </main>

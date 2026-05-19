@@ -17,3 +17,11 @@ export function updateQuickEntryGlobalShortcut(shortcut: string) {
     shortcut,
   });
 }
+
+export function pauseQuickEntryGlobalShortcut() {
+  return invoke<void>("pause_quick_entry_global_shortcut");
+}
+
+export function resumeQuickEntryGlobalShortcut() {
+  return invoke<void>("resume_quick_entry_global_shortcut");
+}

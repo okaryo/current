@@ -49,11 +49,11 @@ describe("shortcutFromKeydown", () => {
 });
 
 describe("shortcutToKeyboardKeys", () => {
-  it("maps stored shortcut names to display keys", () => {
+  it("maps stored shortcut names to KeyboardKey values", () => {
     expect(shortcutToKeyboardKeys("CommandOrControl+Shift+L")).toEqual([
       "⌘",
       "⇧",
-      "L",
+      "l",
     ]);
   });
 });

@@ -37,6 +37,8 @@ pub fn run() {
             work_log::commands::create_work_log,
             settings::commands::get_settings,
             settings::commands::update_quick_entry_global_shortcut,
+            settings::commands::pause_quick_entry_global_shortcut,
+            settings::commands::resume_quick_entry_global_shortcut,
             quick_entry::commands::show_quick_entry_window,
             quick_entry::commands::hide_quick_entry_window
         ])

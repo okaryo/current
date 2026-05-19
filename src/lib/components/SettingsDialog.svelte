@@ -11,11 +11,19 @@
     open: boolean;
     quickEntryShortcut: string;
     onClose: () => void;
+    onStartQuickEntryShortcutRecording: () => Promise<void>;
+    onCancelQuickEntryShortcutRecording: () => Promise<void>;
     onUpdateQuickEntryShortcut: (shortcut: string) => Promise<void>;
   };
 
-  let { open, quickEntryShortcut, onClose, onUpdateQuickEntryShortcut }: Props =
-    $props();
+  let {
+    open,
+    quickEntryShortcut,
+    onClose,
+    onStartQuickEntryShortcutRecording,
+    onCancelQuickEntryShortcutRecording,
+    onUpdateQuickEntryShortcut,
+  }: Props = $props();
 
   let hotkeyButton = $state<HTMLButtonElement>();
   let closeButton = $state<HTMLButtonElement>();
@@ -23,6 +31,7 @@
   let wasOpen = false;
   let isRecording = $state(false);
   let isSaving = $state(false);
+  let activeSetting = $state<"quick-entry" | null>(null);
   let message = $state<string | null>(null);
   const quickEntryShortcutKeys = $derived(
     shortcutToKeyboardKeys(quickEntryShortcut),
@@ -40,6 +49,7 @@
       wasOpen = false;
       isRecording = false;
       isSaving = false;
+      activeSetting = null;
       message = null;
       void tick().then(() => previousFocusedElement?.focus());
     }
@@ -56,7 +66,7 @@
     }
 
     if (event.key === "Escape") {
-      closeDialog(event);
+      void closeDialog(event);
       return;
     }
 
@@ -78,9 +88,7 @@
     event.stopImmediatePropagation();
 
     if (event.key === "Escape") {
-      isRecording = false;
-      message = null;
-      void focusHotkeyButton();
+      void cancelRecording();
       return;
     }
 
@@ -102,17 +110,49 @@
     void updateShortcut(result.shortcut);
   }
 
-  function closeDialog(event: KeyboardEvent) {
+  async function closeDialog(event: KeyboardEvent) {
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
+    await cancelRecording();
     onClose();
   }
 
-  function startRecording() {
-    isRecording = true;
-    message = "Press a global shortcut.";
-    void focusHotkeyButton();
+  async function startRecording() {
+    if (isSaving) {
+      return;
+    }
+
+    isSaving = true;
+    message = null;
+
+    try {
+      await onStartQuickEntryShortcutRecording();
+      isRecording = true;
+      message = "Press a global shortcut.";
+    } catch (error) {
+      message = errorMessage(error);
+    } finally {
+      isSaving = false;
+      void focusHotkeyButton();
+    }
+  }
+
+  async function cancelRecording() {
+    if (!isRecording) {
+      return;
+    }
+
+    isRecording = false;
+    message = null;
+
+    try {
+      await onCancelQuickEntryShortcutRecording();
+    } catch (error) {
+      message = errorMessage(error);
+    } finally {
+      void focusHotkeyButton();
+    }
   }
 
   async function updateShortcut(shortcut: string) {
@@ -122,9 +162,16 @@
     try {
       await onUpdateQuickEntryShortcut(shortcut);
       isRecording = false;
-      message = "Updated.";
+      message = null;
     } catch (error) {
-      message = errorMessage(error);
+      const updateMessage = errorMessage(error);
+
+      try {
+        await onCancelQuickEntryShortcutRecording();
+        message = updateMessage;
+      } catch (resumeError) {
+        message = `${updateMessage} ${errorMessage(resumeError)}`;
+      }
     } finally {
       isSaving = false;
       void focusHotkeyButton();
@@ -171,7 +218,13 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-  <div class="dialog-backdrop" aria-hidden="true" onclick={onClose}></div>
+  <div
+    class="dialog-backdrop"
+    aria-hidden="true"
+    onclick={() => {
+      void cancelRecording().then(onClose);
+    }}
+  ></div>
   <div
     class="settings-dialog"
     role="dialog"
@@ -180,17 +233,16 @@
     tabindex="-1"
   >
     <header class="settings-header">
-      <div>
-        <p class="settings-kicker">Current</p>
-        <h2 id="settings-title">Settings</h2>
-      </div>
+      <h2 id="settings-title">Settings</h2>
       <button
         bind:this={closeButton}
         type="button"
         class="icon-button"
         aria-label="Close settings with Escape"
         title="Close (Esc)"
-        onclick={onClose}
+        onclick={() => {
+          void cancelRecording().then(onClose);
+        }}
       >
         <X size={16} strokeWidth={2} aria-hidden="true" />
       </button>
@@ -200,7 +252,11 @@
       <section class="settings-section" aria-labelledby="global-shortcut-title">
         <h3 id="global-shortcut-title">Global shortcut</h3>
 
-        <div class="setting-row" aria-labelledby="quick-entry-hotkey-title">
+        <div
+          class="setting-row"
+          class:is-active={activeSetting === "quick-entry" || isRecording}
+          aria-labelledby="quick-entry-hotkey-title"
+        >
           <div class="setting-copy">
             <h4 id="quick-entry-hotkey-title">Quick Entry</h4>
           </div>
@@ -214,13 +270,18 @@
               ? "quick-entry-hotkey-message"
               : undefined}
             disabled={isSaving}
-            onclick={startRecording}
+            onfocus={() => {
+              activeSetting = "quick-entry";
+            }}
+            onclick={() => {
+              void startRecording();
+            }}
           >
             {#if isRecording}
               <span class="recording-label">Press shortcut</span>
             {:else}
               {#each quickEntryShortcutKeys as key, index (`${key}-${index}`)}
-                <KeyboardKey value={key} label={key} />
+                <KeyboardKey value={key} />
               {/each}
             {/if}
           </button>
@@ -262,20 +323,11 @@
 
   .settings-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding: 1rem 1rem 0.92rem;
-  }
-
-  .settings-kicker {
-    margin: 0 0 0.12rem;
-    color: #95a0af;
-    font-size: 0.72rem;
-    font-weight: 650;
-    letter-spacing: 0;
-    text-transform: uppercase;
   }
 
   h2,
@@ -321,19 +373,17 @@
     flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border: 0;
     border-radius: 6px;
     color: #c7ced9;
-    background: rgba(255, 255, 255, 0.05);
+    background: transparent;
     font: inherit;
-    font-size: 1.1rem;
     line-height: 1;
     cursor: default;
   }
 
   .icon-button:hover,
   .icon-button:focus-visible {
-    border-color: rgba(255, 255, 255, 0.17);
     background: rgba(255, 255, 255, 0.08);
     outline: none;
   }
@@ -358,7 +408,13 @@
     justify-content: space-between;
     gap: 1rem;
     min-height: 3.25rem;
-    padding: 0.15rem 0;
+    border-radius: 7px;
+    padding: 0.42rem 0.52rem;
+  }
+
+  .setting-row.is-active {
+    background: rgba(119, 196, 255, 0.09);
+    box-shadow: inset 0 0 0 1px rgba(119, 196, 255, 0.16);
   }
 
   .setting-copy {
