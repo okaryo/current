@@ -115,7 +115,7 @@ fn position_window_on_cursor_monitor(
 fn remember_frontmost_app() {
     let previous_pid = NSWorkspace::sharedWorkspace()
         .frontmostApplication()
-        .map(|application| application.processIdentifier() as i32);
+        .map(|application| application.processIdentifier());
 
     if let Ok(mut pid) = PREVIOUS_FRONTMOST_APP_PID.lock() {
         *pid = previous_pid;

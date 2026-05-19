@@ -31,6 +31,25 @@ Do not implement multiple large features at once without confirmation.
 
 Keep tasks small and incremental.
 
+## Required Checks
+
+Before opening or updating a pull request that changes code, run the checks that match
+the touched areas.
+
+For frontend or shared repository changes:
+
+- `pnpm run format:check`
+- `pnpm run lint`
+- `pnpm run check`
+- `pnpm test`
+- `pnpm run build`
+
+For Rust changes:
+
+- `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`
+- `cargo clippy --manifest-path src-tauri/Cargo.toml --locked -- -D warnings`
+- `cargo test --manifest-path src-tauri/Cargo.toml --locked`
+
 ## Important Design Principles
 
 ### 1. Keep interactions lightweight
