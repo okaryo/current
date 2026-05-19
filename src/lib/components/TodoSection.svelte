@@ -1003,12 +1003,25 @@
     content: "";
     position: absolute;
     left: 1.25rem;
-    top: 0.25rem;
+    top: -1px;
+    bottom: -1px;
+    width: 1px;
+    background: rgba(155, 163, 176, 0.36);
+    pointer-events: none;
+  }
+
+  .task-child:not(:has(+ .task-child))::before {
+    bottom: 50%;
+  }
+
+  .task-child::after {
+    content: "";
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
     width: 0.8rem;
-    height: 1.2rem;
-    border-left: 1px solid rgba(155, 163, 176, 0.36);
-    border-bottom: 1px solid rgba(155, 163, 176, 0.36);
-    border-bottom-left-radius: 5px;
+    height: 1px;
+    background: rgba(155, 163, 176, 0.36);
     pointer-events: none;
   }
 
