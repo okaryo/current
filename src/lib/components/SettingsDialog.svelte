@@ -495,9 +495,6 @@
         <span class="shortcut-hint">
           <span class="shortcut-keys">
             {#each hint.keys as key, index (`${key}-${index}`)}
-              {#if index > 0}
-                <span class="shortcut-separator">/</span>
-              {/if}
               <KeyboardKey value={key} />
             {/each}
           </span>
@@ -734,11 +731,5 @@
     display: inline-flex;
     align-items: center;
     gap: 0.22rem;
-  }
-
-  .shortcut-separator {
-    color: #7d8795;
-    font-size: 0.72rem;
-    line-height: 1;
   }
 </style>

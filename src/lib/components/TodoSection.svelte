@@ -658,7 +658,7 @@
           <span><KeyboardKey value="Enter" />Save</span>
           <span><KeyboardKey value="Esc" label="Escape" />Cancel</span>
         {:else}
-          <span><KeyboardKey value="j" />/<KeyboardKey value="k" />Move</span>
+          <span><KeyboardKey value="j" /><KeyboardKey value="k" />Move</span>
         {/if}
       </div>
     {/if}
