@@ -48,16 +48,6 @@
   </div>
 
   <div class="footer-actions">
-    <button
-      type="button"
-      class="icon-button"
-      aria-label="Open settings with Command Comma"
-      title="Settings (Cmd+,)"
-      onclick={onOpenSettings}
-    >
-      <Settings size={15} strokeWidth={2} aria-hidden="true" />
-    </button>
-
     {#if showUpdateButton}
       <button
         type="button"
@@ -71,6 +61,16 @@
         <span>{actionLabel}</span>
       </button>
     {/if}
+
+    <button
+      type="button"
+      class="icon-button"
+      aria-label="Open settings with Command Comma"
+      title="Settings (Cmd+,)"
+      onclick={onOpenSettings}
+    >
+      <Settings size={15} strokeWidth={2} aria-hidden="true" />
+    </button>
   </div>
 </footer>
 
@@ -138,6 +138,7 @@
 
   .icon-button {
     display: inline-flex;
+    flex: 0 0 auto;
     width: 1.72rem;
     height: 1.72rem;
     align-items: center;
