@@ -462,28 +462,6 @@
     overflow: hidden;
   }
 
-  :global(*::-webkit-scrollbar) {
-    width: 0.48rem;
-    height: 0.48rem;
-  }
-
-  :global(*::-webkit-scrollbar-track) {
-    border-radius: 999px;
-    background: transparent;
-  }
-
-  :global(*::-webkit-scrollbar-thumb) {
-    border: 1px solid var(--scrollbar-thumb-border);
-    border-radius: 999px;
-    background: var(--scrollbar-thumb);
-    background-clip: padding-box;
-  }
-
-  :global(*::-webkit-scrollbar-thumb:hover) {
-    background: var(--scrollbar-thumb-hover);
-    background-clip: padding-box;
-  }
-
   .app-shell {
     display: flex;
     flex-direction: column;
