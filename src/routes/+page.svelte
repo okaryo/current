@@ -20,6 +20,7 @@
   import {
     globalEntryShortcutRequested,
     pomodoroCommandFromKeydown,
+    pomodoroGlobalCommandFromKeydown,
     sectionFromShortcut,
     settingsShortcutRequested,
     todoCommandFromKeydown,
@@ -52,6 +53,7 @@
   let pomodoroCommandRequest = $state<{
     id: number;
     command: PomodoroCommand;
+    preserveFocus?: boolean;
   } | null>(null);
   let pomodoroCommandRequestId = 0;
   let todoCommandRequest = $state<{ id: number; command: TodoCommand } | null>(
@@ -94,6 +96,14 @@
     }
 
     if (settingsDialogOpen) {
+      return;
+    }
+
+    const globalPomodoroCommand = pomodoroGlobalCommandFromKeydown(event);
+
+    if (globalPomodoroCommand) {
+      event.preventDefault();
+      requestPomodoroCommand(globalPomodoroCommand, { preserveFocus: true });
       return;
     }
 
@@ -201,10 +211,14 @@
     };
   }
 
-  function requestPomodoroCommand(command: PomodoroCommand) {
+  function requestPomodoroCommand(
+    command: PomodoroCommand,
+    options: { preserveFocus?: boolean } = {},
+  ) {
     pomodoroCommandRequest = {
       id: ++pomodoroCommandRequestId,
       command,
+      preserveFocus: options.preserveFocus,
     };
   }
 

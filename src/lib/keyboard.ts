@@ -102,6 +102,23 @@ export function pomodoroCommandFromKeydown(
   }
 }
 
+export function pomodoroGlobalCommandFromKeydown(
+  event: KeyboardShortcutEvent,
+): PomodoroCommand | null {
+  if (!event.metaKey || !event.shiftKey || event.ctrlKey || event.altKey) {
+    return null;
+  }
+
+  switch (event.key.toLowerCase()) {
+    case "p":
+      return "toggle";
+    case "r":
+      return "reset";
+    default:
+      return null;
+  }
+}
+
 export function todoCommandFromKeydown(
   event: KeyboardShortcutEvent,
 ): TodoCommand | null {
