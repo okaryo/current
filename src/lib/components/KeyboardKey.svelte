@@ -15,6 +15,14 @@
   );
 
   function formatKeyboardValue(value: string) {
+    if (value === "Enter") {
+      return "⏎";
+    }
+
+    if (value.endsWith("Enter")) {
+      return `${value.slice(0, -"Enter".length)}⏎`;
+    }
+
     if (/^[a-z]$/.test(value)) {
       return value.toUpperCase();
     }
@@ -27,6 +35,14 @@
   }
 
   function describeKeyboardValue(value: string) {
+    if (value === "Enter") {
+      return "Enter";
+    }
+
+    if (value.endsWith("Enter")) {
+      return value;
+    }
+
     if (/^[a-z]$/.test(value)) {
       return value.toUpperCase();
     }
