@@ -2,13 +2,15 @@
   type Props = {
     value: string;
     label?: string;
+    size?: "default" | "compact";
   };
 
-  let { value, label }: Props = $props();
+  let { value, label, size = "default" }: Props = $props();
 
   const symbolValues = new Set(["⌘", "⇧", "⌥", "⌃"]);
   const displayValue = $derived(formatKeyboardValue(value));
   const displayLabel = $derived(label ?? describeKeyboardValue(value));
+  const isCompact = $derived(size === "compact");
   const isSymbolOnly = $derived(symbolValues.has(displayValue));
   const hasSymbol = $derived(
     [...symbolValues].some((symbol) => displayValue.includes(symbol)),
@@ -56,6 +58,7 @@
 </script>
 
 <kbd
+  class:keyboard-key-compact={isCompact}
   class:symbol-only={isSymbolOnly}
   class:has-symbol={hasSymbol}
   aria-label={displayLabel}
@@ -104,5 +107,25 @@
   .symbol-only {
     min-width: 1.45rem;
     font-size: 0.92rem;
+  }
+
+  .keyboard-key-compact {
+    min-width: 1.34rem;
+    height: 1.08rem;
+    border-radius: 4px;
+    padding: 0 0.28rem;
+    font-size: 0.68rem;
+    font-weight: 560;
+  }
+
+  .keyboard-key-compact.has-symbol {
+    min-width: 1.52rem;
+    font-size: 0.76rem;
+    font-weight: 640;
+  }
+
+  .keyboard-key-compact.symbol-only {
+    min-width: 1.18rem;
+    font-size: 0.78rem;
   }
 </style>

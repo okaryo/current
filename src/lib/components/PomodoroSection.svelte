@@ -193,11 +193,11 @@
         onclick={toggleTimer}
       >
         <span>{primaryActionLabel}</span>
-        <KeyboardKey value="Space" />
+        <KeyboardKey value="Space" size="compact" />
       </button>
       <button type="button" onfocus={onActivate} onclick={resetTimer}>
         <span>Reset</span>
-        <KeyboardKey value="r" />
+        <KeyboardKey value="r" size="compact" />
       </button>
     </div>
   </div>

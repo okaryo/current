@@ -65,7 +65,7 @@
         <span class="status-dot" aria-hidden="true"></span>
         <span>{actionLabel}</span>
         {#if hasUpdate}
-          <KeyboardKey value="u" />
+          <KeyboardKey value="u" size="compact" />
         {/if}
       </button>
     {/if}
