@@ -1095,11 +1095,12 @@
   }
 
   .task-title {
-    display: block;
+    display: -webkit-box;
     overflow: hidden;
     font-size: 14px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .task-title-button {
