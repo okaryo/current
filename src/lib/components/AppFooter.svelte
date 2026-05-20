@@ -86,7 +86,7 @@
     width: min(100%, 104rem);
     min-height: 2.45rem;
     margin: 0 auto;
-    padding: 0.28rem 0.15rem 0.68rem;
+    padding: 0.48rem 0.15rem;
     color: #aeb7c4;
   }
 
@@ -99,6 +99,9 @@
   }
 
   .footer-entry {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     justify-self: center;
     min-width: 0;
   }
