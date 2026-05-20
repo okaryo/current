@@ -292,7 +292,7 @@
       onclick={handleCompactClick}
     >
       <span class="compact-prompt" aria-hidden="true">&gt;</span>
-      <strong>Press<KeyboardKey value="i" />to add</strong>
+      <strong>Press<KeyboardKey value="i" size="compact" />to add</strong>
       <span class="compact-placeholder">
         <span class="compact-todo">Todo</span> /
         <span class="compact-log">Log</span>
@@ -333,13 +333,23 @@
         </div>
 
         <div class="entry-shortcuts" aria-label="Quick input shortcuts">
-          <span><KeyboardKey value="Tab" />Switch</span>
+          <span><KeyboardKey value="Tab" size="compact" />Switch</span>
           {#if hasValue}
             <span
-              ><KeyboardKey value="⌘Enter" label="Command Enter" />Submit</span
+              ><KeyboardKey
+                value="⌘Enter"
+                label="Command Enter"
+                size="compact"
+              />Submit</span
             >
           {/if}
-          <span><KeyboardKey value="Esc" label="Escape" />Close</span>
+          <span
+            ><KeyboardKey
+              value="Esc"
+              label="Escape"
+              size="compact"
+            />Close</span
+          >
         </div>
       </div>
 

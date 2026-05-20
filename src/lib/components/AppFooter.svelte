@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Settings } from "@lucide/svelte";
   import GlobalEntryInput from "$lib/components/GlobalEntryInput.svelte";
+  import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import type { SectionId } from "$lib/keyboard";
 
   type UpdateState =
@@ -36,7 +37,10 @@
   const showUpdateButton = $derived(hasUpdate || isInstalling);
   const actionLabel = $derived(isInstalling ? "Installing" : "Update");
   const ariaLabel = $derived(
-    isInstalling ? "Installing update" : "Install available update",
+    isInstalling ? "Installing update" : "Install available update with U",
+  );
+  const updateTitle = $derived(
+    isInstalling ? "Installing update" : "Update (U)",
   );
 </script>
 
@@ -48,6 +52,24 @@
   </div>
 
   <div class="footer-actions">
+    {#if showUpdateButton}
+      <button
+        type="button"
+        class="update-button"
+        class:is-installing={isInstalling}
+        aria-label={ariaLabel}
+        title={updateTitle}
+        disabled={isInstalling}
+        onclick={onInstallUpdate}
+      >
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>{actionLabel}</span>
+        {#if hasUpdate}
+          <KeyboardKey value="u" size="compact" />
+        {/if}
+      </button>
+    {/if}
+
     <button
       type="button"
       class="icon-button"
@@ -57,20 +79,6 @@
     >
       <Settings size={15} strokeWidth={2} aria-hidden="true" />
     </button>
-
-    {#if showUpdateButton}
-      <button
-        type="button"
-        class="update-button"
-        class:is-installing={isInstalling}
-        aria-label={ariaLabel}
-        disabled={isInstalling}
-        onclick={onInstallUpdate}
-      >
-        <span class="status-dot" aria-hidden="true"></span>
-        <span>{actionLabel}</span>
-      </button>
-    {/if}
   </div>
 </footer>
 
@@ -83,10 +91,11 @@
       );
     align-items: center;
     gap: 0.75rem;
+    flex: 0 0 auto;
     width: min(100%, 104rem);
     min-height: 2.45rem;
     margin: 0 auto;
-    padding: 0.28rem 0.15rem 0.68rem;
+    padding: 0.24rem 0.15rem;
     color: #aeb7c4;
   }
 
@@ -99,6 +108,9 @@
   }
 
   .footer-entry {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     justify-self: center;
     min-width: 0;
   }
@@ -134,6 +146,7 @@
 
   .icon-button {
     display: inline-flex;
+    flex: 0 0 auto;
     width: 1.72rem;
     height: 1.72rem;
     align-items: center;

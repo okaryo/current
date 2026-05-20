@@ -219,9 +219,12 @@ Pomodoro decisions:
 
 Pomodoro keyboard decisions:
 
-- Pomodoro shortcuts are scoped to the active Pomodoro section.
+- Plain Pomodoro shortcuts are scoped to the active Pomodoro section.
 - `Space`: start/pause
 - `r`: reset
+- `Cmd+Shift+P`: app-wide start/pause/continue
+- `Cmd+Shift+R`: app-wide reset
+- App-wide Pomodoro shortcuts operate the timer without changing the active section or stealing focus.
 
 ---
 
@@ -354,6 +357,7 @@ Initial release workflow decisions:
 - The footer shows the current local date on the left and app-wide update actions on the right.
 - The compact Todo/Log input trigger floats at the bottom center of the window, outside section ownership, and expands upward without resizing the main sections.
 - App settings open from a compact footer icon button or `Cmd+,`.
+- Available updates can be installed from the footer Update button or the `U` shortcut while no text input or settings dialog is active.
 - Settings should behave as a general app preferences surface, starting with HotKey configuration and leaving room for Pomodoro sound settings.
 - Global shortcut settings are updated from a lightweight settings dialog and persisted to `settings.json`.
 - Settings dialog keyboard workflow uses `j` / `k` for explicit row movement, keeps `Tab` available for standard focus movement, uses `Enter` / `Space` to start shortcut recording, and uses `Esc` to cancel recording or close the dialog.

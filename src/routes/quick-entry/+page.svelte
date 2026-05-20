@@ -299,12 +299,19 @@
       </div>
 
       <div class="entry-shortcuts" aria-label="Quick Entry shortcuts">
-        <span><KeyboardKey value="Tab" />Switch</span>
+        <span><KeyboardKey value="Tab" size="compact" />Switch</span>
         {#if hasValue}
-          <span><KeyboardKey value="⌘Enter" label="Command Enter" />Submit</span
+          <span
+            ><KeyboardKey
+              value="⌘Enter"
+              label="Command Enter"
+              size="compact"
+            />Submit</span
           >
         {/if}
-        <span><KeyboardKey value="Esc" label="Escape" />Close</span>
+        <span
+          ><KeyboardKey value="Esc" label="Escape" size="compact" />Close</span
+        >
       </div>
     </header>
 

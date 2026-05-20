@@ -653,10 +653,21 @@
     {#if active}
       <div class="hint-row" aria-label="Todo shortcuts">
         {#if isInputMode}
-          <span><KeyboardKey value="Enter" />Save</span>
-          <span><KeyboardKey value="Esc" label="Escape" />Cancel</span>
+          <span><KeyboardKey value="Enter" size="compact" />Save</span>
+          <span
+            ><KeyboardKey
+              value="Esc"
+              label="Escape"
+              size="compact"
+            />Cancel</span
+          >
         {:else}
-          <span><KeyboardKey value="j" /><KeyboardKey value="k" />Move</span>
+          <span
+            ><KeyboardKey value="j" size="compact" /><KeyboardKey
+              value="k"
+              size="compact"
+            />Move</span
+          >
         {/if}
       </div>
     {/if}
@@ -795,32 +806,34 @@
   {#if shouldShowFooterActions}
     <footer class="todo-footer" bind:this={todoFooterElement}>
       <div class="todo-footer-actions" aria-label="Todo shortcuts">
-        <span><KeyboardKey value="a" />Add</span>
+        <span><KeyboardKey value="a" size="compact" />Add</span>
         {#if selectedTodo !== null}
-          <span><KeyboardKey value="e" />Edit</span>
+          <span><KeyboardKey value="e" size="compact" />Edit</span>
           <span>
-            <KeyboardKey value="Space" />{selectedTodo.completed
+            <KeyboardKey value="Space" size="compact" />{selectedTodo.completed
               ? "Incomplete"
               : "Complete"}
           </span>
           {#if !selectedTodo.completed}
             <span>
-              <KeyboardKey value="Enter" />{nowTodoId === selectedTodo.id
+              <KeyboardKey value="Enter" size="compact" />{nowTodoId ===
+              selectedTodo.id
                 ? "Unset Now"
                 : "Set Now"}
             </span>
           {/if}
           <span>
-            <KeyboardKey value="t" />{selectedTodo.parentId === null
+            <KeyboardKey value="t" size="compact" />{selectedTodo.parentId ===
+            null
               ? "Subtask"
               : "Sibling"}
           </span>
           {#if selectedTodo.parentId === null}
-            <span><KeyboardKey value="Tab" />Indent</span>
+            <span><KeyboardKey value="Tab" size="compact" />Indent</span>
           {:else}
-            <span><KeyboardKey value="⇧Tab" />Outdent</span>
+            <span><KeyboardKey value="⇧Tab" size="compact" />Outdent</span>
           {/if}
-          <span><KeyboardKey value="D" />Delete</span>
+          <span><KeyboardKey value="D" size="compact" />Delete</span>
         {/if}
       </div>
     </footer>
@@ -1082,11 +1095,12 @@
   }
 
   .task-title {
-    display: block;
+    display: -webkit-box;
     overflow: hidden;
     font-size: 14px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .task-title-button {

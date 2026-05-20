@@ -3,9 +3,11 @@ import {
   adjacentSection,
   globalEntryShortcutRequested,
   pomodoroCommandFromKeydown,
+  pomodoroGlobalCommandFromKeydown,
   sectionFromShortcut,
   settingsShortcutRequested,
   todoCommandFromKeydown,
+  updateShortcutRequested,
   type KeyboardShortcutEvent,
 } from "$lib/keyboard";
 
@@ -110,12 +112,49 @@ describe("settingsShortcutRequested", () => {
   });
 });
 
+describe("updateShortcutRequested", () => {
+  it("accepts plain u only", () => {
+    expect(updateShortcutRequested(key({ key: "u" }))).toBe(true);
+    expect(updateShortcutRequested(key({ key: "u", metaKey: true }))).toBe(
+      false,
+    );
+    expect(updateShortcutRequested(key({ key: "U", shiftKey: true }))).toBe(
+      false,
+    );
+  });
+});
+
 describe("pomodoroCommandFromKeydown", () => {
   it.each([
     [" ", "toggle"],
     ["r", "reset"],
   ] as const)("maps %s to %s", (shortcut, command) => {
     expect(pomodoroCommandFromKeydown({ key: shortcut })).toBe(command);
+  });
+});
+
+describe("pomodoroGlobalCommandFromKeydown", () => {
+  it.each([
+    ["P", "toggle"],
+    ["R", "reset"],
+  ] as const)("maps Command+Shift+%s to %s", (shortcut, command) => {
+    expect(
+      pomodoroGlobalCommandFromKeydown(
+        key({ key: shortcut, metaKey: true, shiftKey: true }),
+      ),
+    ).toBe(command);
+  });
+
+  it("ignores Pomodoro global shortcuts without Command+Shift", () => {
+    expect(pomodoroGlobalCommandFromKeydown(key({ key: "P" }))).toBeNull();
+    expect(
+      pomodoroGlobalCommandFromKeydown(key({ key: "P", metaKey: true })),
+    ).toBeNull();
+    expect(
+      pomodoroGlobalCommandFromKeydown(
+        key({ key: "P", metaKey: true, shiftKey: true, altKey: true }),
+      ),
+    ).toBeNull();
   });
 });
 

@@ -27,6 +27,7 @@
   type PomodoroCommandRequest = {
     id: number;
     command: PomodoroCommand;
+    preserveFocus?: boolean;
   } | null;
 
   type Props = {
@@ -86,10 +87,10 @@
 
     switch (commandRequest.command) {
       case "toggle":
-        toggleTimer();
+        toggleTimer({ preserveFocus: commandRequest.preserveFocus });
         break;
       case "reset":
-        resetTimer();
+        resetTimer({ preserveFocus: commandRequest.preserveFocus });
         break;
       case "startFocus":
         startFocusTimer();
@@ -103,14 +104,20 @@
     completionAudio.dispose();
   });
 
-  function toggleTimer() {
-    onActivate();
+  function toggleTimer(options: { preserveFocus?: boolean } = {}) {
+    if (!options.preserveFocus) {
+      onActivate();
+    }
+
     pomodoroState = togglePomodoro(pomodoroState);
     syncInterval();
   }
 
-  function resetTimer() {
-    onActivate();
+  function resetTimer(options: { preserveFocus?: boolean } = {}) {
+    if (!options.preserveFocus) {
+      onActivate();
+    }
+
     pomodoroState = resetPomodoro();
     syncInterval();
   }
@@ -190,14 +197,14 @@
         class="primary-button"
         type="button"
         onfocus={onActivate}
-        onclick={toggleTimer}
+        onclick={() => toggleTimer()}
       >
         <span>{primaryActionLabel}</span>
-        <KeyboardKey value="Space" />
+        <KeyboardKey value="⌘⇧P" label="Command Shift P" size="compact" />
       </button>
-      <button type="button" onfocus={onActivate} onclick={resetTimer}>
+      <button type="button" onfocus={onActivate} onclick={() => resetTimer()}>
         <span>Reset</span>
-        <KeyboardKey value="r" />
+        <KeyboardKey value="⌘⇧R" label="Command Shift R" size="compact" />
       </button>
     </div>
   </div>
@@ -363,10 +370,6 @@
     font-size: 0.7rem;
     line-height: 1;
     opacity: 0.72;
-  }
-
-  .timer-actions :global(.keyboard-key-label) {
-    transform: translateY(-0.08rem);
   }
 
   @media (max-width: 560px) {

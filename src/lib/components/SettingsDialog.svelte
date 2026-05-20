@@ -418,7 +418,7 @@
               <span class="recording-label">Press shortcut</span>
             {:else}
               {#each quickEntryShortcutKeys as key, index (`${key}-${index}`)}
-                <KeyboardKey value={key} />
+                <KeyboardKey value={key} size="compact" />
               {/each}
             {/if}
           </button>
@@ -495,7 +495,7 @@
         <span class="shortcut-hint">
           <span class="shortcut-keys">
             {#each hint.keys as key, index (`${key}-${index}`)}
-              <KeyboardKey value={key} />
+              <KeyboardKey value={key} size="compact" />
             {/each}
           </span>
           <span>{hint.label}</span>

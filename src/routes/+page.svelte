@@ -20,9 +20,11 @@
   import {
     globalEntryShortcutRequested,
     pomodoroCommandFromKeydown,
+    pomodoroGlobalCommandFromKeydown,
     sectionFromShortcut,
     settingsShortcutRequested,
     todoCommandFromKeydown,
+    updateShortcutRequested,
     type PomodoroCommand,
     type SectionId,
     type TodoCommand,
@@ -51,6 +53,7 @@
   let pomodoroCommandRequest = $state<{
     id: number;
     command: PomodoroCommand;
+    preserveFocus?: boolean;
   } | null>(null);
   let pomodoroCommandRequestId = 0;
   let todoCommandRequest = $state<{ id: number; command: TodoCommand } | null>(
@@ -96,6 +99,14 @@
       return;
     }
 
+    const globalPomodoroCommand = pomodoroGlobalCommandFromKeydown(event);
+
+    if (globalPomodoroCommand) {
+      event.preventDefault();
+      requestPomodoroCommand(globalPomodoroCommand, { preserveFocus: true });
+      return;
+    }
+
     const sectionShortcut = sectionFromShortcut(event, activeSection);
 
     if (sectionShortcut) {
@@ -109,6 +120,12 @@
         (event.target as HTMLElement).blur();
       }
 
+      return;
+    }
+
+    if (updateShortcutRequested(event) && updateState === "available") {
+      event.preventDefault();
+      void installUpdate();
       return;
     }
 
@@ -194,10 +211,14 @@
     };
   }
 
-  function requestPomodoroCommand(command: PomodoroCommand) {
+  function requestPomodoroCommand(
+    command: PomodoroCommand,
+    options: { preserveFocus?: boolean } = {},
+  ) {
     pomodoroCommandRequest = {
       id: ++pomodoroCommandRequestId,
       command,
+      preserveFocus: options.preserveFocus,
     };
   }
 
@@ -439,28 +460,6 @@
     height: 100vh;
     margin: 0;
     overflow: hidden;
-  }
-
-  :global(*::-webkit-scrollbar) {
-    width: 0.48rem;
-    height: 0.48rem;
-  }
-
-  :global(*::-webkit-scrollbar-track) {
-    border-radius: 999px;
-    background: transparent;
-  }
-
-  :global(*::-webkit-scrollbar-thumb) {
-    border: 1px solid var(--scrollbar-thumb-border);
-    border-radius: 999px;
-    background: var(--scrollbar-thumb);
-    background-clip: padding-box;
-  }
-
-  :global(*::-webkit-scrollbar-thumb:hover) {
-    background: var(--scrollbar-thumb-hover);
-    background-clip: padding-box;
   }
 
   .app-shell {

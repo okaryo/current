@@ -85,11 +85,32 @@ export function settingsShortcutRequested(event: KeyboardShortcutEvent) {
   return event.key === "," && event.metaKey && !event.ctrlKey && !event.altKey;
 }
 
+export function updateShortcutRequested(event: KeyboardShortcutEvent) {
+  return event.key === "u" && isPlainKey(event);
+}
+
 export function pomodoroCommandFromKeydown(
   event: Pick<KeyboardShortcutEvent, "key">,
 ): PomodoroCommand | null {
   switch (event.key) {
     case " ":
+      return "toggle";
+    case "r":
+      return "reset";
+    default:
+      return null;
+  }
+}
+
+export function pomodoroGlobalCommandFromKeydown(
+  event: KeyboardShortcutEvent,
+): PomodoroCommand | null {
+  if (!event.metaKey || !event.shiftKey || event.ctrlKey || event.altKey) {
+    return null;
+  }
+
+  switch (event.key.toLowerCase()) {
+    case "p":
       return "toggle";
     case "r":
       return "reset";
