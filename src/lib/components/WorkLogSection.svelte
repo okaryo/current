@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+  import { openUrl } from "@tauri-apps/plugin-opener";
   import { listWorkLogs, type WorkLog } from "$lib/api/workLogs";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import { linkifyWorkLogBody } from "$lib/work-log/linkify";
 
   type WorkLogCommand = "focusPreferred";
 
@@ -291,6 +293,17 @@
     return error instanceof Error ? error.message : String(error);
   }
 
+  function openExternalUrl(event: MouseEvent, url: string) {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    event.preventDefault();
+    void openUrl(url).catch((error) => {
+      workLogError = errorMessage(error);
+    });
+  }
+
   function isTauriRuntime() {
     return "__TAURI_INTERNALS__" in window;
   }
@@ -339,7 +352,26 @@
               {#each group.logs as log (log.id)}
                 <li class="log-item">
                   <time>{formatLogTime(log.createdAtMs)}</time>
-                  <span>{log.body}</span>
+                  <span>
+                    {#each linkifyWorkLogBody(log.body) as part, partIndex (`${part.kind}-${partIndex}`)}
+                      {#if part.kind === "url"}
+                        <!-- External log URLs are opened through Tauri opener, not SvelteKit navigation. -->
+                        <!-- eslint-disable svelte/no-navigation-without-resolve -->
+                        <a
+                          href={part.value}
+                          target="_blank"
+                          rel="noreferrer"
+                          onclick={(event) =>
+                            openExternalUrl(event, part.value)}
+                        >
+                          {part.value}
+                        </a>
+                        <!-- eslint-enable svelte/no-navigation-without-resolve -->
+                      {:else}
+                        {part.value}
+                      {/if}
+                    {/each}
+                  </span>
                 </li>
               {/each}
             </ol>
@@ -537,6 +569,19 @@
 
   .log-item span {
     white-space: pre-wrap;
+  }
+
+  .log-item a {
+    color: #8fb5ff;
+    text-decoration: underline;
+    text-decoration-color: rgba(143, 181, 255, 0.5);
+    text-underline-offset: 0.16em;
+  }
+
+  .log-item a:hover,
+  .log-item a:focus-visible {
+    color: #b7ccff;
+    text-decoration-color: rgba(183, 204, 255, 0.8);
   }
 
   .log-list .log-empty {
