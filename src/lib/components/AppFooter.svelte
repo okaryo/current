@@ -83,10 +83,11 @@
       );
     align-items: center;
     gap: 0.75rem;
+    flex: 0 0 auto;
     width: min(100%, 104rem);
     min-height: 2.45rem;
     margin: 0 auto;
-    padding: 0.48rem 0.15rem;
+    padding: 0.24rem 0.15rem;
     color: #aeb7c4;
   }
 
