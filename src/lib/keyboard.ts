@@ -85,6 +85,10 @@ export function settingsShortcutRequested(event: KeyboardShortcutEvent) {
   return event.key === "," && event.metaKey && !event.ctrlKey && !event.altKey;
 }
 
+export function updateShortcutRequested(event: KeyboardShortcutEvent) {
+  return event.key === "u" && isPlainKey(event);
+}
+
 export function pomodoroCommandFromKeydown(
   event: Pick<KeyboardShortcutEvent, "key">,
 ): PomodoroCommand | null {

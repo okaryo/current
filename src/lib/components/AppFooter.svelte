@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Settings } from "@lucide/svelte";
   import GlobalEntryInput from "$lib/components/GlobalEntryInput.svelte";
+  import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import type { SectionId } from "$lib/keyboard";
 
   type UpdateState =
@@ -36,7 +37,10 @@
   const showUpdateButton = $derived(hasUpdate || isInstalling);
   const actionLabel = $derived(isInstalling ? "Installing" : "Update");
   const ariaLabel = $derived(
-    isInstalling ? "Installing update" : "Install available update",
+    isInstalling ? "Installing update" : "Install available update with U",
+  );
+  const updateTitle = $derived(
+    isInstalling ? "Installing update" : "Update (U)",
   );
 </script>
 
@@ -54,11 +58,15 @@
         class="update-button"
         class:is-installing={isInstalling}
         aria-label={ariaLabel}
+        title={updateTitle}
         disabled={isInstalling}
         onclick={onInstallUpdate}
       >
         <span class="status-dot" aria-hidden="true"></span>
         <span>{actionLabel}</span>
+        {#if hasUpdate}
+          <KeyboardKey value="u" />
+        {/if}
       </button>
     {/if}
 

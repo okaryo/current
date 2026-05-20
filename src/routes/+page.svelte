@@ -23,6 +23,7 @@
     sectionFromShortcut,
     settingsShortcutRequested,
     todoCommandFromKeydown,
+    updateShortcutRequested,
     type PomodoroCommand,
     type SectionId,
     type TodoCommand,
@@ -109,6 +110,12 @@
         (event.target as HTMLElement).blur();
       }
 
+      return;
+    }
+
+    if (updateShortcutRequested(event) && updateState === "available") {
+      event.preventDefault();
+      void installUpdate();
       return;
     }
 

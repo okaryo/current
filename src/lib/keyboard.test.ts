@@ -6,6 +6,7 @@ import {
   sectionFromShortcut,
   settingsShortcutRequested,
   todoCommandFromKeydown,
+  updateShortcutRequested,
   type KeyboardShortcutEvent,
 } from "$lib/keyboard";
 
@@ -107,6 +108,18 @@ describe("settingsShortcutRequested", () => {
     expect(
       settingsShortcutRequested(key({ key: ",", metaKey: true, altKey: true })),
     ).toBe(false);
+  });
+});
+
+describe("updateShortcutRequested", () => {
+  it("accepts plain u only", () => {
+    expect(updateShortcutRequested(key({ key: "u" }))).toBe(true);
+    expect(updateShortcutRequested(key({ key: "u", metaKey: true }))).toBe(
+      false,
+    );
+    expect(updateShortcutRequested(key({ key: "U", shiftKey: true }))).toBe(
+      false,
+    );
   });
 });
 
