@@ -587,6 +587,14 @@
     return nextTodo?.parentId !== draftSubtaskParentId;
   }
 
+  function shouldShowParentConnector(todo: Todo) {
+    return (
+      todo.parentId === null &&
+      (todos.some((item) => item.parentId === todo.id) ||
+        draftSubtaskParentId === todo.id)
+    );
+  }
+
   async function updateTaskListScrollState() {
     await tick();
 
@@ -720,6 +728,7 @@
               !todo.completed}
             class:task-completed={todo.completed}
             class:task-child={todo.parentId !== null}
+            class:task-parent-connected={shouldShowParentConnector(todo)}
           >
             <button
               class="task-check"
@@ -1012,6 +1021,17 @@
     padding-left: 2.85rem;
   }
 
+  .task-parent-connected::before {
+    content: "";
+    position: absolute;
+    left: 1.25rem;
+    top: calc(50% + 0.5rem);
+    bottom: -1px;
+    width: 1px;
+    background: rgba(155, 163, 176, 0.36);
+    pointer-events: none;
+  }
+
   .task-child::before {
     content: "";
     position: absolute;
@@ -1064,6 +1084,8 @@
   }
 
   .task-check {
+    position: relative;
+    z-index: 1;
     display: grid;
     place-items: center;
     width: 1rem;
