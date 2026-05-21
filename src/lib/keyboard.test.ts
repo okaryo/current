@@ -164,13 +164,15 @@ describe("todoCommandFromKeydown", () => {
     [key({ key: "ArrowDown" }), "moveDown"],
     [key({ key: "k" }), "moveUp"],
     [key({ key: "ArrowUp" }), "moveUp"],
+    [key({ key: "ArrowRight" }), "expandSubtasks"],
+    [key({ key: "ArrowLeft" }), "collapseSubtasks"],
     [key({ key: " " }), "toggleComplete"],
     [key({ key: "e" }), "edit"],
     [key({ key: "a" }), "addTodo"],
     [key({ key: "t" }), "addSubtask"],
     [key({ key: "Enter" }), "toggleNow"],
-    [key({ key: "Tab" }), "indent"],
-    [key({ key: "Tab", shiftKey: true }), "outdent"],
+    [key({ key: "?", code: "Slash", shiftKey: true }), "toggleShortcutHelp"],
+    [key({ key: "/", code: "Slash", shiftKey: true }), "toggleShortcutHelp"],
     [key({ key: "D", shiftKey: true }), "delete"],
     [key({ key: "Escape" }), "clearSelection"],
   ] as const)("maps TODO shortcuts", (event, command) => {
@@ -186,5 +188,21 @@ describe("todoCommandFromKeydown", () => {
       todoCommandFromKeydown(key({ key: "Enter", ctrlKey: true })),
     ).toBeNull();
     expect(todoCommandFromKeydown(key({ key: "D" }))).toBeNull();
+    expect(
+      todoCommandFromKeydown(key({ key: "ArrowRight", metaKey: true })),
+    ).toBeNull();
+    expect(
+      todoCommandFromKeydown(key({ key: "ArrowLeft", shiftKey: true })),
+    ).toBeNull();
+    expect(todoCommandFromKeydown(key({ key: "Tab" }))).toBeNull();
+    expect(
+      todoCommandFromKeydown(key({ key: "Tab", shiftKey: true })),
+    ).toBeNull();
+    expect(todoCommandFromKeydown(key({ key: "?" }))).toBeNull();
+    expect(
+      todoCommandFromKeydown(
+        key({ key: "?", code: "Slash", shiftKey: true, metaKey: true }),
+      ),
+    ).toBeNull();
   });
 });

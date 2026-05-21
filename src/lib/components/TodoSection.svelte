@@ -1,5 +1,10 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
+  import {
+    ChevronRight,
+    Keyboard as KeyboardIcon,
+    X as CloseIcon,
+  } from "@lucide/svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { createCurrentAudio } from "$lib/audio/player";
   import { todoCompletionSounds } from "$lib/audio/sounds";
@@ -8,14 +13,11 @@
     createSubtask,
     deleteTodo,
     listTodos,
-    moveTodoUnderPreviousRoot,
-    promoteTodoToRoot,
     toggleTodo,
     updateTodoTitle,
     type Todo,
   } from "$lib/api/todos";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
-  import { effectWithDeps } from "$lib/effectWithDeps.svelte";
   import {
     moveTodoSelection,
     sortTodos,
@@ -31,8 +33,9 @@
     | "toggleNow"
     | "addTodo"
     | "addSubtask"
-    | "indent"
-    | "outdent"
+    | "expandSubtasks"
+    | "collapseSubtasks"
+    | "toggleShortcutHelp"
     | "delete"
     | "clearSelection";
 
@@ -71,8 +74,9 @@
   let isSavingSubtask = $state(false);
   let draftSubtaskInput = $state<HTMLInputElement>();
   let taskListElement = $state<HTMLUListElement>();
-  let todoFooterElement = $state<HTMLElement>();
-  let hasScrollableTaskList = $state(false);
+  let shortcutHelpDialog = $state<HTMLDialogElement>();
+  let shortcutHelpOpen = $state(false);
+  let collapsedParentIds = $state<number[]>([]);
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
   let unlistenTodoCreated: UnlistenFn | undefined;
@@ -80,13 +84,15 @@
     src: todoCompletionSounds[0].src,
     failureMessage: "Failed to play TODO completion sound.",
   });
-  const selectedTodo = $derived(
-    todos.find((todo) => todo.id === selectedTodoId) ?? null,
-  );
   const isInputMode = $derived(
     editingTodoId !== null || isDraftingTodo || draftSubtaskParentId !== null,
   );
-  const shouldShowFooterActions = $derived(active && !isInputMode);
+  const visibleTodos = $derived(
+    todos.filter(
+      (todo) =>
+        todo.parentId === null || !collapsedParentIds.includes(todo.parentId),
+    ),
+  );
 
   onMount(() => {
     todoCompletionAudio.load();
@@ -119,6 +125,7 @@
       cancelEdit();
       cancelDraftTodo();
       cancelDraftSubtask();
+      shortcutHelpOpen = false;
     }
   });
 
@@ -139,17 +146,21 @@
     void scrollSelectedTodoIntoView();
   });
 
-  effectWithDeps(
-    () => {
-      void updateTaskListScrollState();
-    },
-    () => [
-      todos,
-      isDraftingTodo,
-      draftSubtaskParentId,
-      shouldShowFooterActions,
-    ],
-  );
+  $effect(() => {
+    if (!shortcutHelpDialog) {
+      return;
+    }
+
+    if (shortcutHelpOpen && !shortcutHelpDialog.open) {
+      shortcutHelpDialog.showModal();
+      shortcutHelpDialog.focus({ preventScroll: true });
+      return;
+    }
+
+    if (!shortcutHelpOpen && shortcutHelpDialog.open) {
+      shortcutHelpDialog.close();
+    }
+  });
 
   async function loadTodos() {
     isLoadingTodos = true;
@@ -277,17 +288,24 @@
       case "addSubtask":
         await startAddSubtaskForSelectedTodo();
         break;
-      case "indent":
-        await indentSelectedTodo();
+      case "expandSubtasks":
+        expandSelectedTodo();
         break;
-      case "outdent":
-        await outdentSelectedTodo();
+      case "collapseSubtasks":
+        collapseSelectedTodo();
+        break;
+      case "toggleShortcutHelp":
+        toggleShortcutHelp();
         break;
       case "delete":
         await deleteSelectedTodo();
         break;
       case "clearSelection":
-        clearTodoSelection();
+        if (shortcutHelpOpen) {
+          shortcutHelpOpen = false;
+        } else {
+          clearTodoSelection();
+        }
         break;
     }
   }
@@ -332,38 +350,6 @@
     }
   }
 
-  async function indentSelectedTodo() {
-    if (selectedTodoId === null) {
-      return;
-    }
-
-    todoError = null;
-
-    try {
-      const updatedTodo = await moveTodoUnderPreviousRoot(selectedTodoId);
-      todos = sortTodos(await listTodos());
-      selectedTodoId = updatedTodo.id;
-    } catch (error) {
-      todoError = errorMessage(error);
-    }
-  }
-
-  async function outdentSelectedTodo() {
-    if (selectedTodoId === null) {
-      return;
-    }
-
-    todoError = null;
-
-    try {
-      const updatedTodo = await promoteTodoToRoot(selectedTodoId);
-      todos = sortTodos(await listTodos());
-      selectedTodoId = updatedTodo.id;
-    } catch (error) {
-      todoError = errorMessage(error);
-    }
-  }
-
   async function startAddSubtaskForSelectedTodo() {
     if (selectedTodoId === null) {
       return;
@@ -380,6 +366,7 @@
     todoError = null;
     cancelEdit();
     cancelDraftTodo();
+    expandParent(parentId);
     draftSubtaskParentId = parentId;
     draftSubtaskTitle = "";
     await tick();
@@ -469,8 +456,41 @@
     selectedTodoId = id;
   }
 
+  function selectTodoFromRow(todo: Todo) {
+    selectTodo(todo.id);
+
+    if (todo.parentId === null && hasSubtasks(todo)) {
+      toggleParentCollapsed(todo);
+    }
+  }
+
+  function rowActionLabel(todo: Todo) {
+    if (todo.parentId !== null || !hasSubtasks(todo)) {
+      return `Select "${todo.title}"`;
+    }
+
+    return isParentCollapsed(todo)
+      ? `Expand subtasks for "${todo.title}"`
+      : `Collapse subtasks for "${todo.title}"`;
+  }
+
+  function toggleShortcutHelp() {
+    onActivate();
+    shortcutHelpOpen = !shortcutHelpOpen;
+  }
+
+  function closeShortcutHelp() {
+    shortcutHelpOpen = false;
+  }
+
+  function handleShortcutDialogClick(event: MouseEvent) {
+    if (event.target === shortcutHelpDialog) {
+      closeShortcutHelp();
+    }
+  }
+
   function moveSelection(direction: 1 | -1) {
-    selectedTodoId = moveTodoSelection(todos, selectedTodoId, direction);
+    selectedTodoId = moveTodoSelection(visibleTodos, selectedTodoId, direction);
   }
 
   function toggleNowTodo() {
@@ -517,7 +537,7 @@
     }
 
     const nextSelectedTodo =
-      todos.find((todo) => todo.id === nowTodoId) ?? todos[0];
+      visibleTodos.find((todo) => todo.id === nowTodoId) ?? visibleTodos[0];
 
     if (nextSelectedTodo) {
       selectedTodoId = nextSelectedTodo.id;
@@ -547,8 +567,10 @@
       return;
     }
 
-    if (!todos.some((todo) => todo.id === selectedTodoId)) {
-      selectedTodoId = todos[0]?.id ?? null;
+    pruneCollapsedParents();
+
+    if (!visibleTodos.some((todo) => todo.id === selectedTodoId)) {
+      selectedTodoId = visibleTodos[0]?.id ?? null;
     }
 
     if (!todos.some((todo) => todo.id === nowTodoId)) {
@@ -566,7 +588,7 @@
   }
 
   function hasSelectableTodo(id: number | null) {
-    return id !== null && todos.some((todo) => todo.id === id);
+    return id !== null && visibleTodos.some((todo) => todo.id === id);
   }
 
   function shouldShowDraftSubtaskAfter(todo: Todo) {
@@ -587,21 +609,100 @@
     return nextTodo?.parentId !== draftSubtaskParentId;
   }
 
-  async function updateTaskListScrollState() {
-    await tick();
+  function hasSubtasks(todo: Todo) {
+    return todos.some((item) => item.parentId === todo.id);
+  }
 
-    if (!taskListElement) {
-      hasScrollableTaskList = false;
+  function isParentCollapsed(todo: Todo) {
+    return collapsedParentIds.includes(todo.id);
+  }
+
+  function toggleParentCollapsed(todo: Todo) {
+    onActivate();
+
+    if (!hasSubtasks(todo)) {
       return;
     }
 
-    hasScrollableTaskList =
-      taskListElement.scrollHeight > taskListElement.clientHeight + 1;
+    if (collapsedParentIds.includes(todo.id)) {
+      collapsedParentIds = collapsedParentIds.filter((id) => id !== todo.id);
+    } else {
+      collapsedParentIds = [...collapsedParentIds, todo.id];
+
+      if (draftSubtaskParentId === todo.id) {
+        cancelDraftSubtask();
+      }
+
+      if (
+        todos.some(
+          (item) => item.parentId === todo.id && item.id === selectedTodoId,
+        )
+      ) {
+        selectedTodoId = todo.id;
+      }
+    }
+  }
+
+  function expandSelectedTodo() {
+    const selectedTodo = todos.find((todo) => todo.id === selectedTodoId);
+
+    if (
+      !selectedTodo ||
+      selectedTodo.parentId !== null ||
+      !hasSubtasks(selectedTodo)
+    ) {
+      return;
+    }
+
+    expandParent(selectedTodo.id);
+  }
+
+  function collapseSelectedTodo() {
+    const selectedTodo = todos.find((todo) => todo.id === selectedTodoId);
+
+    if (!selectedTodo) {
+      return;
+    }
+
+    if (selectedTodo.parentId !== null) {
+      selectedTodoId = selectedTodo.parentId;
+      return;
+    }
+
+    if (!hasSubtasks(selectedTodo) || isParentCollapsed(selectedTodo)) {
+      return;
+    }
+
+    collapsedParentIds = [...collapsedParentIds, selectedTodo.id];
+
+    if (draftSubtaskParentId === selectedTodo.id) {
+      cancelDraftSubtask();
+    }
+  }
+
+  function expandParent(parentId: number) {
+    if (!collapsedParentIds.includes(parentId)) {
+      return;
+    }
+
+    collapsedParentIds = collapsedParentIds.filter((id) => id !== parentId);
+  }
+
+  function pruneCollapsedParents() {
+    const parentIds = new Set(
+      todos.filter((todo) => todo.parentId === null).map((todo) => todo.id),
+    );
+    const nextCollapsedParentIds = collapsedParentIds.filter((id) =>
+      parentIds.has(id),
+    );
+
+    if (nextCollapsedParentIds.length !== collapsedParentIds.length) {
+      collapsedParentIds = nextCollapsedParentIds;
+    }
   }
 
   async function scrollSelectedTodoIntoView() {
     await tick();
-    await updateTaskListScrollState();
 
     const selectedTodoElement = taskListElement?.querySelector<HTMLElement>(
       `[data-todo-id="${selectedTodoId}"]`,
@@ -611,24 +712,6 @@
       block: "nearest",
       inline: "nearest",
     });
-
-    scrollSelectedTodoAboveFooter(selectedTodoElement);
-  }
-
-  function scrollSelectedTodoAboveFooter(
-    selectedTodoElement?: HTMLElement | null,
-  ) {
-    if (!selectedTodoElement || !taskListElement || !todoFooterElement) {
-      return;
-    }
-
-    const selectedRect = selectedTodoElement.getBoundingClientRect();
-    const footerRect = todoFooterElement.getBoundingClientRect();
-    const overlap = selectedRect.bottom - footerRect.top + 8;
-
-    if (overlap > 0) {
-      taskListElement.scrollTop += overlap;
-    }
   }
 
   function errorMessage(error: unknown) {
@@ -650,27 +733,140 @@
       <p class="section-label section-label-todo">{title}</p>
       <KeyboardKey value={shortcut} label="Command 2" />
     </div>
-    {#if active}
-      <div class="hint-row" aria-label="Todo shortcuts">
-        {#if isInputMode}
-          <span><KeyboardKey value="Enter" size="compact" />Save</span>
-          <span
-            ><KeyboardKey
-              value="Esc"
-              label="Escape"
-              size="compact"
-            />Cancel</span
-          >
-        {:else}
-          <span
-            ><KeyboardKey value="j" size="compact" /><KeyboardKey
-              value="k"
-              size="compact"
-            />Move</span
-          >
-        {/if}
+    <div class="header-actions">
+      {#if active}
+        <div class="hint-row" aria-label="Todo shortcuts">
+          {#if isInputMode}
+            <span><KeyboardKey value="Enter" size="compact" />Save</span>
+            <span
+              ><KeyboardKey
+                value="Esc"
+                label="Escape"
+                size="compact"
+              />Cancel</span
+            >
+          {/if}
+        </div>
+      {/if}
+      <div class="shortcut-help">
+        <button
+          class="shortcut-help-button"
+          class:shortcut-help-button-active={shortcutHelpOpen}
+          type="button"
+          aria-label="Show Todo keyboard shortcuts with Shift Slash"
+          aria-expanded={shortcutHelpOpen}
+          aria-controls="todo-shortcut-help"
+          title="Keyboard shortcuts (Shift+/)"
+          onclick={toggleShortcutHelp}
+        >
+          <KeyboardIcon aria-hidden="true" size={14} />
+        </button>
+        <dialog
+          id="todo-shortcut-help"
+          class="shortcut-dialog"
+          aria-label="Todo keyboard shortcuts"
+          tabindex="-1"
+          bind:this={shortcutHelpDialog}
+          onclick={handleShortcutDialogClick}
+          oncancel={closeShortcutHelp}
+          onclose={closeShortcutHelp}
+        >
+          <div class="shortcut-dialog-content">
+            <div class="shortcut-dialog-header">
+              <h3>Todo shortcuts</h3>
+              <button
+                class="shortcut-dialog-close"
+                type="button"
+                aria-label="Close Todo keyboard shortcuts"
+                title="Close"
+                onclick={closeShortcutHelp}
+              >
+                <CloseIcon aria-hidden="true" size={14} />
+              </button>
+            </div>
+            <div class="shortcut-dialog-list" role="list">
+              <div class="shortcut-row" role="listitem">
+                <span class="shortcut-action">Add Todo</span>
+                <span class="shortcut-keys"
+                  ><KeyboardKey value="a" size="compact" /></span
+                >
+              </div>
+              <div class="shortcut-row" role="listitem">
+                <span class="shortcut-action">Add Subtask</span>
+                <span class="shortcut-keys"
+                  ><KeyboardKey value="t" size="compact" /></span
+                >
+              </div>
+              <div class="shortcut-row" role="listitem">
+                <span class="shortcut-action">Edit Todo</span>
+                <span class="shortcut-keys"
+                  ><KeyboardKey value="e" size="compact" /></span
+                >
+              </div>
+              <div class="shortcut-row" role="listitem">
+                <span class="shortcut-action">Complete or Reopen Todo</span>
+                <span class="shortcut-keys"
+                  ><KeyboardKey value="Space" size="compact" /></span
+                >
+              </div>
+              <div class="shortcut-row" role="listitem">
+                <span class="shortcut-action">Set or Unset Now</span>
+                <span class="shortcut-keys"
+                  ><KeyboardKey value="Enter" size="compact" /></span
+                >
+              </div>
+              <div class="shortcut-row" role="listitem">
+                <span class="shortcut-action">Move Selection</span>
+                <span class="shortcut-keys"
+                  ><KeyboardKey
+                    value="↑"
+                    label="Arrow Up"
+                    size="compact"
+                  /><KeyboardKey
+                    value="↓"
+                    label="Arrow Down"
+                    size="compact"
+                  /><span class="shortcut-separator">or</span><KeyboardKey
+                    value="j"
+                    size="compact"
+                  /><KeyboardKey value="k" size="compact" /></span
+                >
+              </div>
+              <div class="shortcut-row" role="listitem">
+                <span class="shortcut-action">Expand / Collapse Subtasks</span>
+                <span class="shortcut-keys"
+                  ><KeyboardKey
+                    value="→"
+                    label="Arrow Right"
+                    size="compact"
+                  /><KeyboardKey
+                    value="←"
+                    label="Arrow Left"
+                    size="compact"
+                  /></span
+                >
+              </div>
+              <div class="shortcut-row" role="listitem">
+                <span class="shortcut-action">Delete Todo</span>
+                <span class="shortcut-keys"
+                  ><KeyboardKey value="D" size="compact" /></span
+                >
+              </div>
+              <div class="shortcut-row" role="listitem">
+                <span class="shortcut-action">Show Keyboard Shortcuts</span>
+                <span class="shortcut-keys"
+                  ><KeyboardKey
+                    value="⇧/"
+                    label="Shift Slash"
+                    size="compact"
+                  /></span
+                >
+              </div>
+            </div>
+          </div>
+        </dialog>
       </div>
-    {/if}
+    </div>
   </header>
 
   <h2 id="todo-title" class="sr-only">Todo</h2>
@@ -678,8 +874,6 @@
   <div class="task-list-shell">
     <ul
       class="task-list"
-      class:task-list-footer-visible={shouldShowFooterActions &&
-        hasScrollableTaskList}
       aria-label="Todo list"
       tabindex="-1"
       bind:this={taskListElement}
@@ -710,7 +904,7 @@
             <div class="task-meta"></div>
           </li>
         {/if}
-        {#each todos as todo (todo.id)}
+        {#each visibleTodos as todo (todo.id)}
           <li
             data-todo-id={todo.id}
             class:task-selected={active && selectedTodoId === todo.id}
@@ -719,15 +913,39 @@
               nowTodoId !== todo.id &&
               !todo.completed}
             class:task-completed={todo.completed}
+            class:task-root={todo.parentId === null}
             class:task-child={todo.parentId !== null}
           >
+            {#if todo.parentId === null && hasSubtasks(todo)}
+              <span
+                class="task-tree-indicator"
+                class:task-tree-indicator-open={!isParentCollapsed(todo)}
+                aria-hidden="true"
+              >
+                <ChevronRight aria-hidden="true" size={16} />
+              </span>
+            {/if}
+            {#if editingTodoId !== todo.id}
+              <button
+                class="task-row-button"
+                type="button"
+                aria-label={rowActionLabel(todo)}
+                aria-expanded={todo.parentId === null && hasSubtasks(todo)
+                  ? !isParentCollapsed(todo)
+                  : undefined}
+                onclick={() => selectTodoFromRow(todo)}
+              ></button>
+            {/if}
             <button
               class="task-check"
               type="button"
               aria-label={todo.completed
                 ? `Mark "${todo.title}" as incomplete`
                 : `Mark "${todo.title}" as complete`}
-              onclick={() => toggleTodoCompletion(todo.id)}
+              onclick={(event) => {
+                event.stopPropagation();
+                toggleTodoCompletion(todo.id);
+              }}
             >
               {#if todo.completed}
                 <svg
@@ -763,13 +981,9 @@
                 />
               </form>
             {:else}
-              <button
-                class="task-title-button"
-                type="button"
-                onclick={() => selectTodo(todo.id)}
-              >
+              <span class="task-title-button">
                 <span class="task-title">{todo.title}</span>
-              </button>
+              </span>
             {/if}
             <div class="task-meta">
               {#if nowTodoId === todo.id}
@@ -802,42 +1016,6 @@
       {/if}
     </ul>
   </div>
-
-  {#if shouldShowFooterActions}
-    <footer class="todo-footer" bind:this={todoFooterElement}>
-      <div class="todo-footer-actions" aria-label="Todo shortcuts">
-        <span><KeyboardKey value="a" size="compact" />Add</span>
-        {#if selectedTodo !== null}
-          <span><KeyboardKey value="e" size="compact" />Edit</span>
-          <span>
-            <KeyboardKey value="Space" size="compact" />{selectedTodo.completed
-              ? "Incomplete"
-              : "Complete"}
-          </span>
-          {#if !selectedTodo.completed}
-            <span>
-              <KeyboardKey value="Enter" size="compact" />{nowTodoId ===
-              selectedTodo.id
-                ? "Unset Now"
-                : "Set Now"}
-            </span>
-          {/if}
-          <span>
-            <KeyboardKey value="t" size="compact" />{selectedTodo.parentId ===
-            null
-              ? "Subtask"
-              : "Sibling"}
-          </span>
-          {#if selectedTodo.parentId === null}
-            <span><KeyboardKey value="Tab" size="compact" />Indent</span>
-          {:else}
-            <span><KeyboardKey value="⇧Tab" size="compact" />Outdent</span>
-          {/if}
-          <span><KeyboardKey value="D" size="compact" />Delete</span>
-        {/if}
-      </div>
-    </footer>
-  {/if}
 
   {#if todoError}
     <p class="todo-error" role="alert">{todoError}</p>
@@ -927,16 +1105,27 @@
   }
 
   .title-row,
+  .header-actions,
   .hint-row {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
     min-width: 0;
+  }
+
+  .title-row {
+    gap: 0.65rem;
+  }
+
+  .header-actions {
+    justify-content: flex-end;
+    gap: 0.45rem;
+    margin-left: auto;
   }
 
   .hint-row {
     flex-wrap: wrap;
     justify-content: flex-end;
+    gap: 0.65rem;
     color: #9ba3b0;
     font-size: 0.86rem;
   }
@@ -958,6 +1147,157 @@
     color: #44d16b;
   }
 
+  .shortcut-help {
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+
+  .shortcut-help-button {
+    display: grid;
+    place-items: center;
+    width: 1.72rem;
+    height: 1.72rem;
+    border: 0;
+    border-radius: 6px;
+    padding: 0;
+    color: #d7dde6;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .shortcut-help-button:hover,
+  .shortcut-help-button:focus-visible {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.075);
+    outline: none;
+  }
+
+  .shortcut-help-button:focus-visible {
+    box-shadow: 0 0 0 2px rgba(154, 185, 255, 0.22);
+  }
+
+  .shortcut-help-button-active {
+    color: #dfffe8;
+    background: rgba(68, 209, 107, 0.12);
+    box-shadow: 0 0 0 1px rgba(68, 209, 107, 0.26);
+  }
+
+  .shortcut-help-button-active:hover,
+  .shortcut-help-button-active:focus-visible {
+    background: rgba(68, 209, 107, 0.16);
+  }
+
+  .shortcut-dialog {
+    width: min(34rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    border: 1px solid rgba(68, 209, 107, 0.28);
+    border-radius: 8px;
+    padding: 0;
+    color: #d8dee8;
+    background: #080c10;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 1rem 2.5rem rgba(0, 0, 0, 0.38);
+  }
+
+  .shortcut-dialog:focus {
+    outline: none;
+  }
+
+  .shortcut-dialog::backdrop {
+    background: rgba(3, 6, 10, 0.58);
+  }
+
+  .shortcut-dialog-content {
+    padding: 0.85rem;
+  }
+
+  .shortcut-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+    color: #eef3fa;
+  }
+
+  .shortcut-dialog-header h3 {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .shortcut-dialog-close {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 1.72rem;
+    height: 1.72rem;
+    border: 0;
+    border-radius: 6px;
+    padding: 0;
+    color: #d7dde6;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .shortcut-dialog-close:hover,
+  .shortcut-dialog-close:focus-visible {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.075);
+    outline: none;
+  }
+
+  .shortcut-dialog-close:focus-visible {
+    box-shadow: 0 0 0 2px rgba(154, 185, 255, 0.22);
+  }
+
+  .shortcut-dialog-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px;
+  }
+
+  .shortcut-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 0.55rem 0.65rem;
+  }
+
+  .shortcut-row:first-child {
+    border-top: 0;
+  }
+
+  .shortcut-action {
+    min-width: 0;
+    color: #aab2bf;
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+  }
+
+  .shortcut-keys {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.34rem;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .shortcut-separator {
+    color: #737d8b;
+    font-size: 0.74rem;
+  }
+
   .task-list-shell {
     display: flex;
     flex-direction: column;
@@ -976,11 +1316,6 @@
     margin: 0;
     padding: 0;
     list-style: none;
-  }
-
-  .task-list-footer-visible {
-    padding-bottom: 3.3rem;
-    scroll-padding-bottom: 3.3rem;
   }
 
   .task-list:focus {
@@ -1009,33 +1344,11 @@
   }
 
   .task-list li.task-child {
-    padding-left: 2.85rem;
+    padding-left: 1.9rem;
   }
 
-  .task-child::before {
-    content: "";
-    position: absolute;
-    left: 1.25rem;
-    top: -1px;
-    bottom: -1px;
-    width: 1px;
-    background: rgba(155, 163, 176, 0.36);
-    pointer-events: none;
-  }
-
-  .task-child:not(:has(+ .task-child))::before {
-    bottom: 50%;
-  }
-
-  .task-child::after {
-    content: "";
-    position: absolute;
-    left: 1.25rem;
-    top: 50%;
-    width: 0.8rem;
-    height: 1px;
-    background: rgba(155, 163, 176, 0.36);
-    pointer-events: none;
+  .task-list li.task-root {
+    padding-left: 1.4rem;
   }
 
   .task-now {
@@ -1063,7 +1376,19 @@
     text-decoration: line-through;
   }
 
+  .task-row-button {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+  }
+
   .task-check {
+    position: relative;
+    z-index: 2;
     display: grid;
     place-items: center;
     width: 1rem;
@@ -1094,6 +1419,28 @@
     height: 0.8rem;
   }
 
+  .task-tree-indicator {
+    position: absolute;
+    top: 50%;
+    left: 0.28rem;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: -0.525rem;
+    color: #9ba3b0;
+    pointer-events: none;
+  }
+
+  .task-tree-indicator :global(svg) {
+    transition: transform 120ms ease;
+  }
+
+  .task-tree-indicator-open :global(svg) {
+    transform: rotate(90deg);
+  }
+
   .task-title {
     display: -webkit-box;
     overflow: hidden;
@@ -1104,6 +1451,8 @@
   }
 
   .task-title-button {
+    position: relative;
+    z-index: 0;
     display: block;
     overflow: hidden;
     width: 100%;
@@ -1164,47 +1513,6 @@
     color: #ff8a93;
     font-size: 0.88rem;
     overflow-wrap: anywhere;
-  }
-
-  .todo-footer {
-    position: absolute;
-    right: 0.8rem;
-    bottom: 0.8rem;
-    left: 0.8rem;
-    z-index: 1;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    min-height: 2.2rem;
-    border: 1px solid rgba(68, 209, 107, 0.24);
-    border-radius: 8px;
-    padding: 0.45rem 0.65rem;
-    color: #9ba3b0;
-    font-size: 0.76rem;
-    background: rgba(7, 11, 15, 0.78);
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-      0 0.7rem 2rem rgba(0, 0, 0, 0.22);
-    backdrop-filter: blur(14px);
-    pointer-events: none;
-  }
-
-  .todo-footer-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.32rem 0.62rem;
-    width: 100%;
-    min-width: 0;
-  }
-
-  .todo-footer-actions span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    flex: 0 0 auto;
-    white-space: nowrap;
   }
 
   .sr-only {

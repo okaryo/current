@@ -9,8 +9,9 @@ export type TodoCommand =
   | "toggleNow"
   | "addTodo"
   | "addSubtask"
-  | "indent"
-  | "outdent"
+  | "expandSubtasks"
+  | "collapseSubtasks"
+  | "toggleShortcutHelp"
   | "delete"
   | "clearSelection";
 
@@ -122,6 +123,10 @@ export function pomodoroGlobalCommandFromKeydown(
 export function todoCommandFromKeydown(
   event: KeyboardShortcutEvent,
 ): TodoCommand | null {
+  if (todoShortcutHelpRequested(event)) {
+    return "toggleShortcutHelp";
+  }
+
   switch (event.key) {
     case "D":
       return event.shiftKey ? "delete" : null;
@@ -131,6 +136,10 @@ export function todoCommandFromKeydown(
     case "k":
     case "ArrowUp":
       return "moveUp";
+    case "ArrowRight":
+      return isPlainKey(event) ? "expandSubtasks" : null;
+    case "ArrowLeft":
+      return isPlainKey(event) ? "collapseSubtasks" : null;
     case " ":
       return "toggleComplete";
     case "e":
@@ -141,8 +150,6 @@ export function todoCommandFromKeydown(
       return isPlainKey(event) ? "addSubtask" : null;
     case "Enter":
       return isPlainKey(event) ? "toggleNow" : null;
-    case "Tab":
-      return event.shiftKey ? "outdent" : "indent";
     case "Escape":
       return "clearSelection";
     default:
@@ -152,4 +159,14 @@ export function todoCommandFromKeydown(
 
 function isPlainKey(event: KeyboardShortcutEvent) {
   return !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+}
+
+function todoShortcutHelpRequested(event: KeyboardShortcutEvent) {
+  return (
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    event.shiftKey &&
+    (event.key === "?" || (event.key === "/" && event.code === "Slash"))
+  );
 }

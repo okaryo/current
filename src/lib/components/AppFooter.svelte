@@ -156,7 +156,7 @@
     padding: 0;
     color: #d7dde6;
     background: transparent;
-    cursor: default;
+    cursor: pointer;
   }
 
   .icon-button:hover,

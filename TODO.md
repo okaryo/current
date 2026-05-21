@@ -62,9 +62,8 @@ Layout decisions:
 - [x] Add shortcut for moving selection
 - [x] Add shared quick input focus behavior for new TODOs
 - [x] Add shortcut for adding a root TODO inline from the TODO section
-- [x] Add shortcut for indenting TODOs
-- [x] Add shortcut for outdenting TODOs
 - [x] Add shortcut for adding a subtask to the selected TODO
+- [x] Remove TODO indent/outdent shortcuts
 
 Keyboard decisions:
 
@@ -72,24 +71,25 @@ Keyboard decisions:
 - Keyboard key labels use uppercase letters; shortcuts that require uppercase letters use `Shift+Letter` notation.
 - `i`: focus the shared Todo / Work Log quick input from anywhere in the main app when a text input is not already focused.
 - `j` / `k` and `ArrowDown` / `ArrowUp`: move selection
-- `Tab`: indent the selected TODO
-- `Shift+Tab`: outdent the selected TODO
+- `ArrowRight`: expand the selected TODO's subtasks when it has collapsed subtasks
+- `ArrowLeft`: collapse the selected TODO's subtasks, or move selection from a subtask to its parent
 - `Space`: toggle completion for the selected TODO
 - `a`: add a root TODO inline at the top of the TODO list
 - `e`: edit the selected TODO
 - `Enter`: set/unset the selected TODO as Now
 - `t`: add a subtask to the selected TODO when it is a root task
+- `Shift+/`: open or close the Todo keyboard shortcuts dialog
 - `Shift+D`: delete the selected TODO immediately
 - `Escape`: cancel edit or clear selection
 - Delete intentionally does not use plain `d`.
 - Delete does not have undo for now.
+- TODO indent/outdent shortcuts are intentionally not exposed because parent-child structure is created through `a` / `t` and rarely changes after creation.
 - Creating a TODO keeps focus on the shared quick input and does not select the created TODO.
 - `Tab` switches the shared quick input between Todo and Log modes.
 - `Cmd+Enter` submits both Todo and Log entries from the shared quick input.
 - Todo mode prevents plain `Enter` from creating a newline; pasted multiline Todo text is normalized into a single-line title.
 - Pressing `Esc` from the shared quick input restores focus to the section that was active before input started.
-- When a TODO item is selected, the TODO header hint shows section-level movement and focus shortcuts only; Arrow movement remains supported but is not shown because it is conventional.
-- Item-specific shortcuts stay in the TODO list shell footer while a TODO item is selected, wrap when narrow, remain visible while the list scrolls, and are removed from layout while the selected TODO is being edited.
+- The TODO header keeps a compact keyboard icon at the right edge for opening the shortcuts dialog; item-specific shortcuts are not shown persistently in the list. The dialog title is "Todo shortcuts", lists `Shift+/` as "Show Keyboard Shortcuts", shows both `j` / `k` and arrow keys for movement, and uses a two-column layout with actions on the left and keys on the right.
 - Focused text inputs should avoid native blue outlines and use caret/container border emphasis instead.
 
 ### Nested TODO
@@ -101,14 +101,12 @@ Keyboard decisions:
 
 Nested TODO decisions:
 
-- `Tab`: indent the selected TODO under the previous TODO when possible.
-- `Shift+Tab`: outdent the selected TODO when possible.
 - `t`: opens an inline subtask input at the end of the selected root TODO's children; when a subtask is selected, it adds a sibling under the same parent.
 - Initial release supports one nested level only.
 - Parent completion does not change child completion.
 - Child completion does not automatically complete the parent.
 - A completed parent with incomplete children stays in the incomplete sort group.
-- Nested TODOs are always expanded for now.
+- Nested TODOs are expanded by default and can be collapsed per session.
 - Nested TODOs should stay lightweight and should not turn the app into a project management tool.
 
 ### Completed TODO Behavior
