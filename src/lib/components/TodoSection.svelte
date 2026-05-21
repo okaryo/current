@@ -487,6 +487,24 @@
     selectedTodoId = id;
   }
 
+  function selectTodoFromRow(todo: Todo) {
+    selectTodo(todo.id);
+
+    if (todo.parentId === null && hasSubtasks(todo)) {
+      toggleParentCollapsed(todo);
+    }
+  }
+
+  function rowActionLabel(todo: Todo) {
+    if (todo.parentId !== null || !hasSubtasks(todo)) {
+      return `Select "${todo.title}"`;
+    }
+
+    return isParentCollapsed(todo)
+      ? `Expand subtasks for "${todo.title}"`
+      : `Collapse subtasks for "${todo.title}"`;
+  }
+
   function moveSelection(direction: 1 | -1) {
     selectedTodoId = moveTodoSelection(visibleTodos, selectedTodoId, direction);
   }
@@ -840,24 +858,29 @@
               nowTodoId !== todo.id &&
               !todo.completed}
             class:task-completed={todo.completed}
+            class:task-root={todo.parentId === null}
             class:task-child={todo.parentId !== null}
             class:task-parent-connected={shouldShowParentConnector(todo)}
-            class:task-with-tree-toggle={todo.parentId === null &&
-              hasSubtasks(todo)}
           >
             {#if todo.parentId === null && hasSubtasks(todo)}
-              <button
-                class="task-collapse-button"
-                class:task-collapse-open={!isParentCollapsed(todo)}
-                type="button"
-                aria-label={isParentCollapsed(todo)
-                  ? `Expand subtasks for "${todo.title}"`
-                  : `Collapse subtasks for "${todo.title}"`}
-                aria-expanded={!isParentCollapsed(todo)}
-                onclick={() => toggleParentCollapsed(todo)}
+              <span
+                class="task-tree-indicator"
+                class:task-tree-indicator-open={!isParentCollapsed(todo)}
+                aria-hidden="true"
               >
-                <ChevronRight aria-hidden="true" size={14} />
-              </button>
+                <ChevronRight aria-hidden="true" size={16} />
+              </span>
+            {/if}
+            {#if editingTodoId !== todo.id}
+              <button
+                class="task-row-button"
+                type="button"
+                aria-label={rowActionLabel(todo)}
+                aria-expanded={todo.parentId === null && hasSubtasks(todo)
+                  ? !isParentCollapsed(todo)
+                  : undefined}
+                onclick={() => selectTodoFromRow(todo)}
+              ></button>
             {/if}
             <button
               class="task-check"
@@ -865,7 +888,10 @@
               aria-label={todo.completed
                 ? `Mark "${todo.title}" as incomplete`
                 : `Mark "${todo.title}" as complete`}
-              onclick={() => toggleTodoCompletion(todo.id)}
+              onclick={(event) => {
+                event.stopPropagation();
+                toggleTodoCompletion(todo.id);
+              }}
             >
               {#if todo.completed}
                 <svg
@@ -901,13 +927,9 @@
                 />
               </form>
             {:else}
-              <button
-                class="task-title-button"
-                type="button"
-                onclick={() => selectTodo(todo.id)}
-              >
+              <span class="task-title-button">
                 <span class="task-title">{todo.title}</span>
-              </button>
+              </span>
             {/if}
             <div class="task-meta">
               {#if nowTodoId === todo.id}
@@ -1156,11 +1178,6 @@
     color: #e4e8ef;
   }
 
-  .task-list li.task-with-tree-toggle {
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
-    gap: 0.6rem;
-  }
-
   .task-list li:last-child {
     border-bottom: 0;
   }
@@ -1171,48 +1188,11 @@
   }
 
   .task-list li.task-child {
-    padding-left: 2.85rem;
+    padding-left: 1.9rem;
   }
 
-  .task-parent-connected::before {
-    content: "";
-    position: absolute;
-    left: 1.48rem;
-    top: calc(50% + 0.5rem);
-    bottom: -1px;
-    width: 1px;
-    background: rgba(155, 163, 176, 0.36);
-    pointer-events: none;
-  }
-
-  .task-with-tree-toggle.task-parent-connected::before {
-    top: calc(50% + 0.675rem);
-  }
-
-  .task-child::before {
-    content: "";
-    position: absolute;
-    left: 1.48rem;
-    top: -1px;
-    bottom: -1px;
-    width: 1px;
-    background: rgba(155, 163, 176, 0.36);
-    pointer-events: none;
-  }
-
-  .task-child:not(:has(+ .task-child))::before {
-    bottom: 50%;
-  }
-
-  .task-child::after {
-    content: "";
-    position: absolute;
-    left: 1.48rem;
-    top: 50%;
-    width: 0.95rem;
-    height: 1px;
-    background: rgba(155, 163, 176, 0.36);
-    pointer-events: none;
+  .task-list li.task-root {
+    padding-left: 1.4rem;
   }
 
   .task-now {
@@ -1240,9 +1220,19 @@
     text-decoration: line-through;
   }
 
+  .task-row-button {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+  }
+
   .task-check {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     display: grid;
     place-items: center;
     width: 1rem;
@@ -1273,28 +1263,25 @@
     height: 0.8rem;
   }
 
-  .task-collapse-button {
+  .task-tree-indicator {
+    position: absolute;
+    top: 50%;
+    left: 0.28rem;
+    z-index: 2;
     display: grid;
     place-items: center;
-    width: 1.35rem;
-    height: 1.35rem;
-    border: 0;
-    border-radius: 4px;
-    padding: 0;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: -0.525rem;
     color: #9ba3b0;
-    background: transparent;
+    pointer-events: none;
   }
 
-  .task-collapse-button:hover {
-    color: #e4e8ef;
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .task-collapse-button :global(svg) {
+  .task-tree-indicator :global(svg) {
     transition: transform 120ms ease;
   }
 
-  .task-collapse-open :global(svg) {
+  .task-tree-indicator-open :global(svg) {
     transform: rotate(90deg);
   }
 
@@ -1308,6 +1295,8 @@
   }
 
   .task-title-button {
+    position: relative;
+    z-index: 0;
     display: block;
     overflow: hidden;
     width: 100%;
@@ -1375,7 +1364,7 @@
     right: 0.8rem;
     bottom: 0.8rem;
     left: 0.8rem;
-    z-index: 1;
+    z-index: 3;
     display: flex;
     align-items: flex-end;
     justify-content: center;
