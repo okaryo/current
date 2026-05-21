@@ -103,9 +103,7 @@
         return;
       }
 
-      isFocused = false;
-      isComposingInput = false;
-      shouldIgnoreNextEnterAfterComposition = false;
+      closeInput();
     });
   }
 
@@ -120,7 +118,7 @@
       event.preventDefault();
       event.stopPropagation();
       textareaElement?.blur();
-      isFocused = false;
+      closeInput();
       onCancel(restoreSection);
       return;
     }
@@ -173,6 +171,13 @@
       isComposingInput ||
       shouldIgnoreNextEnterAfterComposition
     );
+  }
+
+  function closeInput() {
+    isFocused = false;
+    mode = "log";
+    isComposingInput = false;
+    shouldIgnoreNextEnterAfterComposition = false;
   }
 
   async function submit() {

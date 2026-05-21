@@ -35,6 +35,7 @@
     }
 
     void listen("quick-entry:focus", () => {
+      resetMode();
       void focusInput();
     }).then((unlisten) => {
       unlistenFocus = unlisten;
@@ -86,10 +87,17 @@
 
   async function hideWindow() {
     error = null;
+    resetMode();
 
     if (isTauriRuntime()) {
       await hideQuickEntryWindow();
     }
+  }
+
+  function resetMode() {
+    mode = "log";
+    isComposing = false;
+    shouldIgnoreNextEnterAfterComposition = false;
   }
 
   async function focusInput() {
