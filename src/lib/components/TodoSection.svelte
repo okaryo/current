@@ -85,9 +85,6 @@
     src: todoCompletionSounds[0].src,
     failureMessage: "Failed to play TODO completion sound.",
   });
-  const isInputMode = $derived(
-    editingTodoId !== null || isDraftingTodo || draftSubtaskParentId !== null,
-  );
   const visibleTodos = $derived(
     todos.filter(
       (todo) =>
@@ -735,20 +732,6 @@
       <KeyboardKey value={shortcut} label="Command 2" />
     </div>
     <div class="header-actions">
-      {#if active}
-        <div class="hint-row" aria-label="Todo shortcuts">
-          {#if isInputMode}
-            <span><KeyboardKey value="Enter" size="compact" />Save</span>
-            <span
-              ><KeyboardKey
-                value="Esc"
-                label="Escape"
-                size="compact"
-              />Cancel</span
-            >
-          {/if}
-        </div>
-      {/if}
       <div class="shortcut-help">
         <button
           class="shortcut-help-button"
@@ -1109,8 +1092,7 @@
   }
 
   .title-row,
-  .header-actions,
-  .hint-row {
+  .header-actions {
     display: flex;
     align-items: center;
     min-width: 0;
@@ -1124,20 +1106,6 @@
     justify-content: flex-end;
     gap: 0.45rem;
     margin-left: auto;
-  }
-
-  .hint-row {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.65rem;
-    color: #9ba3b0;
-    font-size: 0.86rem;
-  }
-
-  .hint-row span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
   }
 
   .section-label {
