@@ -7,6 +7,7 @@
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import { effectWithDeps } from "$lib/effectWithDeps.svelte";
   import { normalizeTodoTitle } from "$lib/entry/todo";
+  import { disableTextInputAssistance } from "$lib/textInput";
   import { insertMarkdownNewLine } from "$lib/work-log/markdown";
 
   type EntryMode = "todo" | "log";
@@ -35,6 +36,7 @@
     }
 
     void listen("quick-entry:focus", () => {
+      resetMode();
       void focusInput();
     }).then((unlisten) => {
       unlistenFocus = unlisten;
@@ -86,10 +88,17 @@
 
   async function hideWindow() {
     error = null;
+    resetMode();
 
     if (isTauriRuntime()) {
       await hideQuickEntryWindow();
     }
+  }
+
+  function resetMode() {
+    mode = "log";
+    isComposing = false;
+    shouldIgnoreNextEnterAfterComposition = false;
   }
 
   async function focusInput() {
@@ -320,6 +329,7 @@
       <textarea
         rows="1"
         {placeholder}
+        use:disableTextInputAssistance
         bind:value
         bind:this={textarea}
         disabled={isSubmitting}
