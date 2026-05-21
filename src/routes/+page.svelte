@@ -494,6 +494,7 @@
 
   .section-slot {
     display: flex;
+    position: relative;
     min-width: 0;
     min-height: 0;
   }
@@ -505,13 +506,16 @@
 
   .pomodoro-slot {
     grid-area: pomodoro;
+    z-index: 1;
   }
 
   .todo-slot {
     grid-area: todo;
+    z-index: 2;
   }
 
   .log-slot {
     grid-area: log;
+    z-index: 1;
   }
 </style>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
-  import { ChevronRight } from "@lucide/svelte";
+  import { ChevronRight, Keyboard as KeyboardIcon } from "@lucide/svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { createCurrentAudio } from "$lib/audio/player";
   import { todoCompletionSounds } from "$lib/audio/sounds";
@@ -14,7 +14,6 @@
     type Todo,
   } from "$lib/api/todos";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
-  import { effectWithDeps } from "$lib/effectWithDeps.svelte";
   import {
     moveTodoSelection,
     sortTodos,
@@ -32,6 +31,7 @@
     | "addSubtask"
     | "expandSubtasks"
     | "collapseSubtasks"
+    | "toggleShortcutHelp"
     | "delete"
     | "clearSelection";
 
@@ -70,8 +70,8 @@
   let isSavingSubtask = $state(false);
   let draftSubtaskInput = $state<HTMLInputElement>();
   let taskListElement = $state<HTMLUListElement>();
-  let todoFooterElement = $state<HTMLElement>();
-  let hasScrollableTaskList = $state(false);
+  let shortcutHelpElement = $state<HTMLElement>();
+  let shortcutHelpOpen = $state(false);
   let collapsedParentIds = $state<number[]>([]);
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -80,13 +80,9 @@
     src: todoCompletionSounds[0].src,
     failureMessage: "Failed to play TODO completion sound.",
   });
-  const selectedTodo = $derived(
-    todos.find((todo) => todo.id === selectedTodoId) ?? null,
-  );
   const isInputMode = $derived(
     editingTodoId !== null || isDraftingTodo || draftSubtaskParentId !== null,
   );
-  const shouldShowFooterActions = $derived(active && !isInputMode);
   const visibleTodos = $derived(
     todos.filter(
       (todo) =>
@@ -107,11 +103,13 @@
     }
 
     scheduleNextDayRefresh();
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
 
     return () => {
       if (dayRefreshTimeout) {
         clearTimeout(dayRefreshTimeout);
       }
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
     };
   });
 
@@ -125,6 +123,7 @@
       cancelEdit();
       cancelDraftTodo();
       cancelDraftSubtask();
+      shortcutHelpOpen = false;
     }
   });
 
@@ -144,19 +143,6 @@
 
     void scrollSelectedTodoIntoView();
   });
-
-  effectWithDeps(
-    () => {
-      void updateTaskListScrollState();
-    },
-    () => [
-      todos,
-      isDraftingTodo,
-      draftSubtaskParentId,
-      collapsedParentIds,
-      shouldShowFooterActions,
-    ],
-  );
 
   async function loadTodos() {
     isLoadingTodos = true;
@@ -290,11 +276,18 @@
       case "collapseSubtasks":
         collapseSelectedTodo();
         break;
+      case "toggleShortcutHelp":
+        toggleShortcutHelp();
+        break;
       case "delete":
         await deleteSelectedTodo();
         break;
       case "clearSelection":
-        clearTodoSelection();
+        if (shortcutHelpOpen) {
+          shortcutHelpOpen = false;
+        } else {
+          clearTodoSelection();
+        }
         break;
     }
   }
@@ -461,6 +454,25 @@
     return isParentCollapsed(todo)
       ? `Expand subtasks for "${todo.title}"`
       : `Collapse subtasks for "${todo.title}"`;
+  }
+
+  function toggleShortcutHelp() {
+    onActivate();
+    shortcutHelpOpen = !shortcutHelpOpen;
+  }
+
+  function handleDocumentPointerDown(event: PointerEvent) {
+    if (!shortcutHelpOpen) {
+      return;
+    }
+
+    const target = event.target;
+
+    if (target instanceof Node && shortcutHelpElement?.contains(target)) {
+      return;
+    }
+
+    shortcutHelpOpen = false;
   }
 
   function moveSelection(direction: 1 | -1) {
@@ -675,30 +687,8 @@
     }
   }
 
-  function shouldShowParentConnector(todo: Todo) {
-    return (
-      todo.parentId === null &&
-      !isParentCollapsed(todo) &&
-      (todos.some((item) => item.parentId === todo.id) ||
-        draftSubtaskParentId === todo.id)
-    );
-  }
-
-  async function updateTaskListScrollState() {
-    await tick();
-
-    if (!taskListElement) {
-      hasScrollableTaskList = false;
-      return;
-    }
-
-    hasScrollableTaskList =
-      taskListElement.scrollHeight > taskListElement.clientHeight + 1;
-  }
-
   async function scrollSelectedTodoIntoView() {
     await tick();
-    await updateTaskListScrollState();
 
     const selectedTodoElement = taskListElement?.querySelector<HTMLElement>(
       `[data-todo-id="${selectedTodoId}"]`,
@@ -708,24 +698,6 @@
       block: "nearest",
       inline: "nearest",
     });
-
-    scrollSelectedTodoAboveFooter(selectedTodoElement);
-  }
-
-  function scrollSelectedTodoAboveFooter(
-    selectedTodoElement?: HTMLElement | null,
-  ) {
-    if (!selectedTodoElement || !taskListElement || !todoFooterElement) {
-      return;
-    }
-
-    const selectedRect = selectedTodoElement.getBoundingClientRect();
-    const footerRect = todoFooterElement.getBoundingClientRect();
-    const overlap = selectedRect.bottom - footerRect.top + 8;
-
-    if (overlap > 0) {
-      taskListElement.scrollTop += overlap;
-    }
   }
 
   function errorMessage(error: unknown) {
@@ -747,27 +719,93 @@
       <p class="section-label section-label-todo">{title}</p>
       <KeyboardKey value={shortcut} label="Command 2" />
     </div>
-    {#if active}
-      <div class="hint-row" aria-label="Todo shortcuts">
-        {#if isInputMode}
-          <span><KeyboardKey value="Enter" size="compact" />Save</span>
-          <span
-            ><KeyboardKey
-              value="Esc"
-              label="Escape"
-              size="compact"
-            />Cancel</span
+    <div class="header-actions">
+      {#if active}
+        <div class="hint-row" aria-label="Todo shortcuts">
+          {#if isInputMode}
+            <span><KeyboardKey value="Enter" size="compact" />Save</span>
+            <span
+              ><KeyboardKey
+                value="Esc"
+                label="Escape"
+                size="compact"
+              />Cancel</span
+            >
+          {/if}
+        </div>
+      {/if}
+      <div class="shortcut-help" bind:this={shortcutHelpElement}>
+        <button
+          class="shortcut-help-button"
+          class:shortcut-help-button-active={shortcutHelpOpen}
+          type="button"
+          aria-label="Show Todo keyboard shortcuts with Shift Slash"
+          aria-expanded={shortcutHelpOpen}
+          aria-controls="todo-shortcut-help"
+          title="Keyboard shortcuts (Shift+/)"
+          onclick={toggleShortcutHelp}
+        >
+          <KeyboardIcon aria-hidden="true" size={14} />
+        </button>
+        {#if shortcutHelpOpen}
+          <div
+            id="todo-shortcut-help"
+            class="shortcut-popover"
+            role="dialog"
+            aria-label="Todo keyboard shortcuts"
           >
-        {:else}
-          <span
-            ><KeyboardKey value="j" size="compact" /><KeyboardKey
-              value="k"
-              size="compact"
-            />Move</span
-          >
+            <div class="shortcut-popover-header">
+              <span>Keyboard shortcuts</span>
+            </div>
+            <div class="shortcut-popover-list">
+              <span><KeyboardKey value="a" size="compact" />Add Todo</span>
+              <span><KeyboardKey value="t" size="compact" />Add Subtask</span>
+              <span><KeyboardKey value="e" size="compact" />Edit Todo</span>
+              <span
+                ><KeyboardKey value="Space" size="compact" />Complete or Reopen
+                Todo</span
+              >
+              <span
+                ><KeyboardKey value="Enter" size="compact" />Set or Unset Now</span
+              >
+              <span
+                ><KeyboardKey
+                  value="↑"
+                  label="Arrow Up"
+                  size="compact"
+                /><KeyboardKey
+                  value="↓"
+                  label="Arrow Down"
+                  size="compact"
+                /><span class="shortcut-separator">or</span><KeyboardKey
+                  value="j"
+                  size="compact"
+                /><KeyboardKey value="k" size="compact" />Move Selection</span
+              >
+              <span
+                ><KeyboardKey
+                  value="→"
+                  label="Arrow Right"
+                  size="compact"
+                /><KeyboardKey
+                  value="←"
+                  label="Arrow Left"
+                  size="compact"
+                />Expand / Collapse Subtasks</span
+              >
+              <span><KeyboardKey value="D" size="compact" />Delete Todo</span>
+              <span
+                ><KeyboardKey
+                  value="?"
+                  label="Shift Slash"
+                  size="compact"
+                />Show Keyboard Shortcuts</span
+              >
+            </div>
+          </div>
         {/if}
       </div>
-    {/if}
+    </div>
   </header>
 
   <h2 id="todo-title" class="sr-only">Todo</h2>
@@ -775,8 +813,6 @@
   <div class="task-list-shell">
     <ul
       class="task-list"
-      class:task-list-footer-visible={shouldShowFooterActions &&
-        hasScrollableTaskList}
       aria-label="Todo list"
       tabindex="-1"
       bind:this={taskListElement}
@@ -818,7 +854,6 @@
             class:task-completed={todo.completed}
             class:task-root={todo.parentId === null}
             class:task-child={todo.parentId !== null}
-            class:task-parent-connected={shouldShowParentConnector(todo)}
           >
             {#if todo.parentId === null && hasSubtasks(todo)}
               <span
@@ -921,56 +956,6 @@
     </ul>
   </div>
 
-  {#if shouldShowFooterActions}
-    <footer class="todo-footer" bind:this={todoFooterElement}>
-      <div class="todo-footer-actions" aria-label="Todo shortcuts">
-        <span><KeyboardKey value="a" size="compact" />Add</span>
-        {#if selectedTodo !== null}
-          <span><KeyboardKey value="e" size="compact" />Edit</span>
-          <span>
-            <KeyboardKey value="Space" size="compact" />{selectedTodo.completed
-              ? "Incomplete"
-              : "Complete"}
-          </span>
-          {#if !selectedTodo.completed}
-            <span>
-              <KeyboardKey value="Enter" size="compact" />{nowTodoId ===
-              selectedTodo.id
-                ? "Unset Now"
-                : "Set Now"}
-            </span>
-          {/if}
-          <span>
-            <KeyboardKey value="t" size="compact" />{selectedTodo.parentId ===
-            null
-              ? "Subtask"
-              : "Sibling"}
-          </span>
-          {#if selectedTodo.parentId === null && hasSubtasks(selectedTodo)}
-            <span>
-              <KeyboardKey
-                value={isParentCollapsed(selectedTodo) ? "→" : "←"}
-                label={isParentCollapsed(selectedTodo)
-                  ? "Arrow Right"
-                  : "Arrow Left"}
-                size="compact"
-              />{isParentCollapsed(selectedTodo) ? "Expand" : "Collapse"}
-            </span>
-          {:else if selectedTodo.parentId !== null}
-            <span
-              ><KeyboardKey
-                value="←"
-                label="Arrow Left"
-                size="compact"
-              />Parent</span
-            >
-          {/if}
-          <span><KeyboardKey value="D" size="compact" />Delete</span>
-        {/if}
-      </div>
-    </footer>
-  {/if}
-
   {#if todoError}
     <p class="todo-error" role="alert">{todoError}</p>
   {/if}
@@ -1059,16 +1044,27 @@
   }
 
   .title-row,
+  .header-actions,
   .hint-row {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
     min-width: 0;
+  }
+
+  .title-row {
+    gap: 0.65rem;
+  }
+
+  .header-actions {
+    justify-content: flex-end;
+    gap: 0.45rem;
+    margin-left: auto;
   }
 
   .hint-row {
     flex-wrap: wrap;
     justify-content: flex-end;
+    gap: 0.65rem;
     color: #9ba3b0;
     font-size: 0.86rem;
   }
@@ -1090,6 +1086,94 @@
     color: #44d16b;
   }
 
+  .shortcut-help {
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+
+  .shortcut-help-button {
+    display: grid;
+    place-items: center;
+    width: 1.72rem;
+    height: 1.72rem;
+    border: 0;
+    border-radius: 6px;
+    padding: 0;
+    color: #d7dde6;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .shortcut-help-button:hover,
+  .shortcut-help-button:focus-visible {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.075);
+    outline: none;
+  }
+
+  .shortcut-help-button:focus-visible {
+    box-shadow: 0 0 0 2px rgba(154, 185, 255, 0.22);
+  }
+
+  .shortcut-help-button-active {
+    color: #dfffe8;
+    background: rgba(68, 209, 107, 0.12);
+    box-shadow: 0 0 0 1px rgba(68, 209, 107, 0.26);
+  }
+
+  .shortcut-help-button-active:hover,
+  .shortcut-help-button-active:focus-visible {
+    background: rgba(68, 209, 107, 0.16);
+  }
+
+  .shortcut-popover {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 4;
+    width: min(18rem, calc(100vw - 2rem));
+    border: 1px solid rgba(68, 209, 107, 0.28);
+    border-radius: 8px;
+    padding: 0.7rem;
+    color: #d8dee8;
+    background: #080c10;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 1rem 2.5rem rgba(0, 0, 0, 0.38);
+  }
+
+  .shortcut-popover-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.55rem;
+    color: #eef3fa;
+    font-size: 0.82rem;
+    font-weight: 650;
+  }
+
+  .shortcut-popover-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.42rem;
+  }
+
+  .shortcut-popover-list span {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    color: #aab2bf;
+    font-size: 0.78rem;
+  }
+
+  .shortcut-popover-list .shortcut-separator {
+    color: #737d8b;
+    font-size: 0.74rem;
+  }
+
   .task-list-shell {
     display: flex;
     flex-direction: column;
@@ -1108,11 +1192,6 @@
     margin: 0;
     padding: 0;
     list-style: none;
-  }
-
-  .task-list-footer-visible {
-    padding-bottom: 3.3rem;
-    scroll-padding-bottom: 3.3rem;
   }
 
   .task-list:focus {
@@ -1310,47 +1389,6 @@
     color: #ff8a93;
     font-size: 0.88rem;
     overflow-wrap: anywhere;
-  }
-
-  .todo-footer {
-    position: absolute;
-    right: 0.8rem;
-    bottom: 0.8rem;
-    left: 0.8rem;
-    z-index: 3;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    min-height: 2.2rem;
-    border: 1px solid rgba(68, 209, 107, 0.24);
-    border-radius: 8px;
-    padding: 0.45rem 0.65rem;
-    color: #9ba3b0;
-    font-size: 0.76rem;
-    background: rgba(7, 11, 15, 0.78);
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-      0 0.7rem 2rem rgba(0, 0, 0, 0.22);
-    backdrop-filter: blur(14px);
-    pointer-events: none;
-  }
-
-  .todo-footer-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.32rem 0.62rem;
-    width: 100%;
-    min-width: 0;
-  }
-
-  .todo-footer-actions span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    flex: 0 0 auto;
-    white-space: nowrap;
   }
 
   .sr-only {
