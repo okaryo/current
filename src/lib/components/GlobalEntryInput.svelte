@@ -6,6 +6,7 @@
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import { effectWithDeps } from "$lib/effectWithDeps.svelte";
   import { normalizeTodoTitle } from "$lib/entry/todo";
+  import { disableTextInputAssistance } from "$lib/textInput";
   import { insertMarkdownNewLine } from "$lib/work-log/markdown";
 
   type SectionId = "pomodoro" | "todo" | "log";
@@ -363,6 +364,7 @@
         <textarea
           rows="1"
           {placeholder}
+          use:disableTextInputAssistance
           bind:value
           bind:this={textareaElement}
           disabled={isSubmitting}

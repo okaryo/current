@@ -18,6 +18,7 @@
     type Todo,
   } from "$lib/api/todos";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import { disableTextInputAssistance } from "$lib/textInput";
   import {
     moveTodoSelection,
     sortTodos,
@@ -889,6 +890,7 @@
             <form class="task-edit" onsubmit={submitDraftTodo}>
               <input
                 type="text"
+                use:disableTextInputAssistance
                 bind:this={draftTodoInput}
                 bind:value={draftTodoTitle}
                 disabled={isSavingTodo}
@@ -969,6 +971,7 @@
               >
                 <input
                   type="text"
+                  use:disableTextInputAssistance
                   bind:this={editTodoInput}
                   bind:value={editingTitle}
                   disabled={isSavingEdit}
@@ -997,6 +1000,7 @@
               <form class="task-edit" onsubmit={submitDraftSubtask}>
                 <input
                   type="text"
+                  use:disableTextInputAssistance
                   bind:this={draftSubtaskInput}
                   bind:value={draftSubtaskTitle}
                   disabled={isSavingSubtask}
