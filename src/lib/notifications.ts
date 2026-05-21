@@ -37,13 +37,7 @@ export async function sendCurrentNotification(
   gateway = tauriNotificationGateway,
 ) {
   try {
-    let permissionGranted = await gateway.isPermissionGranted();
-
-    if (!permissionGranted) {
-      const permission = await gateway.requestPermission();
-
-      permissionGranted = permission === "granted";
-    }
+    const permissionGranted = await gateway.isPermissionGranted();
 
     if (!permissionGranted) {
       return;
@@ -52,5 +46,27 @@ export async function sendCurrentNotification(
     gateway.sendNotification({ title, body });
   } catch (error) {
     gateway.warn(failureMessage, error);
+  }
+}
+
+export async function isCurrentNotificationPermissionGranted(
+  gateway = tauriNotificationGateway,
+) {
+  try {
+    return await gateway.isPermissionGranted();
+  } catch (error) {
+    gateway.warn("Failed to check notification permission.", error);
+    return false;
+  }
+}
+
+export async function requestCurrentNotificationPermission(
+  gateway = tauriNotificationGateway,
+) {
+  try {
+    return (await gateway.requestPermission()) === "granted";
+  } catch (error) {
+    gateway.warn("Failed to request notification permission.", error);
+    return false;
   }
 }

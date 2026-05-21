@@ -77,6 +77,7 @@ mod tests {
             settings.pomodoro_sound.completion_volume,
             DEFAULT_POMODORO_SOUND_VOLUME
         );
+        assert!(!settings.notification.permission_prompt_seen);
     }
 
     #[test]
@@ -95,6 +96,7 @@ mod tests {
             settings.pomodoro_sound.completion_volume,
             DEFAULT_POMODORO_SOUND_VOLUME
         );
+        assert!(!settings.notification.permission_prompt_seen);
     }
 
     #[test]
