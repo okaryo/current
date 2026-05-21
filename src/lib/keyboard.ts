@@ -9,6 +9,8 @@ export type TodoCommand =
   | "toggleNow"
   | "addTodo"
   | "addSubtask"
+  | "expandSubtasks"
+  | "collapseSubtasks"
   | "indent"
   | "outdent"
   | "delete"
@@ -131,6 +133,10 @@ export function todoCommandFromKeydown(
     case "k":
     case "ArrowUp":
       return "moveUp";
+    case "ArrowRight":
+      return isPlainKey(event) ? "expandSubtasks" : null;
+    case "ArrowLeft":
+      return isPlainKey(event) ? "collapseSubtasks" : null;
     case " ":
       return "toggleComplete";
     case "e":

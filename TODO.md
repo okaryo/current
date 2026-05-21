@@ -72,6 +72,8 @@ Keyboard decisions:
 - Keyboard key labels use uppercase letters; shortcuts that require uppercase letters use `Shift+Letter` notation.
 - `i`: focus the shared Todo / Work Log quick input from anywhere in the main app when a text input is not already focused.
 - `j` / `k` and `ArrowDown` / `ArrowUp`: move selection
+- `ArrowRight`: expand the selected TODO's subtasks when it has collapsed subtasks
+- `ArrowLeft`: collapse the selected TODO's subtasks, or move selection from a subtask to its parent
 - `Tab`: indent the selected TODO
 - `Shift+Tab`: outdent the selected TODO
 - `Space`: toggle completion for the selected TODO
@@ -108,7 +110,7 @@ Nested TODO decisions:
 - Parent completion does not change child completion.
 - Child completion does not automatically complete the parent.
 - A completed parent with incomplete children stays in the incomplete sort group.
-- Nested TODOs are always expanded for now.
+- Nested TODOs are expanded by default and can be collapsed per session.
 - Nested TODOs should stay lightweight and should not turn the app into a project management tool.
 
 ### Completed TODO Behavior

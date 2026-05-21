@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
+  import { ChevronRight } from "@lucide/svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { createCurrentAudio } from "$lib/audio/player";
   import { todoCompletionSounds } from "$lib/audio/sounds";
@@ -31,6 +32,8 @@
     | "toggleNow"
     | "addTodo"
     | "addSubtask"
+    | "expandSubtasks"
+    | "collapseSubtasks"
     | "indent"
     | "outdent"
     | "delete"
@@ -73,6 +76,7 @@
   let taskListElement = $state<HTMLUListElement>();
   let todoFooterElement = $state<HTMLElement>();
   let hasScrollableTaskList = $state(false);
+  let collapsedParentIds = $state<number[]>([]);
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
   let unlistenTodoCreated: UnlistenFn | undefined;
@@ -87,6 +91,12 @@
     editingTodoId !== null || isDraftingTodo || draftSubtaskParentId !== null,
   );
   const shouldShowFooterActions = $derived(active && !isInputMode);
+  const visibleTodos = $derived(
+    todos.filter(
+      (todo) =>
+        todo.parentId === null || !collapsedParentIds.includes(todo.parentId),
+    ),
+  );
 
   onMount(() => {
     todoCompletionAudio.load();
@@ -147,6 +157,7 @@
       todos,
       isDraftingTodo,
       draftSubtaskParentId,
+      collapsedParentIds,
       shouldShowFooterActions,
     ],
   );
@@ -277,6 +288,12 @@
       case "addSubtask":
         await startAddSubtaskForSelectedTodo();
         break;
+      case "expandSubtasks":
+        expandSelectedTodo();
+        break;
+      case "collapseSubtasks":
+        collapseSelectedTodo();
+        break;
       case "indent":
         await indentSelectedTodo();
         break;
@@ -380,6 +397,7 @@
     todoError = null;
     cancelEdit();
     cancelDraftTodo();
+    expandParent(parentId);
     draftSubtaskParentId = parentId;
     draftSubtaskTitle = "";
     await tick();
@@ -470,7 +488,7 @@
   }
 
   function moveSelection(direction: 1 | -1) {
-    selectedTodoId = moveTodoSelection(todos, selectedTodoId, direction);
+    selectedTodoId = moveTodoSelection(visibleTodos, selectedTodoId, direction);
   }
 
   function toggleNowTodo() {
@@ -517,7 +535,7 @@
     }
 
     const nextSelectedTodo =
-      todos.find((todo) => todo.id === nowTodoId) ?? todos[0];
+      visibleTodos.find((todo) => todo.id === nowTodoId) ?? visibleTodos[0];
 
     if (nextSelectedTodo) {
       selectedTodoId = nextSelectedTodo.id;
@@ -547,8 +565,10 @@
       return;
     }
 
-    if (!todos.some((todo) => todo.id === selectedTodoId)) {
-      selectedTodoId = todos[0]?.id ?? null;
+    pruneCollapsedParents();
+
+    if (!visibleTodos.some((todo) => todo.id === selectedTodoId)) {
+      selectedTodoId = visibleTodos[0]?.id ?? null;
     }
 
     if (!todos.some((todo) => todo.id === nowTodoId)) {
@@ -566,7 +586,7 @@
   }
 
   function hasSelectableTodo(id: number | null) {
-    return id !== null && todos.some((todo) => todo.id === id);
+    return id !== null && visibleTodos.some((todo) => todo.id === id);
   }
 
   function shouldShowDraftSubtaskAfter(todo: Todo) {
@@ -587,9 +607,102 @@
     return nextTodo?.parentId !== draftSubtaskParentId;
   }
 
+  function hasSubtasks(todo: Todo) {
+    return todos.some((item) => item.parentId === todo.id);
+  }
+
+  function isParentCollapsed(todo: Todo) {
+    return collapsedParentIds.includes(todo.id);
+  }
+
+  function toggleParentCollapsed(todo: Todo) {
+    onActivate();
+
+    if (!hasSubtasks(todo)) {
+      return;
+    }
+
+    if (collapsedParentIds.includes(todo.id)) {
+      collapsedParentIds = collapsedParentIds.filter((id) => id !== todo.id);
+    } else {
+      collapsedParentIds = [...collapsedParentIds, todo.id];
+
+      if (draftSubtaskParentId === todo.id) {
+        cancelDraftSubtask();
+      }
+
+      if (
+        todos.some(
+          (item) => item.parentId === todo.id && item.id === selectedTodoId,
+        )
+      ) {
+        selectedTodoId = todo.id;
+      }
+    }
+  }
+
+  function expandSelectedTodo() {
+    const selectedTodo = todos.find((todo) => todo.id === selectedTodoId);
+
+    if (
+      !selectedTodo ||
+      selectedTodo.parentId !== null ||
+      !hasSubtasks(selectedTodo)
+    ) {
+      return;
+    }
+
+    expandParent(selectedTodo.id);
+  }
+
+  function collapseSelectedTodo() {
+    const selectedTodo = todos.find((todo) => todo.id === selectedTodoId);
+
+    if (!selectedTodo) {
+      return;
+    }
+
+    if (selectedTodo.parentId !== null) {
+      selectedTodoId = selectedTodo.parentId;
+      return;
+    }
+
+    if (!hasSubtasks(selectedTodo) || isParentCollapsed(selectedTodo)) {
+      return;
+    }
+
+    collapsedParentIds = [...collapsedParentIds, selectedTodo.id];
+
+    if (draftSubtaskParentId === selectedTodo.id) {
+      cancelDraftSubtask();
+    }
+  }
+
+  function expandParent(parentId: number) {
+    if (!collapsedParentIds.includes(parentId)) {
+      return;
+    }
+
+    collapsedParentIds = collapsedParentIds.filter((id) => id !== parentId);
+  }
+
+  function pruneCollapsedParents() {
+    const parentIds = new Set(
+      todos.filter((todo) => todo.parentId === null).map((todo) => todo.id),
+    );
+    const nextCollapsedParentIds = collapsedParentIds.filter((id) =>
+      parentIds.has(id),
+    );
+
+    if (nextCollapsedParentIds.length !== collapsedParentIds.length) {
+      collapsedParentIds = nextCollapsedParentIds;
+    }
+  }
+
   function shouldShowParentConnector(todo: Todo) {
     return (
       todo.parentId === null &&
+      !isParentCollapsed(todo) &&
       (todos.some((item) => item.parentId === todo.id) ||
         draftSubtaskParentId === todo.id)
     );
@@ -718,7 +831,7 @@
             <div class="task-meta"></div>
           </li>
         {/if}
-        {#each todos as todo (todo.id)}
+        {#each visibleTodos as todo (todo.id)}
           <li
             data-todo-id={todo.id}
             class:task-selected={active && selectedTodoId === todo.id}
@@ -729,7 +842,23 @@
             class:task-completed={todo.completed}
             class:task-child={todo.parentId !== null}
             class:task-parent-connected={shouldShowParentConnector(todo)}
+            class:task-with-tree-toggle={todo.parentId === null &&
+              hasSubtasks(todo)}
           >
+            {#if todo.parentId === null && hasSubtasks(todo)}
+              <button
+                class="task-collapse-button"
+                class:task-collapse-open={!isParentCollapsed(todo)}
+                type="button"
+                aria-label={isParentCollapsed(todo)
+                  ? `Expand subtasks for "${todo.title}"`
+                  : `Collapse subtasks for "${todo.title}"`}
+                aria-expanded={!isParentCollapsed(todo)}
+                onclick={() => toggleParentCollapsed(todo)}
+              >
+                <ChevronRight aria-hidden="true" size={14} />
+              </button>
+            {/if}
             <button
               class="task-check"
               type="button"
@@ -837,6 +966,25 @@
               ? "Subtask"
               : "Sibling"}
           </span>
+          {#if selectedTodo.parentId === null && hasSubtasks(selectedTodo)}
+            <span>
+              <KeyboardKey
+                value={isParentCollapsed(selectedTodo) ? "→" : "←"}
+                label={isParentCollapsed(selectedTodo)
+                  ? "Arrow Right"
+                  : "Arrow Left"}
+                size="compact"
+              />{isParentCollapsed(selectedTodo) ? "Expand" : "Collapse"}
+            </span>
+          {:else if selectedTodo.parentId !== null}
+            <span
+              ><KeyboardKey
+                value="←"
+                label="Arrow Left"
+                size="compact"
+              />Parent</span
+            >
+          {/if}
           {#if selectedTodo.parentId === null}
             <span><KeyboardKey value="Tab" size="compact" />Indent</span>
           {:else}
@@ -1008,6 +1156,11 @@
     color: #e4e8ef;
   }
 
+  .task-list li.task-with-tree-toggle {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    gap: 0.6rem;
+  }
+
   .task-list li:last-child {
     border-bottom: 0;
   }
@@ -1024,7 +1177,7 @@
   .task-parent-connected::before {
     content: "";
     position: absolute;
-    left: 1.25rem;
+    left: 1.48rem;
     top: calc(50% + 0.5rem);
     bottom: -1px;
     width: 1px;
@@ -1032,10 +1185,14 @@
     pointer-events: none;
   }
 
+  .task-with-tree-toggle.task-parent-connected::before {
+    top: calc(50% + 0.675rem);
+  }
+
   .task-child::before {
     content: "";
     position: absolute;
-    left: 1.25rem;
+    left: 1.48rem;
     top: -1px;
     bottom: -1px;
     width: 1px;
@@ -1050,9 +1207,9 @@
   .task-child::after {
     content: "";
     position: absolute;
-    left: 1.25rem;
+    left: 1.48rem;
     top: 50%;
-    width: 0.8rem;
+    width: 0.95rem;
     height: 1px;
     background: rgba(155, 163, 176, 0.36);
     pointer-events: none;
@@ -1114,6 +1271,31 @@
   .task-check svg {
     width: 0.8rem;
     height: 0.8rem;
+  }
+
+  .task-collapse-button {
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border: 0;
+    border-radius: 4px;
+    padding: 0;
+    color: #9ba3b0;
+    background: transparent;
+  }
+
+  .task-collapse-button:hover {
+    color: #e4e8ef;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .task-collapse-button :global(svg) {
+    transition: transform 120ms ease;
+  }
+
+  .task-collapse-open :global(svg) {
+    transform: rotate(90deg);
   }
 
   .task-title {

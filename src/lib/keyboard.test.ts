@@ -164,6 +164,8 @@ describe("todoCommandFromKeydown", () => {
     [key({ key: "ArrowDown" }), "moveDown"],
     [key({ key: "k" }), "moveUp"],
     [key({ key: "ArrowUp" }), "moveUp"],
+    [key({ key: "ArrowRight" }), "expandSubtasks"],
+    [key({ key: "ArrowLeft" }), "collapseSubtasks"],
     [key({ key: " " }), "toggleComplete"],
     [key({ key: "e" }), "edit"],
     [key({ key: "a" }), "addTodo"],
@@ -186,5 +188,11 @@ describe("todoCommandFromKeydown", () => {
       todoCommandFromKeydown(key({ key: "Enter", ctrlKey: true })),
     ).toBeNull();
     expect(todoCommandFromKeydown(key({ key: "D" }))).toBeNull();
+    expect(
+      todoCommandFromKeydown(key({ key: "ArrowRight", metaKey: true })),
+    ).toBeNull();
+    expect(
+      todoCommandFromKeydown(key({ key: "ArrowLeft", shiftKey: true })),
+    ).toBeNull();
   });
 });
