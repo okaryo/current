@@ -11,8 +11,6 @@ export type TodoCommand =
   | "addSubtask"
   | "expandSubtasks"
   | "collapseSubtasks"
-  | "indent"
-  | "outdent"
   | "delete"
   | "clearSelection";
 
@@ -147,8 +145,6 @@ export function todoCommandFromKeydown(
       return isPlainKey(event) ? "addSubtask" : null;
     case "Enter":
       return isPlainKey(event) ? "toggleNow" : null;
-    case "Tab":
-      return event.shiftKey ? "outdent" : "indent";
     case "Escape":
       return "clearSelection";
     default:

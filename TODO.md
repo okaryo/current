@@ -62,9 +62,8 @@ Layout decisions:
 - [x] Add shortcut for moving selection
 - [x] Add shared quick input focus behavior for new TODOs
 - [x] Add shortcut for adding a root TODO inline from the TODO section
-- [x] Add shortcut for indenting TODOs
-- [x] Add shortcut for outdenting TODOs
 - [x] Add shortcut for adding a subtask to the selected TODO
+- [x] Remove TODO indent/outdent shortcuts
 
 Keyboard decisions:
 
@@ -74,8 +73,6 @@ Keyboard decisions:
 - `j` / `k` and `ArrowDown` / `ArrowUp`: move selection
 - `ArrowRight`: expand the selected TODO's subtasks when it has collapsed subtasks
 - `ArrowLeft`: collapse the selected TODO's subtasks, or move selection from a subtask to its parent
-- `Tab`: indent the selected TODO
-- `Shift+Tab`: outdent the selected TODO
 - `Space`: toggle completion for the selected TODO
 - `a`: add a root TODO inline at the top of the TODO list
 - `e`: edit the selected TODO
@@ -85,6 +82,7 @@ Keyboard decisions:
 - `Escape`: cancel edit or clear selection
 - Delete intentionally does not use plain `d`.
 - Delete does not have undo for now.
+- TODO indent/outdent shortcuts are intentionally not exposed because parent-child structure is created through `a` / `t` and rarely changes after creation.
 - Creating a TODO keeps focus on the shared quick input and does not select the created TODO.
 - `Tab` switches the shared quick input between Todo and Log modes.
 - `Cmd+Enter` submits both Todo and Log entries from the shared quick input.
@@ -103,8 +101,6 @@ Keyboard decisions:
 
 Nested TODO decisions:
 
-- `Tab`: indent the selected TODO under the previous TODO when possible.
-- `Shift+Tab`: outdent the selected TODO when possible.
 - `t`: opens an inline subtask input at the end of the selected root TODO's children; when a subtask is selected, it adds a sibling under the same parent.
 - Initial release supports one nested level only.
 - Parent completion does not change child completion.

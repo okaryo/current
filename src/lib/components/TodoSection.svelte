@@ -9,8 +9,6 @@
     createSubtask,
     deleteTodo,
     listTodos,
-    moveTodoUnderPreviousRoot,
-    promoteTodoToRoot,
     toggleTodo,
     updateTodoTitle,
     type Todo,
@@ -34,8 +32,6 @@
     | "addSubtask"
     | "expandSubtasks"
     | "collapseSubtasks"
-    | "indent"
-    | "outdent"
     | "delete"
     | "clearSelection";
 
@@ -294,12 +290,6 @@
       case "collapseSubtasks":
         collapseSelectedTodo();
         break;
-      case "indent":
-        await indentSelectedTodo();
-        break;
-      case "outdent":
-        await outdentSelectedTodo();
-        break;
       case "delete":
         await deleteSelectedTodo();
         break;
@@ -344,38 +334,6 @@
       if (editingTodoId === deletedTodoId) {
         cancelEdit();
       }
-    } catch (error) {
-      todoError = errorMessage(error);
-    }
-  }
-
-  async function indentSelectedTodo() {
-    if (selectedTodoId === null) {
-      return;
-    }
-
-    todoError = null;
-
-    try {
-      const updatedTodo = await moveTodoUnderPreviousRoot(selectedTodoId);
-      todos = sortTodos(await listTodos());
-      selectedTodoId = updatedTodo.id;
-    } catch (error) {
-      todoError = errorMessage(error);
-    }
-  }
-
-  async function outdentSelectedTodo() {
-    if (selectedTodoId === null) {
-      return;
-    }
-
-    todoError = null;
-
-    try {
-      const updatedTodo = await promoteTodoToRoot(selectedTodoId);
-      todos = sortTodos(await listTodos());
-      selectedTodoId = updatedTodo.id;
     } catch (error) {
       todoError = errorMessage(error);
     }
@@ -1006,11 +964,6 @@
                 size="compact"
               />Parent</span
             >
-          {/if}
-          {#if selectedTodo.parentId === null}
-            <span><KeyboardKey value="Tab" size="compact" />Indent</span>
-          {:else}
-            <span><KeyboardKey value="⇧Tab" size="compact" />Outdent</span>
           {/if}
           <span><KeyboardKey value="D" size="compact" />Delete</span>
         {/if}

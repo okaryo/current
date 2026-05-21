@@ -171,8 +171,6 @@ describe("todoCommandFromKeydown", () => {
     [key({ key: "a" }), "addTodo"],
     [key({ key: "t" }), "addSubtask"],
     [key({ key: "Enter" }), "toggleNow"],
-    [key({ key: "Tab" }), "indent"],
-    [key({ key: "Tab", shiftKey: true }), "outdent"],
     [key({ key: "D", shiftKey: true }), "delete"],
     [key({ key: "Escape" }), "clearSelection"],
   ] as const)("maps TODO shortcuts", (event, command) => {
@@ -193,6 +191,10 @@ describe("todoCommandFromKeydown", () => {
     ).toBeNull();
     expect(
       todoCommandFromKeydown(key({ key: "ArrowLeft", shiftKey: true })),
+    ).toBeNull();
+    expect(todoCommandFromKeydown(key({ key: "Tab" }))).toBeNull();
+    expect(
+      todoCommandFromKeydown(key({ key: "Tab", shiftKey: true })),
     ).toBeNull();
   });
 });
