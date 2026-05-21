@@ -1207,7 +1207,6 @@
 
   .shortcut-dialog::backdrop {
     background: rgba(3, 6, 10, 0.58);
-    backdrop-filter: blur(2px);
   }
 
   .shortcut-dialog-content {
