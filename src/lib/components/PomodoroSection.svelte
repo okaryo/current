@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { Bell } from "@lucide/svelte";
   import {
     createCurrentAudio,
     createCurrentAudioSequence,
@@ -36,8 +37,10 @@
     shortcut: string;
     focusVolume: number;
     completionVolume: number;
+    showNotificationPermissionPrompt: boolean;
     commandRequest: PomodoroCommandRequest;
     onActivate: () => void;
+    onRequestNotificationPermission: () => void | Promise<void>;
   };
 
   let {
@@ -46,8 +49,10 @@
     shortcut,
     focusVolume,
     completionVolume,
+    showNotificationPermissionPrompt,
     commandRequest,
     onActivate,
+    onRequestNotificationPermission,
   }: Props = $props();
 
   let pomodoroState = $state<PomodoroState>(resetPomodoro());
@@ -178,6 +183,20 @@
     </div>
   </header>
 
+  {#if showNotificationPermissionPrompt}
+    <div class="notification-prompt">
+      <button
+        type="button"
+        class="notification-button"
+        onfocus={onActivate}
+        onclick={() => void onRequestNotificationPermission()}
+      >
+        <Bell size={14} strokeWidth={2} aria-hidden="true" />
+        <span>Enable timer notifications</span>
+      </button>
+    </div>
+  {/if}
+
   <div
     class="timer-layout"
     aria-label={`${formattedRemainingTime} remaining`}
@@ -289,6 +308,31 @@
 
   .section-label-focus {
     color: #ff5965;
+  }
+
+  .notification-prompt {
+    display: flex;
+    margin: -0.15rem 0 0.65rem;
+  }
+
+  .notification-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    min-height: 1.9rem;
+    padding: 0 0.62rem;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #d7dde6;
+    background: rgba(255, 255, 255, 0.055);
+    font-size: 0.78rem;
+    font-weight: 650;
+  }
+
+  .notification-button:hover,
+  .notification-button:focus-visible {
+    border-color: rgba(255, 89, 101, 0.36);
+    color: #ffffff;
+    background: rgba(255, 89, 101, 0.12);
   }
 
   .timer-layout {

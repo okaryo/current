@@ -5,6 +5,7 @@ export type AppSettings = {
     quickEntry: string;
   };
   pomodoroSound: PomodoroSoundSettings;
+  notification: NotificationSettings;
 };
 
 export const DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT = "CommandOrControl+Shift+L";
@@ -13,6 +14,10 @@ export const DEFAULT_POMODORO_SOUND_VOLUME = 100;
 export type PomodoroSoundSettings = {
   focusVolume: number;
   completionVolume: number;
+};
+
+export type NotificationSettings = {
+  permissionPromptSeen: boolean;
 };
 
 export function getSettings() {
@@ -32,6 +37,12 @@ export function updatePomodoroSoundSettings({
   return invoke<AppSettings>("update_pomodoro_sound_settings", {
     focusVolume,
     completionVolume,
+  });
+}
+
+export function updateNotificationPermissionPromptSeen(seen: boolean) {
+  return invoke<AppSettings>("update_notification_permission_prompt_seen", {
+    seen,
   });
 }
 

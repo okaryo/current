@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  requestCurrentNotificationPermission,
   sendCurrentNotification,
   type NotificationGateway,
 } from "$lib/notifications";
@@ -35,29 +36,27 @@ describe("sendCurrentNotification", () => {
     });
   });
 
-  it("requests permission before sending when permission is not yet granted", async () => {
+  it("skips sending without requesting permission when permission is not granted", async () => {
     const notificationGateway = gateway({
       isPermissionGranted: vi.fn().mockResolvedValue(false),
     });
 
     await sendCurrentNotification(notification, notificationGateway);
 
-    expect(notificationGateway.requestPermission).toHaveBeenCalledOnce();
-    expect(notificationGateway.sendNotification).toHaveBeenCalledWith({
-      title: notification.title,
-      body: notification.body,
-    });
+    expect(notificationGateway.requestPermission).not.toHaveBeenCalled();
+    expect(notificationGateway.sendNotification).not.toHaveBeenCalled();
   });
 
-  it("does not send when permission is denied", async () => {
+  it("requests notification permission explicitly", async () => {
     const notificationGateway = gateway({
-      isPermissionGranted: vi.fn().mockResolvedValue(false),
-      requestPermission: vi.fn().mockResolvedValue("denied"),
+      requestPermission: vi.fn().mockResolvedValue("granted"),
     });
 
-    await sendCurrentNotification(notification, notificationGateway);
+    await expect(
+      requestCurrentNotificationPermission(notificationGateway),
+    ).resolves.toBe(true);
 
-    expect(notificationGateway.sendNotification).not.toHaveBeenCalled();
+    expect(notificationGateway.requestPermission).toHaveBeenCalledOnce();
   });
 
   it("warns and swallows notification errors", async () => {

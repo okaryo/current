@@ -10,6 +10,8 @@ pub struct AppSettings {
     pub global_shortcut: GlobalShortcutSettings,
     #[serde(default)]
     pub pomodoro_sound: PomodoroSoundSettings,
+    #[serde(default)]
+    pub notification: NotificationSettings,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -51,4 +53,11 @@ impl Default for PomodoroSoundSettings {
 
 fn default_pomodoro_sound_volume() -> u8 {
     DEFAULT_POMODORO_SOUND_VOLUME
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationSettings {
+    #[serde(default)]
+    pub permission_prompt_seen: bool,
 }

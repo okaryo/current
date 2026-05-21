@@ -8,6 +8,7 @@
     getSettings,
     pauseQuickEntryGlobalShortcut,
     resumeQuickEntryGlobalShortcut,
+    updateNotificationPermissionPromptSeen,
     updatePomodoroSoundSettings,
     updateQuickEntryGlobalShortcut,
     type PomodoroSoundSettings,
@@ -30,6 +31,10 @@
     type TodoCommand,
     type WorkLogCommand,
   } from "$lib/keyboard";
+  import {
+    isCurrentNotificationPermissionGranted,
+    requestCurrentNotificationPermission,
+  } from "$lib/notifications";
 
   type Section = {
     id: SectionId;
@@ -74,6 +79,16 @@
   let pomodoroFocusVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
   let pomodoroCompletionVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
   let pomodoroSoundSaveRequestId = 0;
+  let settingsLoaded = $state(false);
+  let notificationPermissionLoaded = $state(false);
+  let notificationPermissionGranted = $state(false);
+  let notificationPermissionPromptSeen = $state(false);
+  const showNotificationPermissionPrompt = $derived(
+    settingsLoaded &&
+      notificationPermissionLoaded &&
+      !notificationPermissionGranted &&
+      !notificationPermissionPromptSeen,
+  );
 
   onMount(() => {
     const dateInterval = window.setInterval(() => {
@@ -82,6 +97,7 @@
 
     void checkForUpdates();
     void loadSettings();
+    void loadNotificationPermission();
 
     return () => {
       window.clearInterval(dateInterval);
@@ -290,6 +306,7 @@
 
   async function loadSettings() {
     if (!isTauriRuntime()) {
+      settingsLoaded = true;
       return;
     }
 
@@ -298,9 +315,19 @@
       quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
       pomodoroFocusVolume = settings.pomodoroSound.focusVolume;
       pomodoroCompletionVolume = settings.pomodoroSound.completionVolume;
+      notificationPermissionPromptSeen =
+        settings.notification.permissionPromptSeen;
     } catch (error) {
       console.warn("Settings load failed", error);
+    } finally {
+      settingsLoaded = true;
     }
+  }
+
+  async function loadNotificationPermission() {
+    notificationPermissionGranted =
+      await isCurrentNotificationPermissionGranted();
+    notificationPermissionLoaded = true;
   }
 
   async function saveQuickEntryGlobalShortcut(shortcut: string) {
@@ -331,6 +358,22 @@
 
     pomodoroFocusVolume = savedSettings.pomodoroSound.focusVolume;
     pomodoroCompletionVolume = savedSettings.pomodoroSound.completionVolume;
+  }
+
+  async function requestNotificationPermission() {
+    notificationPermissionPromptSeen = true;
+    notificationPermissionGranted =
+      await requestCurrentNotificationPermission();
+
+    if (isTauriRuntime()) {
+      try {
+        const settings = await updateNotificationPermissionPromptSeen(true);
+        notificationPermissionPromptSeen =
+          settings.notification.permissionPromptSeen;
+      } catch (error) {
+        console.warn("Notification prompt state save failed", error);
+      }
+    }
   }
 
   async function pauseQuickEntryShortcutRecording() {
@@ -377,8 +420,10 @@
         shortcut={sections[0].shortcut}
         focusVolume={pomodoroFocusVolume}
         completionVolume={pomodoroCompletionVolume}
+        {showNotificationPermissionPrompt}
         commandRequest={pomodoroCommandRequest}
         onActivate={() => setActiveSection("pomodoro", { preserveFocus: true })}
+        onRequestNotificationPermission={requestNotificationPermission}
       />
     </div>
 

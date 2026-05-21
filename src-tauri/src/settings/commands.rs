@@ -110,6 +110,19 @@ pub fn update_pomodoro_sound_settings(
 }
 
 #[tauri::command]
+pub fn update_notification_permission_prompt_seen(
+    seen: bool,
+    app: AppHandle,
+) -> Result<AppSettings, String> {
+    let mut settings = service::load(&app)?;
+
+    settings.notification.permission_prompt_seen = seen;
+    service::save(&app, &settings)?;
+
+    Ok(settings)
+}
+
+#[tauri::command]
 pub fn pause_quick_entry_global_shortcut(
     app: AppHandle,
     state: State<GlobalShortcutState>,

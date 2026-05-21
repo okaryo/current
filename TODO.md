@@ -205,6 +205,8 @@ Pomodoro decisions:
 - Focus duration is fixed at 25 minutes for now.
 - Timer stops and returns to `25:00` when focus completes.
 - Timer sends a system notification when focus completes.
+- Timer notifications check OS permission and silently skip notification when permission is not granted.
+- Notification permission is requested only from an explicit Pomodoro section action, and that prompt action is persisted in `settings.json` so the inline prompt is shown only once.
 - Timer plays a completion sound when focus completes.
 - Timer plays a looping focus sound while focus is running.
 - Reset always stops the timer and returns to `25:00`.
