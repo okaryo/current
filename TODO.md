@@ -78,7 +78,7 @@ Keyboard decisions:
 - `e`: edit the selected TODO
 - `Enter`: set/unset the selected TODO as Now
 - `t`: add a subtask to the selected TODO when it is a root task
-- `Shift+/`: open or close the Todo keyboard shortcuts popover
+- `Shift+/`: open or close the Todo keyboard shortcuts dialog
 - `Shift+D`: delete the selected TODO immediately
 - `Escape`: cancel edit or clear selection
 - Delete intentionally does not use plain `d`.
@@ -89,7 +89,7 @@ Keyboard decisions:
 - `Cmd+Enter` submits both Todo and Log entries from the shared quick input.
 - Todo mode prevents plain `Enter` from creating a newline; pasted multiline Todo text is normalized into a single-line title.
 - Pressing `Esc` from the shared quick input restores focus to the section that was active before input started.
-- The TODO header keeps a compact keyboard icon at the right edge for opening the shortcuts popover; item-specific shortcuts are not shown persistently in the list. The popover lists `Shift+/` as "Show Keyboard Shortcuts" and shows both `j` / `k` and arrow keys for movement.
+- The TODO header keeps a compact keyboard icon at the right edge for opening the shortcuts dialog; item-specific shortcuts are not shown persistently in the list. The dialog title is "Todo shortcuts", lists `Shift+/` as "Show Keyboard Shortcuts", shows both `j` / `k` and arrow keys for movement, and uses a two-column layout with actions on the left and keys on the right.
 - Focused text inputs should avoid native blue outlines and use caret/container border emphasis instead.
 
 ### Nested TODO
