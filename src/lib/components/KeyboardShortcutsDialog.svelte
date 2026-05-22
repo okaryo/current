@@ -92,7 +92,7 @@
           ],
         },
         { action: "Delete Todo", keys: [{ value: "D" }] },
-        { action: "Clear Selection", keys: [{ value: "Escape" }] },
+        { action: "Clear Selection", keys: [{ value: "Esc" }] },
       ],
     },
   ];
