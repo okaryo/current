@@ -406,8 +406,13 @@ Pomodoro sound decisions:
 
 ### Keyboard Workflow
 
-- [ ] Add keyboard shortcut for focusing timer section
+- [x] Add keyboard shortcut for focusing timer section
 - [x] Add global hotkey for showing a Quick Entry window
+
+Keyboard Workflow decisions:
+
+- `Cmd+1` activates the Pomodoro section.
+- Pomodoro timer controls are available app-wide through `Cmd+Shift+P` and `Cmd+Shift+R`, so no additional timer-focus shortcut is planned.
 
 ### Work Log
 
