@@ -89,7 +89,10 @@ Keyboard decisions:
 - `Cmd+Enter` submits both Todo and Log entries from the shared quick input.
 - Todo mode prevents plain `Enter` from creating a newline; pasted multiline Todo text is normalized into a single-line title.
 - Pressing `Esc` from the shared quick input restores focus to the section that was active before input started.
-- The TODO header keeps a compact keyboard icon at the right edge for opening the shortcuts dialog; item-specific shortcuts are not shown persistently in the list. The dialog title is "Todo shortcuts", lists `Shift+/` as "Show Keyboard Shortcuts", shows both `j` / `k` and arrow keys for movement, and uses a two-column layout with actions on the left and keys on the right.
+- Keyboard shortcut help opens from a compact footer icon or `Shift+/`, outside any single section's ownership.
+- The shortcut help dialog is titled "Keyboard shortcuts" and groups shortcuts by `Navigation`, `Pomodoro`, and `Todo`.
+- The shortcut help dialog lists `Cmd+Shift+[` and `Cmd+Shift+]` as section navigation shortcuts.
+- Settings, Quick Input, and Update shortcuts stay out of the shortcut help dialog for now because those controls already show their shortcuts in context.
 - Focused text inputs should avoid native blue outlines and use caret/container border emphasis instead.
 
 ### Nested TODO

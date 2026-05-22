@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   adjacentSection,
   globalEntryShortcutRequested,
+  keyboardShortcutsRequested,
   pomodoroCommandFromKeydown,
   pomodoroGlobalCommandFromKeydown,
   sectionFromShortcut,
@@ -124,6 +125,29 @@ describe("updateShortcutRequested", () => {
   });
 });
 
+describe("keyboardShortcutsRequested", () => {
+  it("accepts Shift+Slash", () => {
+    expect(
+      keyboardShortcutsRequested(
+        key({ key: "?", code: "Slash", shiftKey: true }),
+      ),
+    ).toBe(true);
+    expect(
+      keyboardShortcutsRequested(
+        key({ key: "/", code: "Slash", shiftKey: true }),
+      ),
+    ).toBe(true);
+  });
+
+  it("ignores Shift+Slash with command modifiers", () => {
+    expect(
+      keyboardShortcutsRequested(
+        key({ key: "?", code: "Slash", shiftKey: true, metaKey: true }),
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("pomodoroCommandFromKeydown", () => {
   it.each([
     [" ", "toggle"],
@@ -171,8 +195,6 @@ describe("todoCommandFromKeydown", () => {
     [key({ key: "a" }), "addTodo"],
     [key({ key: "t" }), "addSubtask"],
     [key({ key: "Enter" }), "toggleNow"],
-    [key({ key: "?", code: "Slash", shiftKey: true }), "toggleShortcutHelp"],
-    [key({ key: "/", code: "Slash", shiftKey: true }), "toggleShortcutHelp"],
     [key({ key: "D", shiftKey: true }), "delete"],
     [key({ key: "Escape" }), "clearSelection"],
   ] as const)("maps TODO shortcuts", (event, command) => {
@@ -200,9 +222,7 @@ describe("todoCommandFromKeydown", () => {
     ).toBeNull();
     expect(todoCommandFromKeydown(key({ key: "?" }))).toBeNull();
     expect(
-      todoCommandFromKeydown(
-        key({ key: "?", code: "Slash", shiftKey: true, metaKey: true }),
-      ),
+      todoCommandFromKeydown(key({ key: "?", code: "Slash", shiftKey: true })),
     ).toBeNull();
   });
 });

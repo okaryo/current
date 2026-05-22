@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Settings } from "@lucide/svelte";
+  import { Keyboard, Settings } from "@lucide/svelte";
   import GlobalEntryInput from "$lib/components/GlobalEntryInput.svelte";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import type { SectionId } from "$lib/keyboard";
@@ -19,6 +19,7 @@
     updateState: UpdateState;
     onCancelEntry: (section: SectionId) => void;
     onInstallUpdate: () => void;
+    onOpenKeyboardShortcuts: () => void;
     onOpenSettings: () => void;
   };
 
@@ -29,6 +30,7 @@
     updateState,
     onCancelEntry,
     onInstallUpdate,
+    onOpenKeyboardShortcuts,
     onOpenSettings,
   }: Props = $props();
 
@@ -69,6 +71,16 @@
         {/if}
       </button>
     {/if}
+
+    <button
+      type="button"
+      class="icon-button"
+      aria-label="Open keyboard shortcuts with Shift Slash"
+      title="Keyboard shortcuts (Shift+/)"
+      onclick={onOpenKeyboardShortcuts}
+    >
+      <Keyboard size={15} strokeWidth={2} aria-hidden="true" />
+    </button>
 
     <button
       type="button"

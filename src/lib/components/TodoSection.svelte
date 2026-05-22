@@ -1,10 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
-  import {
-    ChevronRight,
-    Keyboard as KeyboardIcon,
-    X as CloseIcon,
-  } from "@lucide/svelte";
+  import { ChevronRight } from "@lucide/svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { createCurrentAudio } from "$lib/audio/player";
   import { todoCompletionSounds } from "$lib/audio/sounds";
@@ -36,7 +32,6 @@
     | "addSubtask"
     | "expandSubtasks"
     | "collapseSubtasks"
-    | "toggleShortcutHelp"
     | "delete"
     | "clearSelection";
 
@@ -75,8 +70,6 @@
   let isSavingSubtask = $state(false);
   let draftSubtaskInput = $state<HTMLInputElement>();
   let taskListElement = $state<HTMLUListElement>();
-  let shortcutHelpDialog = $state<HTMLDialogElement>();
-  let shortcutHelpOpen = $state(false);
   let collapsedParentIds = $state<number[]>([]);
   let lastCommandRequestId = 0;
   let dayRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -123,7 +116,6 @@
       cancelEdit();
       cancelDraftTodo();
       cancelDraftSubtask();
-      shortcutHelpOpen = false;
     }
   });
 
@@ -142,22 +134,6 @@
     }
 
     void scrollSelectedTodoIntoView();
-  });
-
-  $effect(() => {
-    if (!shortcutHelpDialog) {
-      return;
-    }
-
-    if (shortcutHelpOpen && !shortcutHelpDialog.open) {
-      shortcutHelpDialog.showModal();
-      shortcutHelpDialog.focus({ preventScroll: true });
-      return;
-    }
-
-    if (!shortcutHelpOpen && shortcutHelpDialog.open) {
-      shortcutHelpDialog.close();
-    }
   });
 
   async function loadTodos() {
@@ -292,18 +268,11 @@
       case "collapseSubtasks":
         collapseSelectedTodo();
         break;
-      case "toggleShortcutHelp":
-        toggleShortcutHelp();
-        break;
       case "delete":
         await deleteSelectedTodo();
         break;
       case "clearSelection":
-        if (shortcutHelpOpen) {
-          shortcutHelpOpen = false;
-        } else {
-          clearTodoSelection();
-        }
+        clearTodoSelection();
         break;
     }
   }
@@ -470,21 +439,6 @@
     return isParentCollapsed(todo)
       ? `Expand subtasks for "${todo.title}"`
       : `Collapse subtasks for "${todo.title}"`;
-  }
-
-  function toggleShortcutHelp() {
-    onActivate();
-    shortcutHelpOpen = !shortcutHelpOpen;
-  }
-
-  function closeShortcutHelp() {
-    shortcutHelpOpen = false;
-  }
-
-  function handleShortcutDialogClick(event: MouseEvent) {
-    if (event.target === shortcutHelpDialog) {
-      closeShortcutHelp();
-    }
   }
 
   function moveSelection(direction: 1 | -1) {
@@ -731,126 +685,6 @@
       <p class="section-label section-label-todo">{title}</p>
       <KeyboardKey value={shortcut} label="Command 2" />
     </div>
-    <div class="header-actions">
-      <div class="shortcut-help">
-        <button
-          class="shortcut-help-button"
-          class:shortcut-help-button-active={shortcutHelpOpen}
-          type="button"
-          aria-label="Show Todo keyboard shortcuts with Shift Slash"
-          aria-expanded={shortcutHelpOpen}
-          aria-controls="todo-shortcut-help"
-          title="Keyboard shortcuts (Shift+/)"
-          onclick={toggleShortcutHelp}
-        >
-          <KeyboardIcon aria-hidden="true" size={14} />
-        </button>
-        <dialog
-          id="todo-shortcut-help"
-          class="shortcut-dialog"
-          aria-label="Todo keyboard shortcuts"
-          tabindex="-1"
-          bind:this={shortcutHelpDialog}
-          onclick={handleShortcutDialogClick}
-          oncancel={closeShortcutHelp}
-          onclose={closeShortcutHelp}
-        >
-          <div class="shortcut-dialog-content">
-            <div class="shortcut-dialog-header">
-              <h3>Todo shortcuts</h3>
-              <button
-                class="shortcut-dialog-close"
-                type="button"
-                aria-label="Close Todo keyboard shortcuts"
-                title="Close"
-                onclick={closeShortcutHelp}
-              >
-                <CloseIcon aria-hidden="true" size={14} />
-              </button>
-            </div>
-            <div class="shortcut-dialog-list" role="list">
-              <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">Add Todo</span>
-                <span class="shortcut-keys"
-                  ><KeyboardKey value="a" size="compact" /></span
-                >
-              </div>
-              <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">Add Subtask</span>
-                <span class="shortcut-keys"
-                  ><KeyboardKey value="t" size="compact" /></span
-                >
-              </div>
-              <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">Edit Todo</span>
-                <span class="shortcut-keys"
-                  ><KeyboardKey value="e" size="compact" /></span
-                >
-              </div>
-              <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">Complete or Reopen Todo</span>
-                <span class="shortcut-keys"
-                  ><KeyboardKey value="Space" size="compact" /></span
-                >
-              </div>
-              <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">Set or Unset Now</span>
-                <span class="shortcut-keys"
-                  ><KeyboardKey value="Enter" size="compact" /></span
-                >
-              </div>
-              <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">Move Selection</span>
-                <span class="shortcut-keys"
-                  ><KeyboardKey
-                    value="↑"
-                    label="Arrow Up"
-                    size="compact"
-                  /><KeyboardKey
-                    value="↓"
-                    label="Arrow Down"
-                    size="compact"
-                  /><span class="shortcut-separator">or</span><KeyboardKey
-                    value="j"
-                    size="compact"
-                  /><KeyboardKey value="k" size="compact" /></span
-                >
-              </div>
-              <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">Expand / Collapse Subtasks</span>
-                <span class="shortcut-keys"
-                  ><KeyboardKey
-                    value="→"
-                    label="Arrow Right"
-                    size="compact"
-                  /><KeyboardKey
-                    value="←"
-                    label="Arrow Left"
-                    size="compact"
-                  /></span
-                >
-              </div>
-              <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">Delete Todo</span>
-                <span class="shortcut-keys"
-                  ><KeyboardKey value="D" size="compact" /></span
-                >
-              </div>
-              <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">Show Keyboard Shortcuts</span>
-                <span class="shortcut-keys"
-                  ><KeyboardKey
-                    value="⇧/"
-                    label="Shift Slash"
-                    size="compact"
-                  /></span
-                >
-              </div>
-            </div>
-          </div>
-        </dialog>
-      </div>
-    </div>
   </header>
 
   <h2 id="todo-title" class="sr-only">Todo</h2>
@@ -1091,8 +925,7 @@
     align-items: center;
   }
 
-  .title-row,
-  .header-actions {
+  .title-row {
     display: flex;
     align-items: center;
     min-width: 0;
@@ -1100,12 +933,6 @@
 
   .title-row {
     gap: 0.65rem;
-  }
-
-  .header-actions {
-    justify-content: flex-end;
-    gap: 0.45rem;
-    margin-left: auto;
   }
 
   .section-label {
@@ -1117,157 +944,6 @@
 
   .section-label-todo {
     color: #44d16b;
-  }
-
-  .shortcut-help {
-    position: relative;
-    display: grid;
-    place-items: center;
-  }
-
-  .shortcut-help-button {
-    display: grid;
-    place-items: center;
-    width: 1.72rem;
-    height: 1.72rem;
-    border: 0;
-    border-radius: 6px;
-    padding: 0;
-    color: #d7dde6;
-    background: transparent;
-    cursor: pointer;
-  }
-
-  .shortcut-help-button:hover,
-  .shortcut-help-button:focus-visible {
-    color: #f1f5f9;
-    background: rgba(255, 255, 255, 0.075);
-    outline: none;
-  }
-
-  .shortcut-help-button:focus-visible {
-    box-shadow: 0 0 0 2px rgba(154, 185, 255, 0.22);
-  }
-
-  .shortcut-help-button-active {
-    color: #dfffe8;
-    background: rgba(68, 209, 107, 0.12);
-    box-shadow: 0 0 0 1px rgba(68, 209, 107, 0.26);
-  }
-
-  .shortcut-help-button-active:hover,
-  .shortcut-help-button-active:focus-visible {
-    background: rgba(68, 209, 107, 0.16);
-  }
-
-  .shortcut-dialog {
-    width: min(34rem, calc(100vw - 2rem));
-    max-height: calc(100vh - 2rem);
-    border: 1px solid rgba(68, 209, 107, 0.28);
-    border-radius: 8px;
-    padding: 0;
-    color: #d8dee8;
-    background: #080c10;
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-      0 1rem 2.5rem rgba(0, 0, 0, 0.38);
-  }
-
-  .shortcut-dialog:focus {
-    outline: none;
-  }
-
-  .shortcut-dialog::backdrop {
-    background: rgba(3, 6, 10, 0.58);
-  }
-
-  .shortcut-dialog-content {
-    padding: 0.85rem;
-  }
-
-  .shortcut-dialog-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 0.65rem;
-    color: #eef3fa;
-  }
-
-  .shortcut-dialog-header h3 {
-    margin: 0;
-    font-size: 0.92rem;
-    font-weight: 700;
-    letter-spacing: 0;
-  }
-
-  .shortcut-dialog-close {
-    display: grid;
-    place-items: center;
-    flex: 0 0 auto;
-    width: 1.72rem;
-    height: 1.72rem;
-    border: 0;
-    border-radius: 6px;
-    padding: 0;
-    color: #d7dde6;
-    background: transparent;
-    cursor: pointer;
-  }
-
-  .shortcut-dialog-close:hover,
-  .shortcut-dialog-close:focus-visible {
-    color: #f1f5f9;
-    background: rgba(255, 255, 255, 0.075);
-    outline: none;
-  }
-
-  .shortcut-dialog-close:focus-visible {
-    box-shadow: 0 0 0 2px rgba(154, 185, 255, 0.22);
-  }
-
-  .shortcut-dialog-list {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 8px;
-  }
-
-  .shortcut-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) max-content;
-    align-items: center;
-    gap: 0.85rem;
-    min-width: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-    padding: 0.55rem 0.65rem;
-  }
-
-  .shortcut-row:first-child {
-    border-top: 0;
-  }
-
-  .shortcut-action {
-    min-width: 0;
-    color: #aab2bf;
-    font-size: 0.78rem;
-    overflow-wrap: anywhere;
-  }
-
-  .shortcut-keys {
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.34rem;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  .shortcut-separator {
-    color: #737d8b;
-    font-size: 0.74rem;
   }
 
   .task-list-shell {
