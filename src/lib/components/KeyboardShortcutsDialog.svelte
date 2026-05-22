@@ -31,7 +31,7 @@
       title: "Navigation",
       shortcuts: [
         {
-          action: "Forcus Section",
+          action: "Focus Section",
           keys: [
             { value: "⌘1", label: "Command 1" },
             { value: "⌘2", label: "Command 2" },
@@ -193,12 +193,14 @@
 <style>
   .shortcut-dialog {
     width: min(35rem, calc(100vw - 2rem));
+    height: auto;
     max-height: calc(100vh - 2rem);
     border: 1px solid rgba(154, 185, 255, 0.24);
     border-radius: 8px;
     padding: 0;
     color: #d8dee8;
     background: #080c10;
+    overflow: hidden;
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.04),
       0 1rem 2.5rem rgba(0, 0, 0, 0.38);
@@ -216,13 +218,14 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    max-height: calc(100vh - 2rem);
+    max-height: inherit;
     padding: 0.85rem;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .shortcut-dialog-header {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
@@ -265,6 +268,9 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.7rem;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.1rem;
   }
 
   .shortcut-group h3 {
