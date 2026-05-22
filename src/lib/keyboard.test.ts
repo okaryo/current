@@ -8,6 +8,7 @@ import {
   settingsShortcutRequested,
   todoCommandFromKeydown,
   updateShortcutRequested,
+  workLogCommandFromKeydown,
   type KeyboardShortcutEvent,
 } from "$lib/keyboard";
 
@@ -214,5 +215,20 @@ describe("todoCommandFromKeydown", () => {
     expect(
       todoCommandFromKeydown(key({ key: "?", code: "Slash", shiftKey: true })),
     ).toBeNull();
+  });
+});
+
+describe("workLogCommandFromKeydown", () => {
+  it("maps plain e to editing the latest log", () => {
+    expect(workLogCommandFromKeydown(key({ key: "e" }))).toBe("editLatest");
+  });
+
+  it("ignores e with modifiers", () => {
+    expect(workLogCommandFromKeydown(key({ key: "e", metaKey: true }))).toBe(
+      null,
+    );
+    expect(workLogCommandFromKeydown(key({ key: "E", shiftKey: true }))).toBe(
+      null,
+    );
   });
 });

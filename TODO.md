@@ -411,7 +411,7 @@ Pomodoro sound decisions:
 
 ### Work Log
 
-- [ ] Amend the most recent work log
+- [x] Edit the most recent work log
 - [ ] Add timeline view for browsing past logs
 - [ ] Support keyboard navigation in the log timeline
 - [ ] Support browsing logs across days
@@ -420,7 +420,9 @@ Work Log post-release decisions:
 
 - Editing work logs should stay lightweight.
 - A likely amend flow is: bring the latest log back into the input, edit it, then submit to update it.
-- The shortcut for amending the latest log is undecided.
+- `e`: edit the latest Work Log entry when the Log section is active.
+- Editing the latest Work Log keeps the original creation timestamp and updates only the body.
+- During Work Log edit, the shared Todo / Log input stays in Log mode; `Cmd+Enter` updates the existing log and `Esc` cancels the edit.
 - The global hotkey is a post-initial-release feature and should show a dedicated Quick Entry window, not just bring the main application window to the front.
 - First, prototype the Quick Entry window with Tauri's standard multi-window APIs and verify whether the interaction feels right.
 - The current Tauri-only Quick Entry window appears to satisfy the intended quick entry workflow, so keep this approach.

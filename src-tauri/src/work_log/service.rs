@@ -17,6 +17,13 @@ pub fn create_work_log(app: &AppHandle, body: &str) -> Result<WorkLog, String> {
     repository::create(&connection, body, now_ms()?)
 }
 
+pub fn update_work_log(app: &AppHandle, id: u32, body: &str) -> Result<WorkLog, String> {
+    let body = normalize_body(body)?;
+    let connection = db::open(app)?;
+
+    repository::update_body(&connection, id, body)
+}
+
 fn now_ms() -> Result<i64, String> {
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)

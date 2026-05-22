@@ -13,6 +13,7 @@
     updateQuickEntryGlobalShortcut,
     type PomodoroSoundSettings,
   } from "$lib/api/settings";
+  import type { WorkLog } from "$lib/api/workLogs";
   import AppFooter from "$lib/components/AppFooter.svelte";
   import KeyboardShortcutsDialog from "$lib/components/KeyboardShortcutsDialog.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
@@ -27,6 +28,7 @@
     settingsShortcutRequested,
     todoCommandFromKeydown,
     updateShortcutRequested,
+    workLogCommandFromKeydown,
     type PomodoroCommand,
     type SectionId,
     type TodoCommand,
@@ -71,6 +73,10 @@
     command: WorkLogCommand;
   } | null>(null);
   let workLogCommandRequestId = 0;
+  let workLogEditRequest = $state<{ id: number; workLog: WorkLog } | null>(
+    null,
+  );
+  let workLogEditRequestId = 0;
   let globalEntryFocusRequest = $state(0);
   let dateLabel = $state(formatDateLabel());
   let updateState = $state<UpdateState>("unavailable");
@@ -174,6 +180,7 @@
         handleTodoSectionKeydown(event);
         break;
       case "log":
+        handleWorkLogSectionKeydown(event);
         break;
     }
   }
@@ -184,6 +191,15 @@
     if (command) {
       event.preventDefault();
       requestTodoCommand(command);
+    }
+  }
+
+  function handleWorkLogSectionKeydown(event: KeyboardEvent) {
+    const command = workLogCommandFromKeydown(event);
+
+    if (command) {
+      event.preventDefault();
+      requestWorkLogCommand(command);
     }
   }
 
@@ -260,6 +276,13 @@
     workLogCommandRequest = {
       id: ++workLogCommandRequestId,
       command,
+    };
+  }
+
+  function requestWorkLogEdit(workLog: WorkLog) {
+    workLogEditRequest = {
+      id: ++workLogEditRequestId,
+      workLog,
     };
   }
 
@@ -463,6 +486,7 @@
         shortcut={sections[2].shortcut}
         commandRequest={workLogCommandRequest}
         onActivate={() => setActiveSection("log", { preserveFocus: true })}
+        onEditLatest={requestWorkLogEdit}
       />
     </div>
   </div>
@@ -471,6 +495,7 @@
     {activeSection}
     {dateLabel}
     focusRequest={globalEntryFocusRequest}
+    {workLogEditRequest}
     {updateState}
     onCancelEntry={restoreSectionFromGlobalEntry}
     onInstallUpdate={installUpdate}

@@ -2,6 +2,7 @@
   import { Keyboard, Settings } from "@lucide/svelte";
   import GlobalEntryInput from "$lib/components/GlobalEntryInput.svelte";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import type { WorkLog } from "$lib/api/workLogs";
   import type { SectionId } from "$lib/keyboard";
 
   type UpdateState =
@@ -16,6 +17,10 @@
     activeSection: SectionId;
     dateLabel: string;
     focusRequest: number;
+    workLogEditRequest: {
+      id: number;
+      workLog: WorkLog;
+    } | null;
     updateState: UpdateState;
     onCancelEntry: (section: SectionId) => void;
     onInstallUpdate: () => void;
@@ -27,6 +32,7 @@
     activeSection,
     dateLabel,
     focusRequest,
+    workLogEditRequest,
     updateState,
     onCancelEntry,
     onInstallUpdate,
@@ -50,7 +56,12 @@
   <time class="footer-date">{dateLabel}</time>
 
   <div class="footer-entry">
-    <GlobalEntryInput {activeSection} {focusRequest} onCancel={onCancelEntry} />
+    <GlobalEntryInput
+      {activeSection}
+      {focusRequest}
+      {workLogEditRequest}
+      onCancel={onCancelEntry}
+    />
   </div>
 
   <div class="footer-actions">
