@@ -3,7 +3,6 @@ import {
   adjacentSection,
   globalEntryShortcutRequested,
   keyboardShortcutsRequested,
-  pomodoroCommandFromKeydown,
   pomodoroGlobalCommandFromKeydown,
   sectionFromShortcut,
   settingsShortcutRequested,
@@ -145,15 +144,6 @@ describe("keyboardShortcutsRequested", () => {
         key({ key: "?", code: "Slash", shiftKey: true, metaKey: true }),
       ),
     ).toBe(false);
-  });
-});
-
-describe("pomodoroCommandFromKeydown", () => {
-  it.each([
-    [" ", "toggle"],
-    ["r", "reset"],
-  ] as const)("maps %s to %s", (shortcut, command) => {
-    expect(pomodoroCommandFromKeydown({ key: shortcut })).toBe(command);
   });
 });
 

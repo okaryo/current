@@ -55,14 +55,12 @@
       id: "pomodoro",
       title: "Pomodoro",
       shortcuts: [
-        { action: "Start or Pause", keys: [{ value: "Space" }] },
-        { action: "Reset", keys: [{ value: "r" }] },
         {
-          action: "Start or Pause from Anywhere",
+          action: "Start or Pause",
           keys: [{ value: "⌘⇧P", label: "Command Shift P" }],
         },
         {
-          action: "Reset from Anywhere",
+          action: "Reset",
           keys: [{ value: "⌘⇧R", label: "Command Shift R" }],
         },
       ],

@@ -22,7 +22,6 @@
   import {
     globalEntryShortcutRequested,
     keyboardShortcutsRequested,
-    pomodoroCommandFromKeydown,
     pomodoroGlobalCommandFromKeydown,
     sectionFromShortcut,
     settingsShortcutRequested,
@@ -170,22 +169,12 @@
 
     switch (activeSection) {
       case "pomodoro":
-        handlePomodoroSectionKeydown(event);
         break;
       case "todo":
         handleTodoSectionKeydown(event);
         break;
       case "log":
         break;
-    }
-  }
-
-  function handlePomodoroSectionKeydown(event: KeyboardEvent) {
-    const command = pomodoroCommandFromKeydown(event);
-
-    if (command) {
-      event.preventDefault();
-      requestPomodoroCommand(command);
     }
   }
 

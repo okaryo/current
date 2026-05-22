@@ -222,12 +222,10 @@ Pomodoro decisions:
 
 Pomodoro keyboard decisions:
 
-- Plain Pomodoro shortcuts are scoped to the active Pomodoro section.
-- `Space`: start/pause
-- `r`: reset
-- `Cmd+Shift+P`: app-wide start/pause/continue
-- `Cmd+Shift+R`: app-wide reset
-- App-wide Pomodoro shortcuts operate the timer without changing the active section or stealing focus.
+- Pomodoro keyboard shortcuts are app-wide only.
+- `Cmd+Shift+P`: start/pause/continue
+- `Cmd+Shift+R`: reset
+- Pomodoro shortcuts operate the timer without changing the active section or stealing focus.
 
 ---
 

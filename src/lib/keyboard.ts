@@ -99,19 +99,6 @@ export function keyboardShortcutsRequested(event: KeyboardShortcutEvent) {
   );
 }
 
-export function pomodoroCommandFromKeydown(
-  event: Pick<KeyboardShortcutEvent, "key">,
-): PomodoroCommand | null {
-  switch (event.key) {
-    case " ":
-      return "toggle";
-    case "r":
-      return "reset";
-    default:
-      return null;
-  }
-}
-
 export function pomodoroGlobalCommandFromKeydown(
   event: KeyboardShortcutEvent,
 ): PomodoroCommand | null {
