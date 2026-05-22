@@ -517,15 +517,11 @@
 <style>
   :global(*) {
     box-sizing: border-box;
-    scrollbar-color: var(--scrollbar-thumb) transparent;
+    scrollbar-color: rgba(132, 151, 179, 0.44) transparent;
     scrollbar-width: thin;
   }
 
   :global(html) {
-    --scrollbar-thumb: rgba(132, 151, 179, 0.44);
-    --scrollbar-thumb-hover: rgba(158, 177, 204, 0.56);
-    --scrollbar-thumb-border: rgba(9, 12, 16, 0.78);
-
     color: #e8ecf2;
     background: #0b0d10;
     font-family:
