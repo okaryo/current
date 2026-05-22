@@ -95,6 +95,11 @@
         { action: "Clear Selection", keys: [{ value: "Esc" }] },
       ],
     },
+    {
+      id: "log",
+      title: "Log",
+      shortcuts: [{ action: "Edit Latest Log", keys: [{ value: "e" }] }],
+    },
   ];
 
   $effect(() => {

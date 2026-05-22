@@ -13,12 +13,14 @@
     updateQuickEntryGlobalShortcut,
     type PomodoroSoundSettings,
   } from "$lib/api/settings";
+  import type { WorkLog } from "$lib/api/workLogs";
   import AppFooter from "$lib/components/AppFooter.svelte";
   import KeyboardShortcutsDialog from "$lib/components/KeyboardShortcutsDialog.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
+  import { formatFooterDateLabel } from "$lib/dateFormat";
   import {
     globalEntryShortcutRequested,
     keyboardShortcutsRequested,
@@ -27,6 +29,7 @@
     settingsShortcutRequested,
     todoCommandFromKeydown,
     updateShortcutRequested,
+    workLogCommandFromKeydown,
     type PomodoroCommand,
     type SectionId,
     type TodoCommand,
@@ -71,8 +74,12 @@
     command: WorkLogCommand;
   } | null>(null);
   let workLogCommandRequestId = 0;
+  let workLogEditRequest = $state<{ id: number; workLog: WorkLog } | null>(
+    null,
+  );
+  let workLogEditRequestId = 0;
   let globalEntryFocusRequest = $state(0);
-  let dateLabel = $state(formatDateLabel());
+  let dateLabel = $state(formatFooterDateLabel());
   let updateState = $state<UpdateState>("unavailable");
   let availableUpdate = $state<Update | null>(null);
   let settingsDialogOpen = $state(false);
@@ -94,7 +101,7 @@
 
   onMount(() => {
     const dateInterval = window.setInterval(() => {
-      dateLabel = formatDateLabel();
+      dateLabel = formatFooterDateLabel();
     }, 60_000);
 
     void checkForUpdates();
@@ -174,6 +181,7 @@
         handleTodoSectionKeydown(event);
         break;
       case "log":
+        handleWorkLogSectionKeydown(event);
         break;
     }
   }
@@ -184,6 +192,15 @@
     if (command) {
       event.preventDefault();
       requestTodoCommand(command);
+    }
+  }
+
+  function handleWorkLogSectionKeydown(event: KeyboardEvent) {
+    const command = workLogCommandFromKeydown(event);
+
+    if (command) {
+      event.preventDefault();
+      requestWorkLogCommand(command);
     }
   }
 
@@ -260,6 +277,13 @@
     workLogCommandRequest = {
       id: ++workLogCommandRequestId,
       command,
+    };
+  }
+
+  function requestWorkLogEdit(workLog: WorkLog) {
+    workLogEditRequest = {
+      id: ++workLogEditRequestId,
+      workLog,
     };
   }
 
@@ -410,14 +434,6 @@
     await resumeQuickEntryGlobalShortcut();
   }
 
-  function formatDateLabel(date = new Date()) {
-    return new Intl.DateTimeFormat("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }).format(date);
-  }
-
   function isTauriRuntime() {
     return "__TAURI_INTERNALS__" in window;
   }
@@ -463,6 +479,7 @@
         shortcut={sections[2].shortcut}
         commandRequest={workLogCommandRequest}
         onActivate={() => setActiveSection("log", { preserveFocus: true })}
+        onEditLatest={requestWorkLogEdit}
       />
     </div>
   </div>
@@ -471,6 +488,7 @@
     {activeSection}
     {dateLabel}
     focusRequest={globalEntryFocusRequest}
+    {workLogEditRequest}
     {updateState}
     onCancelEntry={restoreSectionFromGlobalEntry}
     onInstallUpdate={installUpdate}
@@ -499,15 +517,11 @@
 <style>
   :global(*) {
     box-sizing: border-box;
-    scrollbar-color: var(--scrollbar-thumb) transparent;
+    scrollbar-color: rgba(132, 151, 179, 0.44) transparent;
     scrollbar-width: thin;
   }
 
   :global(html) {
-    --scrollbar-thumb: rgba(132, 151, 179, 0.44);
-    --scrollbar-thumb-hover: rgba(158, 177, 204, 0.56);
-    --scrollbar-thumb-border: rgba(9, 12, 16, 0.78);
-
     color: #e8ecf2;
     background: #0b0d10;
     font-family:

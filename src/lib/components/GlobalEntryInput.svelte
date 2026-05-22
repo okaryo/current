@@ -2,7 +2,11 @@
   import { tick } from "svelte";
   import { fade } from "svelte/transition";
   import { createTodo } from "$lib/api/todos";
-  import { createWorkLog } from "$lib/api/workLogs";
+  import {
+    createWorkLog,
+    updateWorkLog,
+    type WorkLog,
+  } from "$lib/api/workLogs";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import { effectWithDeps } from "$lib/effectWithDeps.svelte";
   import { normalizeTodoTitle } from "$lib/entry/todo";
@@ -11,16 +15,22 @@
 
   type SectionId = "pomodoro" | "todo" | "log";
   type EntryMode = "todo" | "log";
+  type WorkLogEditRequest = {
+    id: number;
+    workLog: WorkLog;
+  } | null;
 
   type Props = {
     activeSection: SectionId;
     focusRequest: number;
+    workLogEditRequest: WorkLogEditRequest;
     onCancel: (section: SectionId) => void;
   };
 
   const MAX_TEXTAREA_ROWS = 5;
 
-  let { activeSection, focusRequest, onCancel }: Props = $props();
+  let { activeSection, focusRequest, workLogEditRequest, onCancel }: Props =
+    $props();
 
   let mode = $state<EntryMode>("log");
   let value = $state("");
@@ -28,16 +38,23 @@
   let isSubmitting = $state(false);
   let error = $state<string | null>(null);
   let restoreSection = $state<SectionId>("log");
+  let editingWorkLog = $state<WorkLog | null>(null);
   let textareaElement = $state<HTMLTextAreaElement>();
   let panelElement = $state<HTMLElement>();
   let lastFocusRequest = 0;
+  let lastWorkLogEditRequestId = 0;
   let isComposingInput = false;
   let shouldIgnoreNextEnterAfterComposition = false;
 
   const placeholder = $derived(
-    mode === "log" ? "Write a log... (Enter for newline)" : "Add a todo...",
+    editingWorkLog
+      ? "Edit latest log... (Enter for newline)"
+      : mode === "log"
+        ? "Write a log... (Enter for newline)"
+        : "Add a todo...",
   );
   const hasValue = $derived(value.trim().length > 0);
+  const isEditingWorkLog = $derived(Boolean(editingWorkLog));
 
   $effect(() => {
     if (focusRequest === 0 || focusRequest === lastFocusRequest) {
@@ -47,6 +64,18 @@
     lastFocusRequest = focusRequest;
     restoreSection = activeSection;
     void focusInput();
+  });
+
+  $effect(() => {
+    if (
+      !workLogEditRequest ||
+      workLogEditRequest.id === lastWorkLogEditRequestId
+    ) {
+      return;
+    }
+
+    lastWorkLogEditRequestId = workLogEditRequest.id;
+    startEditingWorkLog(workLogEditRequest.workLog);
   });
 
   effectWithDeps(
@@ -63,10 +92,18 @@
   }
 
   function toggleMode() {
+    if (editingWorkLog) {
+      return;
+    }
+
     switchMode(mode === "log" ? "todo" : "log");
   }
 
   function setMode(nextMode: EntryMode) {
+    if (editingWorkLog) {
+      return;
+    }
+
     switchMode(nextMode);
   }
 
@@ -111,7 +148,9 @@
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === "Tab") {
       event.preventDefault();
-      toggleMode();
+      if (!editingWorkLog) {
+        toggleMode();
+      }
       return;
     }
 
@@ -119,6 +158,7 @@
       event.preventDefault();
       event.stopPropagation();
       textareaElement?.blur();
+      cancelEditingWorkLog();
       closeInput();
       onCancel(restoreSection);
       return;
@@ -198,11 +238,14 @@
     try {
       if (mode === "todo") {
         await createTodo(normalizeTodoTitle(body));
+      } else if (editingWorkLog) {
+        await updateWorkLog(editingWorkLog.id, body);
       } else {
         await createWorkLog(body);
       }
 
       value = "";
+      editingWorkLog = null;
       await tick();
       adjustTextareaHeight();
       textareaElement?.focus();
@@ -214,6 +257,27 @@
       adjustTextareaHeight();
       textareaElement?.focus();
     }
+  }
+
+  function startEditingWorkLog(workLog: WorkLog) {
+    restoreSection = "log";
+    editingWorkLog = workLog;
+    mode = "log";
+    value = workLog.body;
+    error = null;
+    void focusInput().then(() => {
+      textareaElement?.setSelectionRange(value.length, value.length);
+    });
+  }
+
+  function cancelEditingWorkLog() {
+    if (!editingWorkLog) {
+      return;
+    }
+
+    editingWorkLog = null;
+    value = "";
+    error = null;
   }
 
   function insertMarkdownNewLineInTextarea(target: EventTarget | null) {
@@ -316,37 +380,43 @@
     >
       <div class="entry-toolbar">
         <div class="mode-tabs" aria-label="Input type">
-          <button
-            class:mode-active={mode === "todo"}
-            class="mode-button mode-button-todo"
-            type="button"
-            aria-pressed={mode === "todo"}
-            onmousedown={(event) => event.preventDefault()}
-            onclick={() => setMode("todo")}
-          >
-            Todo
-          </button>
-          <button
-            class:mode-active={mode === "log"}
-            class="mode-button mode-button-log"
-            type="button"
-            aria-pressed={mode === "log"}
-            onmousedown={(event) => event.preventDefault()}
-            onclick={() => setMode("log")}
-          >
-            Log
-          </button>
+          {#if isEditingWorkLog}
+            <span class="editing-pill">Editing latest log</span>
+          {:else}
+            <button
+              class:mode-active={mode === "todo"}
+              class="mode-button mode-button-todo"
+              type="button"
+              aria-pressed={mode === "todo"}
+              onmousedown={(event) => event.preventDefault()}
+              onclick={() => setMode("todo")}
+            >
+              Todo
+            </button>
+            <button
+              class:mode-active={mode === "log"}
+              class="mode-button mode-button-log"
+              type="button"
+              aria-pressed={mode === "log"}
+              onmousedown={(event) => event.preventDefault()}
+              onclick={() => setMode("log")}
+            >
+              Log
+            </button>
+          {/if}
         </div>
 
         <div class="entry-shortcuts" aria-label="Quick input shortcuts">
-          <span><KeyboardKey value="Tab" size="compact" />Switch</span>
+          {#if !isEditingWorkLog}
+            <span><KeyboardKey value="Tab" size="compact" />Switch</span>
+          {/if}
           {#if hasValue}
             <span
               ><KeyboardKey
                 value="⌘Enter"
                 label="Command Enter"
                 size="compact"
-              />Submit</span
+              />{isEditingWorkLog ? "Update" : "Submit"}</span
             >
           {/if}
           <span
@@ -576,6 +646,20 @@
     border-color: rgba(91, 143, 249, 0.5);
     color: #86a9ff;
     background: rgba(91, 143, 249, 0.13);
+  }
+
+  .editing-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.65rem;
+    border: 1px solid rgba(91, 143, 249, 0.5);
+    border-radius: 7px;
+    padding: 0.22rem 0.55rem;
+    color: #aecaef;
+    background: rgba(91, 143, 249, 0.13);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1;
   }
 
   .entry-shortcuts {

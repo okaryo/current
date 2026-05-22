@@ -35,6 +35,7 @@ pub fn run() {
             todo::commands::delete_todo,
             work_log::commands::list_work_logs,
             work_log::commands::create_work_log,
+            work_log::commands::update_work_log,
             settings::commands::get_settings,
             settings::commands::update_quick_entry_global_shortcut,
             settings::commands::update_pomodoro_sound_settings,

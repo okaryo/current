@@ -15,3 +15,12 @@ pub fn create_work_log(body: String, app: AppHandle) -> Result<WorkLog, String> 
 
     Ok(work_log)
 }
+
+#[tauri::command]
+pub fn update_work_log(id: u32, body: String, app: AppHandle) -> Result<WorkLog, String> {
+    let work_log = service::update_work_log(&app, id, &body)?;
+
+    let _ = app.emit_to("main", "work-log:updated", &work_log);
+
+    Ok(work_log)
+}

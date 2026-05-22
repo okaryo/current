@@ -13,3 +13,7 @@ export function listWorkLogs(oldestCreatedAtMs: number) {
 export function createWorkLog(body: string) {
   return invoke<WorkLog>("create_work_log", { body });
 }
+
+export function updateWorkLog(id: number, body: string) {
+  return invoke<WorkLog>("update_work_log", { id, body });
+}

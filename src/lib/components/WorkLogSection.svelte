@@ -4,9 +4,15 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { listWorkLogs, type WorkLog } from "$lib/api/workLogs";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import {
+    addLocalDays,
+    formatWorkLogDateLabel,
+    formatWorkLogTime,
+    startOfLocalDay,
+  } from "$lib/dateFormat";
   import { linkifyWorkLogBody } from "$lib/work-log/linkify";
 
-  type WorkLogCommand = "focusPreferred";
+  type WorkLogCommand = "focusPreferred" | "editLatest";
 
   type WorkLogCommandRequest = {
     id: number;
@@ -19,6 +25,7 @@
     shortcut: string;
     commandRequest: WorkLogCommandRequest;
     onActivate: () => void;
+    onEditLatest: (workLog: WorkLog) => void;
   };
 
   type WorkLogGroup = {
@@ -34,7 +41,14 @@
   const LOG_TONE_LATE_THRESHOLD_MS = 30 * 60 * 1000;
   const LOG_TONE_STALE_THRESHOLD_MS = 60 * 60 * 1000;
 
-  let { active, title, shortcut, commandRequest, onActivate }: Props = $props();
+  let {
+    active,
+    title,
+    shortcut,
+    commandRequest,
+    onActivate,
+    onEditLatest,
+  }: Props = $props();
 
   let workLogs = $state<WorkLog[]>([]);
   let workLogError = $state<string | null>(null);
@@ -43,6 +57,7 @@
   let relativeTimeNowMs = $state(Date.now());
   let lastCommandRequestId = 0;
   let unlistenWorkLogCreated: UnlistenFn | undefined;
+  let unlistenWorkLogUpdated: UnlistenFn | undefined;
   let relativeTimeInterval: ReturnType<typeof setInterval> | undefined;
   const visibleWorkLogGroups = $derived(groupVisibleWorkLogs(workLogs));
   const lastWorkLog = $derived(workLogs[0] ?? null);
@@ -68,10 +83,17 @@
     }).then((unlisten) => {
       unlistenWorkLogCreated = unlisten;
     });
+
+    void listen<WorkLog>("work-log:updated", (event) => {
+      replaceWorkLog(event.payload);
+    }).then((unlisten) => {
+      unlistenWorkLogUpdated = unlisten;
+    });
   });
 
   onDestroy(() => {
     unlistenWorkLogCreated?.();
+    unlistenWorkLogUpdated?.();
 
     if (relativeTimeInterval) {
       clearInterval(relativeTimeInterval);
@@ -88,6 +110,9 @@
     switch (commandRequest.command) {
       case "focusPreferred":
         void focusList();
+        break;
+      case "editLatest":
+        editLatestWorkLog();
         break;
     }
   });
@@ -139,6 +164,24 @@
     void scrollLogListToTop();
   }
 
+  function replaceWorkLog(workLog: WorkLog) {
+    workLogs = workLogs
+      .map((existingWorkLog) =>
+        existingWorkLog.id === workLog.id ? workLog : existingWorkLog,
+      )
+      .sort(compareWorkLogs);
+    relativeTimeNowMs = Date.now();
+  }
+
+  function editLatestWorkLog() {
+    if (!lastWorkLog) {
+      return;
+    }
+
+    onActivate();
+    onEditLatest(lastWorkLog);
+  }
+
   function groupVisibleWorkLogs(logs: WorkLog[]): WorkLogGroup[] {
     const todayStartMs = startOfLocalDay(Date.now());
     const groups: WorkLogGroup[] = [];
@@ -156,7 +199,7 @@
 
       const nextGroup = {
         dateKey,
-        label: formatLogDateLabel(date, todayStartMs),
+        label: formatWorkLogDateLabel(date, todayStartMs),
         logs: [log],
       };
 
@@ -174,64 +217,11 @@
     );
   }
 
-  function startOfLocalDay(timestampMs: number) {
-    const date = new Date(timestampMs);
-
-    return new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-    ).getTime();
-  }
-
-  function addLocalDays(timestampMs: number, dayOffset: number) {
-    const date = new Date(timestampMs);
-
-    return new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate() + dayOffset,
-      date.getHours(),
-      date.getMinutes(),
-      date.getSeconds(),
-      date.getMilliseconds(),
-    ).getTime();
-  }
-
   function localDateKey(date: Date) {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
 
     return `${date.getFullYear()}-${month}-${day}`;
-  }
-
-  function formatLogDateLabel(date: Date, todayStartMs: number) {
-    const dateStartMs = startOfLocalDay(date.getTime());
-
-    if (dateStartMs === todayStartMs) {
-      return "Today";
-    }
-
-    if (dateStartMs === addLocalDays(todayStartMs, -1)) {
-      return "Yesterday";
-    }
-
-    return new Intl.DateTimeFormat(undefined, {
-      month: "short",
-      day: "numeric",
-      year:
-        date.getFullYear() === new Date(todayStartMs).getFullYear()
-          ? undefined
-          : "numeric",
-    }).format(date);
-  }
-
-  function formatLogTime(createdAtMs: number) {
-    return new Intl.DateTimeFormat(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).format(new Date(createdAtMs));
   }
 
   function formatLastLogLabel(workLog: WorkLog | null, nowMs: number) {
@@ -351,7 +341,7 @@
             <ol class="log-day-list" aria-label={`${group.label} logs`}>
               {#each group.logs as log (log.id)}
                 <li class="log-item">
-                  <time>{formatLogTime(log.createdAtMs)}</time>
+                  <time>{formatWorkLogTime(log.createdAtMs)}</time>
                   <span>
                     {#each linkifyWorkLogBody(log.body) as part, partIndex (`${part.kind}-${partIndex}`)}
                       {#if part.kind === "url"}

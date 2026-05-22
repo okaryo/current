@@ -41,6 +41,25 @@ pub fn create(connection: &Connection, body: &str, created_at_ms: i64) -> Result
     get(connection, id)?.ok_or_else(|| format!("Work log #{id} was not found after creation."))
 }
 
+pub fn update_body(connection: &Connection, id: u32, body: &str) -> Result<WorkLog, String> {
+    let updated_count = connection
+        .execute(
+            "
+            UPDATE work_logs
+            SET body = ?1
+            WHERE id = ?2
+            ",
+            params![body, id],
+        )
+        .map_err(|error| format!("Failed to update work log #{id}: {error}"))?;
+
+    if updated_count == 0 {
+        return Err(format!("Work log #{id} was not found."));
+    }
+
+    get(connection, id)?.ok_or_else(|| format!("Work log #{id} was not found after update."))
+}
+
 fn get(connection: &Connection, id: u32) -> Result<Option<WorkLog>, String> {
     connection
         .query_row(
@@ -100,6 +119,27 @@ mod tests {
         let log = create(&connection, body, 1000).expect("create work log");
 
         assert_eq!(log.body, body);
+    }
+
+    #[test]
+    fn updates_body_without_changing_created_at() {
+        let connection = migrated_connection();
+        let log = create(&connection, "draft", 1000).expect("create work log");
+
+        let updated = update_body(&connection, log.id, "updated").expect("update work log");
+
+        assert_eq!(updated.id, log.id);
+        assert_eq!(updated.body, "updated");
+        assert_eq!(updated.created_at_ms, 1000);
+    }
+
+    #[test]
+    fn rejects_update_for_missing_work_log() {
+        let connection = migrated_connection();
+
+        let result = update_body(&connection, 42, "updated");
+
+        assert_eq!(result.unwrap_err(), "Work log #42 was not found.");
     }
 
     #[test]
