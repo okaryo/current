@@ -4,6 +4,12 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { listWorkLogs, type WorkLog } from "$lib/api/workLogs";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
+  import {
+    addLocalDays,
+    formatWorkLogDateLabel,
+    formatWorkLogTime,
+    startOfLocalDay,
+  } from "$lib/dateFormat";
   import { linkifyWorkLogBody } from "$lib/work-log/linkify";
 
   type WorkLogCommand = "focusPreferred" | "editLatest";
@@ -193,7 +199,7 @@
 
       const nextGroup = {
         dateKey,
-        label: formatLogDateLabel(date, todayStartMs),
+        label: formatWorkLogDateLabel(date, todayStartMs),
         logs: [log],
       };
 
@@ -211,64 +217,11 @@
     );
   }
 
-  function startOfLocalDay(timestampMs: number) {
-    const date = new Date(timestampMs);
-
-    return new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-    ).getTime();
-  }
-
-  function addLocalDays(timestampMs: number, dayOffset: number) {
-    const date = new Date(timestampMs);
-
-    return new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate() + dayOffset,
-      date.getHours(),
-      date.getMinutes(),
-      date.getSeconds(),
-      date.getMilliseconds(),
-    ).getTime();
-  }
-
   function localDateKey(date: Date) {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
 
     return `${date.getFullYear()}-${month}-${day}`;
-  }
-
-  function formatLogDateLabel(date: Date, todayStartMs: number) {
-    const dateStartMs = startOfLocalDay(date.getTime());
-
-    if (dateStartMs === todayStartMs) {
-      return "Today";
-    }
-
-    if (dateStartMs === addLocalDays(todayStartMs, -1)) {
-      return "Yesterday";
-    }
-
-    return new Intl.DateTimeFormat(undefined, {
-      month: "short",
-      day: "numeric",
-      year:
-        date.getFullYear() === new Date(todayStartMs).getFullYear()
-          ? undefined
-          : "numeric",
-    }).format(date);
-  }
-
-  function formatLogTime(createdAtMs: number) {
-    return new Intl.DateTimeFormat(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).format(new Date(createdAtMs));
   }
 
   function formatLastLogLabel(workLog: WorkLog | null, nowMs: number) {
@@ -388,7 +341,7 @@
             <ol class="log-day-list" aria-label={`${group.label} logs`}>
               {#each group.logs as log (log.id)}
                 <li class="log-item">
-                  <time>{formatLogTime(log.createdAtMs)}</time>
+                  <time>{formatWorkLogTime(log.createdAtMs)}</time>
                   <span>
                     {#each linkifyWorkLogBody(log.body) as part, partIndex (`${part.kind}-${partIndex}`)}
                       {#if part.kind === "url"}

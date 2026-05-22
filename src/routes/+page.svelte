@@ -20,6 +20,7 @@
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
+  import { formatFooterDateLabel } from "$lib/dateFormat";
   import {
     globalEntryShortcutRequested,
     keyboardShortcutsRequested,
@@ -78,7 +79,7 @@
   );
   let workLogEditRequestId = 0;
   let globalEntryFocusRequest = $state(0);
-  let dateLabel = $state(formatDateLabel());
+  let dateLabel = $state(formatFooterDateLabel());
   let updateState = $state<UpdateState>("unavailable");
   let availableUpdate = $state<Update | null>(null);
   let settingsDialogOpen = $state(false);
@@ -100,7 +101,7 @@
 
   onMount(() => {
     const dateInterval = window.setInterval(() => {
-      dateLabel = formatDateLabel();
+      dateLabel = formatFooterDateLabel();
     }, 60_000);
 
     void checkForUpdates();
@@ -431,14 +432,6 @@
     }
 
     await resumeQuickEntryGlobalShortcut();
-  }
-
-  function formatDateLabel(date = new Date()) {
-    return new Intl.DateTimeFormat("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }).format(date);
   }
 
   function isTauriRuntime() {
