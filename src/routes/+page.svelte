@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import { relaunch } from "@tauri-apps/plugin-process";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import {
     DEFAULT_POMODORO_SOUND_VOLUME,
     DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
@@ -58,6 +59,7 @@
     { id: "todo", title: "Todo", shortcut: "⌘2" },
     { id: "log", title: "Log", shortcut: "⌘3" },
   ];
+  const UPDATE_CHECK_COOLDOWN_MS = 24 * 60 * 60 * 1000;
   let activeSection = $state<SectionId>("log");
   let pomodoroCommandRequest = $state<{
     id: number;
@@ -82,6 +84,8 @@
   let dateLabel = $state(formatFooterDateLabel());
   let updateState = $state<UpdateState>("unavailable");
   let availableUpdate = $state<Update | null>(null);
+  let updateCheckInFlight = false;
+  let lastUpdateCheckAttemptAt = 0;
   let settingsDialogOpen = $state(false);
   let keyboardShortcutsDialogOpen = $state(false);
   let quickEntryGlobalShortcut = $state(DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT);
@@ -103,13 +107,41 @@
     const dateInterval = window.setInterval(() => {
       dateLabel = formatFooterDateLabel();
     }, 60_000);
+    const updateInterval = window.setInterval(() => {
+      void checkForUpdates();
+    }, UPDATE_CHECK_COOLDOWN_MS);
+    let disposed = false;
+    let unlistenFocusChange: (() => void) | null = null;
 
-    void checkForUpdates();
+    void checkForUpdates({ force: true });
     void loadSettings();
     void loadNotificationPermission();
 
+    if (isTauriRuntime()) {
+      void getCurrentWindow()
+        .onFocusChanged(({ payload: focused }) => {
+          if (focused) {
+            void checkForUpdates();
+          }
+        })
+        .then((unlisten) => {
+          if (disposed) {
+            unlisten();
+            return;
+          }
+
+          unlistenFocusChange = unlisten;
+        })
+        .catch((error) => {
+          console.warn("Update focus listener setup failed", error);
+        });
+    }
+
     return () => {
+      disposed = true;
       window.clearInterval(dateInterval);
+      window.clearInterval(updateInterval);
+      unlistenFocusChange?.();
     };
   });
 
@@ -311,12 +343,18 @@
     );
   }
 
-  async function checkForUpdates() {
+  async function checkForUpdates(options: { force?: boolean } = {}) {
     if (!isTauriRuntime()) {
       updateState = "unavailable";
       return;
     }
 
+    if (shouldSkipUpdateCheck(options.force ?? false)) {
+      return;
+    }
+
+    updateCheckInFlight = true;
+    lastUpdateCheckAttemptAt = Date.now();
     updateState = "checking";
 
     try {
@@ -327,7 +365,23 @@
     } catch (error) {
       console.warn("Update check failed", error);
       updateState = "error";
+    } finally {
+      updateCheckInFlight = false;
     }
+  }
+
+  function shouldSkipUpdateCheck(force: boolean) {
+    if (
+      updateCheckInFlight ||
+      updateState === "available" ||
+      updateState === "installing"
+    ) {
+      return true;
+    }
+
+    return (
+      !force && Date.now() - lastUpdateCheckAttemptAt < UPDATE_CHECK_COOLDOWN_MS
+    );
   }
 
   async function installUpdate() {
