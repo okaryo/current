@@ -14,13 +14,14 @@
     type PomodoroSoundSettings,
   } from "$lib/api/settings";
   import AppFooter from "$lib/components/AppFooter.svelte";
+  import KeyboardShortcutsDialog from "$lib/components/KeyboardShortcutsDialog.svelte";
   import PomodoroSection from "$lib/components/PomodoroSection.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
   import TodoSection from "$lib/components/TodoSection.svelte";
   import WorkLogSection from "$lib/components/WorkLogSection.svelte";
   import {
     globalEntryShortcutRequested,
-    pomodoroCommandFromKeydown,
+    keyboardShortcutsRequested,
     pomodoroGlobalCommandFromKeydown,
     sectionFromShortcut,
     settingsShortcutRequested,
@@ -75,6 +76,7 @@
   let updateState = $state<UpdateState>("unavailable");
   let availableUpdate = $state<Update | null>(null);
   let settingsDialogOpen = $state(false);
+  let keyboardShortcutsDialogOpen = $state(false);
   let quickEntryGlobalShortcut = $state(DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT);
   let pomodoroFocusVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
   let pomodoroCompletionVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
@@ -105,6 +107,20 @@
   });
 
   function handleKeydown(event: KeyboardEvent) {
+    if (
+      keyboardShortcutsRequested(event) &&
+      !settingsDialogOpen &&
+      !isTextInputTarget(event.target)
+    ) {
+      event.preventDefault();
+      toggleKeyboardShortcutsDialog();
+      return;
+    }
+
+    if (keyboardShortcutsDialogOpen) {
+      return;
+    }
+
     if (settingsShortcutRequested(event)) {
       event.preventDefault();
       openSettingsDialog();
@@ -153,22 +169,12 @@
 
     switch (activeSection) {
       case "pomodoro":
-        handlePomodoroSectionKeydown(event);
         break;
       case "todo":
         handleTodoSectionKeydown(event);
         break;
       case "log":
         break;
-    }
-  }
-
-  function handlePomodoroSectionKeydown(event: KeyboardEvent) {
-    const command = pomodoroCommandFromKeydown(event);
-
-    if (command) {
-      event.preventDefault();
-      requestPomodoroCommand(command);
     }
   }
 
@@ -191,6 +197,18 @@
 
   function closeSettingsDialog() {
     settingsDialogOpen = false;
+  }
+
+  function openKeyboardShortcutsDialog() {
+    keyboardShortcutsDialogOpen = true;
+  }
+
+  function closeKeyboardShortcutsDialog() {
+    keyboardShortcutsDialogOpen = false;
+  }
+
+  function toggleKeyboardShortcutsDialog() {
+    keyboardShortcutsDialogOpen = !keyboardShortcutsDialogOpen;
   }
 
   function activateSectionFromShortcut(section: SectionId) {
@@ -456,7 +474,13 @@
     {updateState}
     onCancelEntry={restoreSectionFromGlobalEntry}
     onInstallUpdate={installUpdate}
+    onOpenKeyboardShortcuts={openKeyboardShortcutsDialog}
     onOpenSettings={openSettingsDialog}
+  />
+
+  <KeyboardShortcutsDialog
+    open={keyboardShortcutsDialogOpen}
+    onClose={closeKeyboardShortcutsDialog}
   />
 
   <SettingsDialog
