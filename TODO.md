@@ -374,6 +374,7 @@ Initial release testing decisions:
 
 ### Bug Fixes
 
+- [ ] Fix the release build issue where custom scrollbar styles are not applied.
 - [ ] Fix the known multi-display Quick Entry issue where opening from the global hotkey can show the window on the wrong display or leave focus on another window, especially when the cursor is on a different display than the main Current window.
 
 ### Distribution
