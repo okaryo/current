@@ -1,14 +1,23 @@
 <script lang="ts">
-  import { X } from "@lucide/svelte";
+  import { ChevronDown, ChevronUp, X } from "@lucide/svelte";
   import { tick } from "svelte";
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import {
     shortcutFromKeydown,
     shortcutToKeyboardKeys,
   } from "$lib/globalShortcut";
-  import type { PomodoroSoundSettings } from "$lib/api/settings";
+  import {
+    MAX_POMODORO_FOCUS_DURATION_MINUTES,
+    MIN_POMODORO_FOCUS_DURATION_MINUTES,
+    type PomodoroSoundSettings,
+    type PomodoroTimerSettings,
+  } from "$lib/api/settings";
 
-  type SettingId = "quick-entry" | "focus-volume" | "completion-volume";
+  type SettingId =
+    | "quick-entry"
+    | "focus-duration"
+    | "focus-volume"
+    | "completion-volume";
   type ShortcutHint = {
     keys: string[];
     label: string;
@@ -17,12 +26,16 @@
   type Props = {
     open: boolean;
     quickEntryShortcut: string;
+    pomodoroFocusDurationMinutes: number;
     pomodoroFocusVolume: number;
     pomodoroCompletionVolume: number;
     onClose: () => void;
     onStartQuickEntryShortcutRecording: () => Promise<void>;
     onCancelQuickEntryShortcutRecording: () => Promise<void>;
     onUpdateQuickEntryShortcut: (shortcut: string) => Promise<void>;
+    onUpdatePomodoroTimerSettings: (
+      settings: PomodoroTimerSettings,
+    ) => Promise<void>;
     onUpdatePomodoroSoundSettings: (
       settings: PomodoroSoundSettings,
     ) => Promise<void>;
@@ -31,16 +44,19 @@
   let {
     open,
     quickEntryShortcut,
+    pomodoroFocusDurationMinutes,
     pomodoroFocusVolume,
     pomodoroCompletionVolume,
     onClose,
     onStartQuickEntryShortcutRecording,
     onCancelQuickEntryShortcutRecording,
     onUpdateQuickEntryShortcut,
+    onUpdatePomodoroTimerSettings,
     onUpdatePomodoroSoundSettings,
   }: Props = $props();
 
   let hotkeyButton = $state<HTMLButtonElement>();
+  let focusDurationInput = $state<HTMLInputElement>();
   let focusVolumeInput = $state<HTMLInputElement>();
   let completionVolumeInput = $state<HTMLInputElement>();
   let closeButton = $state<HTMLButtonElement>();
@@ -56,6 +72,7 @@
   const shortcutHints = $derived(shortcutHintsFor(activeSetting, isRecording));
   const settingIds: SettingId[] = [
     "quick-entry",
+    "focus-duration",
     "focus-volume",
     "completion-volume",
   ];
@@ -228,6 +245,9 @@
       case "quick-entry":
         hotkeyButton?.focus();
         break;
+      case "focus-duration":
+        focusDurationInput?.focus();
+        break;
       case "focus-volume":
         focusVolumeInput?.focus();
         break;
@@ -240,6 +260,10 @@
   function settingIdFromElement(element: Element | null): SettingId | null {
     if (element === hotkeyButton) {
       return "quick-entry";
+    }
+
+    if (element === focusDurationInput) {
+      return "focus-duration";
     }
 
     if (element === focusVolumeInput) {
@@ -256,6 +280,7 @@
   function trapFocus(event: KeyboardEvent) {
     const focusableElements = [
       hotkeyButton,
+      focusDurationInput,
       focusVolumeInput,
       completionVolumeInput,
       closeButton,
@@ -289,6 +314,45 @@
     return error instanceof Error ? error.message : String(error);
   }
 
+  function handleFocusDurationInput(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+
+    if (input.value === "") {
+      return;
+    }
+
+    void updatePomodoroDuration(durationFromEvent(event));
+  }
+
+  function handleFocusDurationBlur(event: FocusEvent) {
+    const input = event.currentTarget as HTMLInputElement;
+
+    if (input.value === "" || !Number.isFinite(Number(input.value))) {
+      input.value = String(pomodoroFocusDurationMinutes);
+      return;
+    }
+
+    input.value = String(clampFocusDuration(Number(input.value)));
+  }
+
+  function stepFocusDuration(offset: number) {
+    void updatePomodoroDuration(
+      clampFocusDuration(pomodoroFocusDurationMinutes + offset),
+    );
+  }
+
+  async function updatePomodoroDuration(focusDurationMinutes: number) {
+    message = null;
+
+    try {
+      await onUpdatePomodoroTimerSettings({
+        focusDurationMinutes,
+      });
+    } catch (error) {
+      message = errorMessage(error);
+    }
+  }
+
   function handleFocusVolumeInput(event: Event) {
     void updatePomodoroVolume(volumeFromEvent(event), pomodoroCompletionVolume);
   }
@@ -319,6 +383,23 @@
     return clampVolume(Number(input.value));
   }
 
+  function durationFromEvent(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+
+    return clampFocusDuration(Number(input.value));
+  }
+
+  function clampFocusDuration(minutes: number) {
+    if (!Number.isFinite(minutes)) {
+      return MIN_POMODORO_FOCUS_DURATION_MINUTES;
+    }
+
+    return Math.min(
+      MAX_POMODORO_FOCUS_DURATION_MINUTES,
+      Math.max(MIN_POMODORO_FOCUS_DURATION_MINUTES, Math.round(minutes)),
+    );
+  }
+
   function clampVolume(volume: number) {
     if (!Number.isFinite(volume)) {
       return 0;
@@ -336,6 +417,12 @@
     }
 
     switch (settingId) {
+      case "focus-duration":
+        return [
+          { keys: ["↑", "↓"], label: "Adjust" },
+          { keys: ["j", "k"], label: "Move" },
+          { keys: ["Esc"], label: "Close" },
+        ];
       case "focus-volume":
       case "completion-volume":
         return [
@@ -425,8 +512,61 @@
         </div>
       </section>
 
-      <section class="settings-section" aria-labelledby="pomodoro-sound-title">
-        <h3 id="pomodoro-sound-title">Pomodoro sound</h3>
+      <section class="settings-section" aria-labelledby="pomodoro-title">
+        <h3 id="pomodoro-title">Pomodoro</h3>
+
+        <div
+          class="setting-row"
+          class:is-active={activeSetting === "focus-duration"}
+          aria-labelledby="pomodoro-focus-duration-title"
+        >
+          <div class="setting-copy">
+            <h4 id="pomodoro-focus-duration-title">Timer duration</h4>
+          </div>
+          <div class="duration-control">
+            <div class="duration-input-wrap">
+              <input
+                bind:this={focusDurationInput}
+                class="duration-input"
+                type="number"
+                min={MIN_POMODORO_FOCUS_DURATION_MINUTES}
+                max={MAX_POMODORO_FOCUS_DURATION_MINUTES}
+                step="1"
+                value={pomodoroFocusDurationMinutes}
+                aria-label="Timer duration in minutes"
+                aria-valuetext={`${pomodoroFocusDurationMinutes} minutes`}
+                onfocus={() => {
+                  activeSetting = "focus-duration";
+                }}
+                oninput={handleFocusDurationInput}
+                onblur={handleFocusDurationBlur}
+              />
+              <div class="duration-stepper">
+                <button
+                  type="button"
+                  tabindex="-1"
+                  aria-label="Increase timer duration"
+                  title="Increase timer duration"
+                  onmousedown={(event) => event.preventDefault()}
+                  onclick={() => stepFocusDuration(1)}
+                >
+                  <ChevronUp size={12} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  tabindex="-1"
+                  aria-label="Decrease timer duration"
+                  title="Decrease timer duration"
+                  onmousedown={(event) => event.preventDefault()}
+                  onclick={() => stepFocusDuration(-1)}
+                >
+                  <ChevronDown size={12} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+            <span class="duration-unit">min</span>
+          </div>
+        </div>
 
         <div
           class="setting-row"
@@ -667,6 +807,92 @@
     font-size: 0.78rem;
     font-weight: 620;
     letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .duration-control {
+    display: grid;
+    grid-template-columns: 4.7rem 2rem;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .duration-input-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1.3rem;
+    min-height: 2rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.055);
+  }
+
+  .duration-input-wrap:focus-within {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.075);
+    box-shadow: 0 0 0 2px rgba(154, 185, 255, 0.22);
+  }
+
+  .duration-input {
+    width: 100%;
+    min-width: 0;
+    min-height: calc(2rem - 2px);
+    border: 0;
+    appearance: textfield;
+    padding: 0 0.45rem;
+    color: #e8ecf2;
+    background: transparent;
+    font: inherit;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .duration-input::-webkit-inner-spin-button,
+  .duration-input::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  .duration-input:focus-visible {
+    outline: none;
+  }
+
+  .duration-stepper {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(181, 195, 214, 0.16);
+  }
+
+  .duration-stepper button {
+    display: inline-flex;
+    width: 1.3rem;
+    min-width: 0;
+    min-height: 0;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    color: #cfd7e3;
+    background: rgba(217, 226, 239, 0.08);
+    cursor: default;
+  }
+
+  .duration-stepper button + button {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .duration-stepper button:hover {
+    color: #f2f6fb;
+    background: rgba(217, 226, 239, 0.16);
+  }
+
+  .duration-unit {
+    color: #c9d0da;
+    font-size: 0.78rem;
     line-height: 1;
   }
 

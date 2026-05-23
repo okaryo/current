@@ -2,6 +2,7 @@ export const FOCUS_DURATION_SECONDS = 25 * 60;
 
 export type PomodoroState = {
   remainingSeconds: number;
+  durationSeconds: number;
   running: boolean;
 };
 
@@ -10,9 +11,12 @@ export type PomodoroTickResult = {
   completed: boolean;
 };
 
-export function initialPomodoroState(): PomodoroState {
+export function initialPomodoroState(
+  durationSeconds = FOCUS_DURATION_SECONDS,
+): PomodoroState {
   return {
-    remainingSeconds: FOCUS_DURATION_SECONDS,
+    remainingSeconds: durationSeconds,
+    durationSeconds,
     running: false,
   };
 }
@@ -32,21 +36,38 @@ export function startPomodoro(state: PomodoroState): PomodoroState {
   return {
     remainingSeconds:
       state.remainingSeconds <= 0
-        ? FOCUS_DURATION_SECONDS
+        ? state.durationSeconds
         : state.remainingSeconds,
+    durationSeconds: state.durationSeconds,
     running: true,
   };
 }
 
-export function resetPomodoro(): PomodoroState {
-  return initialPomodoroState();
+export function resetPomodoro(
+  durationSeconds = FOCUS_DURATION_SECONDS,
+): PomodoroState {
+  return initialPomodoroState(durationSeconds);
 }
 
-export function startFocusPomodoro(): PomodoroState {
+export function startFocusPomodoro(
+  durationSeconds = FOCUS_DURATION_SECONDS,
+): PomodoroState {
   return {
-    remainingSeconds: FOCUS_DURATION_SECONDS,
+    remainingSeconds: durationSeconds,
+    durationSeconds,
     running: true,
   };
+}
+
+export function setPomodoroDuration(
+  state: PomodoroState,
+  durationSeconds: number,
+): PomodoroState {
+  if (state.running) {
+    return state;
+  }
+
+  return initialPomodoroState(durationSeconds);
 }
 
 export function tickPomodoro(state: PomodoroState): PomodoroTickResult {
@@ -56,7 +77,7 @@ export function tickPomodoro(state: PomodoroState): PomodoroTickResult {
 
   if (state.remainingSeconds <= 1) {
     return {
-      state: initialPomodoroState(),
+      state: initialPomodoroState(state.durationSeconds),
       completed: true,
     };
   }
@@ -75,7 +96,7 @@ export function pomodoroStatus(state: PomodoroState) {
     return "Focusing...";
   }
 
-  return state.remainingSeconds < FOCUS_DURATION_SECONDS ? "Paused" : "";
+  return state.remainingSeconds < state.durationSeconds ? "Paused" : "";
 }
 
 export function pomodoroPrimaryActionLabel(state: PomodoroState) {
@@ -83,11 +104,11 @@ export function pomodoroPrimaryActionLabel(state: PomodoroState) {
     return "Pause";
   }
 
-  return state.remainingSeconds < FOCUS_DURATION_SECONDS ? "Continue" : "Start";
+  return state.remainingSeconds < state.durationSeconds ? "Continue" : "Start";
 }
 
 export function pomodoroProgress(state: PomodoroState) {
-  return state.remainingSeconds / FOCUS_DURATION_SECONDS;
+  return state.remainingSeconds / state.durationSeconds;
 }
 
 export function formatTime(totalSeconds: number) {

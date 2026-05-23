@@ -4,12 +4,20 @@ export type AppSettings = {
   globalShortcut: {
     quickEntry: string;
   };
+  pomodoroTimer: PomodoroTimerSettings;
   pomodoroSound: PomodoroSoundSettings;
   notification: NotificationSettings;
 };
 
 export const DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT = "CommandOrControl+Shift+L";
+export const DEFAULT_POMODORO_FOCUS_DURATION_MINUTES = 25;
+export const MIN_POMODORO_FOCUS_DURATION_MINUTES = 1;
+export const MAX_POMODORO_FOCUS_DURATION_MINUTES = 60;
 export const DEFAULT_POMODORO_SOUND_VOLUME = 100;
+
+export type PomodoroTimerSettings = {
+  focusDurationMinutes: number;
+};
 
 export type PomodoroSoundSettings = {
   focusVolume: number;
@@ -27,6 +35,14 @@ export function getSettings() {
 export function updateQuickEntryGlobalShortcut(shortcut: string) {
   return invoke<AppSettings>("update_quick_entry_global_shortcut", {
     shortcut,
+  });
+}
+
+export function updatePomodoroTimerSettings({
+  focusDurationMinutes,
+}: PomodoroTimerSettings) {
+  return invoke<AppSettings>("update_pomodoro_timer_settings", {
+    focusDurationMinutes,
   });
 }
 

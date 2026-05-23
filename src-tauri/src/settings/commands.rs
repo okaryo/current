@@ -1,4 +1,7 @@
-use super::model::{AppSettings, PomodoroSoundSettings};
+use super::model::{
+    AppSettings, PomodoroSoundSettings, PomodoroTimerSettings, MAX_POMODORO_FOCUS_DURATION_MINUTES,
+    MIN_POMODORO_FOCUS_DURATION_MINUTES,
+};
 use super::service;
 use crate::quick_entry;
 use std::sync::Mutex;
@@ -103,6 +106,24 @@ pub fn update_pomodoro_sound_settings(
     settings.pomodoro_sound = PomodoroSoundSettings {
         focus_volume: focus_volume.min(100),
         completion_volume: completion_volume.min(100),
+    };
+    service::save(&app, &settings)?;
+
+    Ok(settings)
+}
+
+#[tauri::command]
+pub fn update_pomodoro_timer_settings(
+    focus_duration_minutes: u8,
+    app: AppHandle,
+) -> Result<AppSettings, String> {
+    let mut settings = service::load(&app)?;
+
+    settings.pomodoro_timer = PomodoroTimerSettings {
+        focus_duration_minutes: focus_duration_minutes.clamp(
+            MIN_POMODORO_FOCUS_DURATION_MINUTES,
+            MAX_POMODORO_FOCUS_DURATION_MINUTES,
+        ),
     };
     service::save(&app, &settings)?;
 
