@@ -17,6 +17,7 @@
     pomodoroProgress,
     pomodoroStatus,
     resetPomodoro,
+    setPomodoroDuration,
     startFocusPomodoro,
     tickPomodoro,
     togglePomodoro,
@@ -24,6 +25,8 @@
   } from "$lib/pomodoro/timer";
 
   type PomodoroCommand = "toggle" | "reset" | "startFocus";
+  const MIN_FOCUS_DURATION_MINUTES = 1;
+  const MAX_FOCUS_DURATION_MINUTES = 60;
 
   type PomodoroCommandRequest = {
     id: number;
@@ -35,6 +38,7 @@
     active: boolean;
     title: string;
     shortcut: string;
+    focusDurationMinutes: number;
     focusVolume: number;
     completionVolume: number;
     showNotificationPermissionPrompt: boolean;
@@ -47,6 +51,7 @@
     active,
     title,
     shortcut,
+    focusDurationMinutes,
     focusVolume,
     completionVolume,
     showNotificationPermissionPrompt,
@@ -68,6 +73,9 @@
   });
 
   const remainingSeconds = $derived(pomodoroState.remainingSeconds);
+  const focusDurationSeconds = $derived(
+    durationMinutesToSeconds(focusDurationMinutes),
+  );
   const formattedRemainingTime = $derived(formatTime(remainingSeconds));
   const timerStatus = $derived(pomodoroStatus(pomodoroState));
   const primaryActionLabel = $derived(
@@ -81,6 +89,17 @@
 
   $effect(() => {
     completionAudio.setVolume(volumePercentToAudioVolume(completionVolume));
+  });
+
+  $effect(() => {
+    if (
+      pomodoroState.running ||
+      pomodoroState.durationSeconds === focusDurationSeconds
+    ) {
+      return;
+    }
+
+    pomodoroState = setPomodoroDuration(pomodoroState, focusDurationSeconds);
   });
 
   $effect(() => {
@@ -123,12 +142,12 @@
       onActivate();
     }
 
-    pomodoroState = resetPomodoro();
+    pomodoroState = resetPomodoro(focusDurationSeconds);
     syncInterval();
   }
 
   function startFocusTimer() {
-    pomodoroState = startFocusPomodoro();
+    pomodoroState = startFocusPomodoro(focusDurationSeconds);
     syncInterval();
   }
 
@@ -168,6 +187,19 @@
 
   function volumePercentToAudioVolume(volume: number) {
     return Math.min(100, Math.max(0, volume)) / 100;
+  }
+
+  function durationMinutesToSeconds(minutes: number) {
+    if (!Number.isFinite(minutes)) {
+      return MIN_FOCUS_DURATION_MINUTES * 60;
+    }
+
+    return (
+      Math.min(
+        MAX_FOCUS_DURATION_MINUTES,
+        Math.max(MIN_FOCUS_DURATION_MINUTES, Math.round(minutes)),
+      ) * 60
+    );
   }
 </script>
 

@@ -53,7 +53,8 @@ fn save_to_path(path: &Path, settings: &AppSettings) -> Result<(), String> {
 mod tests {
     use super::*;
     use crate::settings::model::{
-        DEFAULT_POMODORO_SOUND_VOLUME, DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
+        DEFAULT_POMODORO_FOCUS_DURATION_MINUTES, DEFAULT_POMODORO_SOUND_VOLUME,
+        DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
     };
 
     #[test]
@@ -68,6 +69,10 @@ mod tests {
         assert_eq!(
             settings.global_shortcut.quick_entry,
             DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT
+        );
+        assert_eq!(
+            settings.pomodoro_timer.focus_duration_minutes,
+            DEFAULT_POMODORO_FOCUS_DURATION_MINUTES
         );
         assert_eq!(
             settings.pomodoro_sound.focus_volume,
@@ -87,6 +92,10 @@ mod tests {
         assert_eq!(
             settings.global_shortcut.quick_entry,
             DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT
+        );
+        assert_eq!(
+            settings.pomodoro_timer.focus_duration_minutes,
+            DEFAULT_POMODORO_FOCUS_DURATION_MINUTES
         );
         assert_eq!(
             settings.pomodoro_sound.focus_volume,

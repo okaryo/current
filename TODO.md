@@ -205,14 +205,14 @@ Work Log decisions:
 Pomodoro decisions:
 
 - Initial timer supports Focus only.
-- Focus duration is fixed at 25 minutes for now.
-- Timer stops and returns to `25:00` when focus completes.
+- Focus duration defaults to 25 minutes and can be configured between 1 and 60 minutes.
+- Timer stops and returns to the configured focus duration when focus completes.
 - Timer sends a system notification when focus completes.
 - Timer notifications check OS permission and silently skip notification when permission is not granted.
 - Notification permission is requested only from an explicit Pomodoro section action, and that prompt action is persisted in `settings.json` so the inline prompt is shown only once.
 - Timer plays a completion sound when focus completes.
 - Timer plays a looping focus sound while focus is running.
-- Reset always stops the timer and returns to `25:00`.
+- Reset always stops the timer and returns to the configured focus duration.
 - Session count is not displayed or persisted for now.
 
 ### Keyboard Workflow
@@ -384,10 +384,10 @@ Initial release testing decisions:
 ### Pomodoro Settings
 
 - [ ] Display Pomodoro remaining time in the system menu bar
-- [ ] Configure focus duration between 10 and 60 minutes
+- [x] Configure focus duration between 1 and 60 minutes
 - [ ] Configure break duration
 - [ ] Add optional automatic transition from break back to focus
-- [ ] Persist timer settings locally
+- [x] Persist focus duration locally
 
 ### Pomodoro Sound
 
@@ -403,6 +403,12 @@ Pomodoro sound decisions:
 - `Focus sound` and `Completion sound` each use a 0-100 slider.
 - Sound volume sliders are keyboard-operable with native arrow-key range behavior.
 - Settings dialog row movement continues to use `j` / `k`.
+
+Pomodoro timer decisions:
+
+- Focus duration settings live in Settings under `Pomodoro timer`.
+- Focus duration uses a numeric input from 1 to 60 minutes without preset values.
+- Changing focus duration resets an idle timer to the new duration; a running timer keeps its current session duration until reset or the next start.
 
 ### Keyboard Workflow
 

@@ -4,6 +4,7 @@
   import { relaunch } from "@tauri-apps/plugin-process";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import {
+    DEFAULT_POMODORO_FOCUS_DURATION_MINUTES,
     DEFAULT_POMODORO_SOUND_VOLUME,
     DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
     getSettings,
@@ -11,8 +12,10 @@
     resumeQuickEntryGlobalShortcut,
     updateNotificationPermissionPromptSeen,
     updatePomodoroSoundSettings,
+    updatePomodoroTimerSettings,
     updateQuickEntryGlobalShortcut,
     type PomodoroSoundSettings,
+    type PomodoroTimerSettings,
   } from "$lib/api/settings";
   import type { WorkLog } from "$lib/api/workLogs";
   import AppFooter from "$lib/components/AppFooter.svelte";
@@ -89,8 +92,12 @@
   let settingsDialogOpen = $state(false);
   let keyboardShortcutsDialogOpen = $state(false);
   let quickEntryGlobalShortcut = $state(DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT);
+  let pomodoroFocusDurationMinutes = $state(
+    DEFAULT_POMODORO_FOCUS_DURATION_MINUTES,
+  );
   let pomodoroFocusVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
   let pomodoroCompletionVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
+  let pomodoroTimerSaveRequestId = 0;
   let pomodoroSoundSaveRequestId = 0;
   let settingsLoaded = $state(false);
   let notificationPermissionLoaded = $state(false);
@@ -409,6 +416,8 @@
     try {
       const settings = await getSettings();
       quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
+      pomodoroFocusDurationMinutes =
+        settings.pomodoroTimer.focusDurationMinutes;
       pomodoroFocusVolume = settings.pomodoroSound.focusVolume;
       pomodoroCompletionVolume = settings.pomodoroSound.completionVolume;
       notificationPermissionPromptSeen =
@@ -434,6 +443,25 @@
 
     const settings = await updateQuickEntryGlobalShortcut(shortcut);
     quickEntryGlobalShortcut = settings.globalShortcut.quickEntry;
+  }
+
+  async function savePomodoroTimerSettings(settings: PomodoroTimerSettings) {
+    const requestId = ++pomodoroTimerSaveRequestId;
+
+    pomodoroFocusDurationMinutes = settings.focusDurationMinutes;
+
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    const savedSettings = await updatePomodoroTimerSettings(settings);
+
+    if (requestId !== pomodoroTimerSaveRequestId) {
+      return;
+    }
+
+    pomodoroFocusDurationMinutes =
+      savedSettings.pomodoroTimer.focusDurationMinutes;
   }
 
   async function savePomodoroSoundSettings(settings: PomodoroSoundSettings) {
@@ -506,6 +534,7 @@
         active={activeSection === "pomodoro"}
         title={sections[0].title}
         shortcut={sections[0].shortcut}
+        focusDurationMinutes={pomodoroFocusDurationMinutes}
         focusVolume={pomodoroFocusVolume}
         completionVolume={pomodoroCompletionVolume}
         {showNotificationPermissionPrompt}
@@ -558,12 +587,14 @@
   <SettingsDialog
     open={settingsDialogOpen}
     quickEntryShortcut={quickEntryGlobalShortcut}
+    {pomodoroFocusDurationMinutes}
     {pomodoroFocusVolume}
     {pomodoroCompletionVolume}
     onClose={closeSettingsDialog}
     onStartQuickEntryShortcutRecording={pauseQuickEntryShortcutRecording}
     onCancelQuickEntryShortcutRecording={resumeQuickEntryShortcutRecording}
     onUpdateQuickEntryShortcut={saveQuickEntryGlobalShortcut}
+    onUpdatePomodoroTimerSettings={savePomodoroTimerSettings}
     onUpdatePomodoroSoundSettings={savePomodoroSoundSettings}
   />
 </main>
