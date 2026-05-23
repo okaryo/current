@@ -399,14 +399,14 @@ Initial release testing decisions:
 
 Pomodoro sound decisions:
 
-- Pomodoro sound volume settings live in Settings under `Pomodoro sound`.
+- Pomodoro sound volume settings live in Settings under `Pomodoro`.
 - `Focus sound` and `Completion sound` each use a 0-100 slider.
 - Sound volume sliders are keyboard-operable with native arrow-key range behavior.
 - Settings dialog row movement continues to use `j` / `k`.
 
 Pomodoro timer decisions:
 
-- Focus duration settings live in Settings under `Pomodoro timer`.
+- Focus duration settings live in Settings under `Pomodoro` as `Timer duration`.
 - Focus duration uses a numeric input from 1 to 60 minutes without preset values.
 - Changing focus duration resets an idle timer to the new duration; a running timer keeps its current session duration until reset or the next start.
 
