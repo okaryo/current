@@ -379,8 +379,16 @@ Initial release testing decisions:
 
 ### Distribution
 
-- [ ] Add Linux and Windows release builds
+- [x] Add Linux and Windows release builds
 - [ ] Add Homebrew installation support
+
+Distribution decisions:
+
+- Release workflow builds macOS Apple Silicon, macOS Intel, Linux x64, and Windows x64 artifacts.
+- Linux release builds run on Ubuntu 22.04 and bundle `.deb` plus `.AppImage` artifacts.
+- Windows release builds bundle NSIS `.exe` and MSI `.msi` installers.
+- When both Windows installer formats exist, updater metadata should prefer the NSIS installer.
+- Windows and Linux signing are deferred; publish draft releases first and verify install behavior manually before publishing.
 
 ### Pomodoro Settings
 
