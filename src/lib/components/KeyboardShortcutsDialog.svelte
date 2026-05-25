@@ -9,6 +9,7 @@
       label?: string;
     }[];
     separator?: string;
+    appWide?: boolean;
   };
 
   type ShortcutGroup = {
@@ -37,6 +38,7 @@
             { value: "⌘2", label: "Command 2" },
             { value: "⌘3", label: "Command 3" },
           ],
+          appWide: true,
         },
         {
           action: "Previous or Next Section",
@@ -44,10 +46,12 @@
             { value: "⌘⇧[", label: "Command Shift Left Bracket" },
             { value: "⌘⇧]", label: "Command Shift Right Bracket" },
           ],
+          appWide: true,
         },
         {
           action: "Show Keyboard Shortcuts",
           keys: [{ value: "⇧/", label: "Shift Slash" }],
+          appWide: true,
         },
       ],
     },
@@ -58,10 +62,12 @@
         {
           action: "Start or Pause",
           keys: [{ value: "⌘⇧P", label: "Command Shift P" }],
+          appWide: true,
         },
         {
           action: "Reset",
           keys: [{ value: "⌘⇧R", label: "Command Shift R" }],
+          appWide: true,
         },
       ],
     },
@@ -158,7 +164,17 @@
           <div class="shortcut-dialog-list" role="list">
             {#each group.shortcuts as shortcut (shortcut.action)}
               <div class="shortcut-row" role="listitem">
-                <span class="shortcut-action">{shortcut.action}</span>
+                <span class="shortcut-action">
+                  <span>{shortcut.action}</span>
+                  {#if shortcut.appWide}
+                    <span
+                      class="shortcut-scope"
+                      title="Works without focusing a section"
+                    >
+                      App-wide
+                    </span>
+                  {/if}
+                </span>
                 <span class="shortcut-keys">
                   {#if shortcut.separator}
                     {#each shortcut.keys.slice(0, 2) as key (key.value)}
@@ -310,10 +326,29 @@
   }
 
   .shortcut-action {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.36rem;
     min-width: 0;
     color: #aab2bf;
     font-size: 0.78rem;
     overflow-wrap: anywhere;
+  }
+
+  .shortcut-scope {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1rem;
+    border: 1px solid rgba(154, 185, 255, 0.18);
+    border-radius: 999px;
+    padding: 0 0.35rem;
+    color: #c4d2f0;
+    background: rgba(154, 185, 255, 0.08);
+    font-size: 0.62rem;
+    font-weight: 650;
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .shortcut-keys {

@@ -251,11 +251,9 @@
         onclick={() => toggleTimer()}
       >
         <span>{primaryActionLabel}</span>
-        <KeyboardKey value="⌘⇧P" label="Command Shift P" size="compact" />
       </button>
       <button type="button" onfocus={onActivate} onclick={() => resetTimer()}>
         <span>Reset</span>
-        <KeyboardKey value="⌘⇧R" label="Command Shift R" size="compact" />
       </button>
     </div>
   </div>
@@ -434,18 +432,6 @@
     border-color: rgba(255, 89, 101, 0.45);
     color: #ffffff;
     background: #e94654;
-  }
-
-  .timer-actions :global(kbd) {
-    min-width: 1.45rem;
-    height: 1.15rem;
-    border-color: currentColor;
-    color: currentColor;
-    background: transparent;
-    box-shadow: none;
-    font-size: 0.7rem;
-    line-height: 1;
-    opacity: 0.72;
   }
 
   @media (max-width: 560px) {
