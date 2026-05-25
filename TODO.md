@@ -226,6 +226,7 @@ Pomodoro keyboard decisions:
 - `Cmd+Shift+P`: start/pause/continue
 - `Cmd+Shift+R`: reset
 - Pomodoro shortcuts operate the timer without changing the active section or stealing focus.
+- Pomodoro control buttons do not show shortcut keys inline; the shortcut help dialog is the source for timer shortcut hints.
 
 ---
 
@@ -280,6 +281,7 @@ Section shortcut decisions:
 - `i` is an app-wide shortcut for the shared Todo / Work Log quick input.
 - Global shortcuts should be limited to app-wide actions such as section switching and shared quick input.
 - Section-specific shortcuts should only run inside the active section.
+- Shortcut help labels app-wide shortcuts as `App-wide`, meaning they work without focusing a specific section, not outside the app.
 
 ---
 
