@@ -32,14 +32,20 @@ Current focuses on the present, not optimization.
 
 ## Installation
 
-Current is currently distributed for macOS only.
+Current is distributed for macOS, Windows, and Linux.
 
 1. Open the [latest release on GitHub](https://github.com/okaryo/current/releases/latest).
-2. Download the DMG for your Mac:
-   - Apple Silicon: the file ending in `_aarch64.dmg`
-   - Intel: the file ending in `_x64.dmg`
-3. Open the downloaded DMG and move Current to your Applications folder.
-4. Start Current from Applications.
+2. Download the installer for your OS:
+   - macOS Apple Silicon: the file ending in `_aarch64.dmg`
+   - macOS Intel: the file ending in `_x64.dmg`
+   - Windows: the `.exe` or `.msi` installer
+   - Linux: the `.deb` package or `.AppImage`
+3. Install or run Current:
+   - macOS: open the downloaded DMG and move Current to your Applications folder.
+   - Windows: run the downloaded installer.
+   - Linux `.deb`: install it with your package manager.
+   - Linux `.AppImage`: make it executable, then run it.
+4. Start Current from your applications menu or launcher.
 
 Current is not notarized with Apple Developer ID. If macOS says Current is damaged and
 can't be opened, run the following command after moving Current to Applications:
@@ -51,8 +57,10 @@ xattr -cr /Applications/Current.app
 Then open Current again. This removes the quarantine attributes that macOS applies to
 downloaded apps.
 
-The `app.tar.gz`, `.sig`, and `latest.json` assets are used by the in-app updater and
-are not needed for manual installation.
+Windows installers are not code-signed yet, so Windows may show a SmartScreen warning.
+
+The `app.tar.gz`, `.sig`, and `latest.json` assets are used by the in-app updater and are
+not needed for manual installation.
 
 ## What Current Is NOT
 
