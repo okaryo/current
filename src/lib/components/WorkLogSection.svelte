@@ -654,7 +654,14 @@
     inset: -0.18rem -0.45rem;
     z-index: 0;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.05);
+    background:
+      linear-gradient(
+        90deg,
+        rgba(91, 143, 249, 0.72) 0,
+        rgba(91, 143, 249, 0.72) 3px,
+        transparent 3px
+      ),
+      rgba(255, 255, 255, 0.05);
     pointer-events: none;
   }
 
