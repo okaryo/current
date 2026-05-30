@@ -562,7 +562,7 @@
         shortcut={sections[2].shortcut}
         commandRequest={workLogCommandRequest}
         onActivate={() => setActiveSection("log", { preserveFocus: true })}
-        onEditLatest={requestWorkLogEdit}
+        onEditWorkLog={requestWorkLogEdit}
       />
     </div>
   </div>

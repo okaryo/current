@@ -48,7 +48,7 @@
 
   const placeholder = $derived(
     editingWorkLog
-      ? "Edit latest log... (Enter for newline)"
+      ? "Edit log... (Enter for newline)"
       : mode === "log"
         ? "Write a log... (Enter for newline)"
         : "Add a todo...",
@@ -381,7 +381,7 @@
       <div class="entry-toolbar">
         <div class="mode-tabs" aria-label="Input type">
           {#if isEditingWorkLog}
-            <span class="editing-pill">Editing latest log</span>
+            <span class="editing-pill">Editing log</span>
           {:else}
             <button
               class:mode-active={mode === "todo"}

@@ -104,7 +104,19 @@
     {
       id: "log",
       title: "Log",
-      shortcuts: [{ action: "Edit Latest Log", keys: [{ value: "e" }] }],
+      shortcuts: [
+        { action: "Edit Log", keys: [{ value: "e" }] },
+        {
+          action: "Move Selection",
+          keys: [
+            { value: "↑", label: "Arrow Up" },
+            { value: "↓", label: "Arrow Down" },
+            { value: "j" },
+            { value: "k" },
+          ],
+          separator: "or",
+        },
+      ],
     },
   ];
 

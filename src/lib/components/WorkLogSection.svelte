@@ -11,8 +11,13 @@
     startOfLocalDay,
   } from "$lib/dateFormat";
   import { linkifyWorkLogBody } from "$lib/work-log/linkify";
+  import { moveWorkLogSelection } from "$lib/work-log/ui";
 
-  type WorkLogCommand = "focusPreferred" | "editLatest";
+  type WorkLogCommand =
+    | "focusPreferred"
+    | "moveDown"
+    | "moveUp"
+    | "editSelected";
 
   type WorkLogCommandRequest = {
     id: number;
@@ -25,7 +30,7 @@
     shortcut: string;
     commandRequest: WorkLogCommandRequest;
     onActivate: () => void;
-    onEditLatest: (workLog: WorkLog) => void;
+    onEditWorkLog: (workLog: WorkLog) => void;
   };
 
   type WorkLogGroup = {
@@ -47,12 +52,13 @@
     shortcut,
     commandRequest,
     onActivate,
-    onEditLatest,
+    onEditWorkLog,
   }: Props = $props();
 
   let workLogs = $state<WorkLog[]>([]);
   let workLogError = $state<string | null>(null);
   let isLoadingWorkLogs = $state(true);
+  let selectedWorkLogId = $state<number | null>(null);
   let workLogListElement = $state<HTMLOListElement>();
   let relativeTimeNowMs = $state(Date.now());
   let lastCommandRequestId = 0;
@@ -111,10 +117,24 @@
       case "focusPreferred":
         void focusList();
         break;
-      case "editLatest":
-        editLatestWorkLog();
+      case "moveDown":
+        moveSelection(1);
+        break;
+      case "moveUp":
+        moveSelection(-1);
+        break;
+      case "editSelected":
+        editSelectedWorkLog();
         break;
     }
+  });
+
+  $effect(() => {
+    if (!active || selectedWorkLogId === null) {
+      return;
+    }
+
+    void scrollSelectedWorkLogIntoView();
   });
 
   async function loadWorkLogs() {
@@ -125,6 +145,7 @@
       workLogs = (await listWorkLogs(oldestVisibleDayStartMs())).sort(
         compareWorkLogs,
       );
+      ensureSelectedWorkLog();
     } catch (error) {
       workLogError = errorMessage(error);
     } finally {
@@ -134,8 +155,10 @@
 
   async function focusList() {
     onActivate();
+    ensureSelectedWorkLog();
     await tick();
     workLogListElement?.focus({ preventScroll: true });
+    await scrollSelectedWorkLogIntoView();
   }
 
   async function scrollLogListToTop() {
@@ -159,9 +182,21 @@
       return;
     }
 
+    const shouldSelectCreatedWorkLog =
+      selectedWorkLogId === null || selectedWorkLogId === lastWorkLog?.id;
     workLogs = [...workLogs, workLog].sort(compareWorkLogs);
+
+    if (shouldSelectCreatedWorkLog) {
+      selectedWorkLogId = workLog.id;
+    } else {
+      ensureSelectedWorkLog();
+    }
+
     relativeTimeNowMs = Date.now();
-    void scrollLogListToTop();
+
+    if (shouldSelectCreatedWorkLog) {
+      void scrollLogListToTop();
+    }
   }
 
   function replaceWorkLog(workLog: WorkLog) {
@@ -170,16 +205,59 @@
         existingWorkLog.id === workLog.id ? workLog : existingWorkLog,
       )
       .sort(compareWorkLogs);
+    ensureSelectedWorkLog();
     relativeTimeNowMs = Date.now();
   }
 
-  function editLatestWorkLog() {
-    if (!lastWorkLog) {
+  function selectWorkLog(id: number) {
+    onActivate();
+    selectedWorkLogId = id;
+  }
+
+  function moveSelection(direction: 1 | -1) {
+    selectedWorkLogId = moveWorkLogSelection(
+      workLogs,
+      selectedWorkLogId,
+      direction,
+    );
+  }
+
+  function editSelectedWorkLog() {
+    const selectedWorkLog = workLogs.find(
+      (workLog) => workLog.id === selectedWorkLogId,
+    );
+
+    if (!selectedWorkLog) {
       return;
     }
 
     onActivate();
-    onEditLatest(lastWorkLog);
+    onEditWorkLog(selectedWorkLog);
+  }
+
+  function ensureSelectedWorkLog() {
+    if (workLogs.length === 0) {
+      selectedWorkLogId = null;
+      return;
+    }
+
+    if (!workLogs.some((workLog) => workLog.id === selectedWorkLogId)) {
+      selectedWorkLogId = workLogs[0]?.id ?? null;
+    }
+  }
+
+  async function scrollSelectedWorkLogIntoView() {
+    await tick();
+
+    const selectedWorkLogElement =
+      workLogListElement?.querySelector<HTMLElement>(
+        `[data-work-log-id="${selectedWorkLogId}"]`,
+      );
+
+    selectedWorkLogElement?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
   }
 
   function groupVisibleWorkLogs(logs: WorkLog[]): WorkLogGroup[] {
@@ -340,7 +418,17 @@
             <h3>{group.label}</h3>
             <ol class="log-day-list" aria-label={`${group.label} logs`}>
               {#each group.logs as log (log.id)}
-                <li class="log-item">
+                <li
+                  data-work-log-id={log.id}
+                  class="log-item"
+                  class:log-selected={active && selectedWorkLogId === log.id}
+                >
+                  <button
+                    class="log-row-button"
+                    type="button"
+                    aria-label={`Select log from ${formatWorkLogTime(log.createdAtMs)}`}
+                    onclick={() => selectWorkLog(log.id)}
+                  ></button>
                   <time>{formatWorkLogTime(log.createdAtMs)}</time>
                   <span>
                     {#each linkifyWorkLogBody(log.body) as part, partIndex (`${part.kind}-${partIndex}`)}
@@ -552,9 +640,51 @@
   .log-item {
     display: grid;
     grid-template-columns: 3rem minmax(0, 1fr);
+    isolation: isolate;
+    position: relative;
     gap: 0.55rem;
+    border-radius: 6px;
     color: #d7dce4;
     font-size: 14px;
+  }
+
+  .log-selected::before {
+    content: "";
+    position: absolute;
+    inset: -0.18rem -0.45rem;
+    z-index: 0;
+    border-radius: 6px;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(91, 143, 249, 0.72) 0,
+        rgba(91, 143, 249, 0.72) 3px,
+        transparent 3px
+      ),
+      rgba(255, 255, 255, 0.05);
+    pointer-events: none;
+  }
+
+  .log-row-button {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .log-row-button:focus-visible {
+    outline: 1px solid rgba(91, 143, 249, 0.85);
+    outline-offset: 2px;
+  }
+
+  .log-item time,
+  .log-item span {
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
   }
 
   .log-item span {
@@ -562,6 +692,7 @@
   }
 
   .log-item a {
+    pointer-events: auto;
     color: #8fb5ff;
     text-decoration: underline;
     text-decoration-color: rgba(143, 181, 255, 0.5);
