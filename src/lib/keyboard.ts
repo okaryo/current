@@ -15,7 +15,11 @@ export type TodoCommand =
   | "clearSelection";
 
 export type PomodoroCommand = "toggle" | "reset" | "startFocus";
-export type WorkLogCommand = "focusPreferred" | "editLatest";
+export type WorkLogCommand =
+  | "focusPreferred"
+  | "moveDown"
+  | "moveUp"
+  | "editSelected";
 
 export type KeyboardShortcutEvent = {
   key: string;
@@ -120,8 +124,14 @@ export function workLogCommandFromKeydown(
   event: KeyboardShortcutEvent,
 ): WorkLogCommand | null {
   switch (event.key) {
+    case "j":
+    case "ArrowDown":
+      return "moveDown";
+    case "k":
+    case "ArrowUp":
+      return "moveUp";
     case "e":
-      return isPlainKey(event) ? "editLatest" : null;
+      return isPlainKey(event) ? "editSelected" : null;
     default:
       return null;
   }

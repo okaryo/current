@@ -179,6 +179,10 @@ Work Log decisions:
 - Work logs are persisted to SQLite with creation timestamps.
 - Work logs display the latest seven local calendar days, grouped by day.
 - Work logs are displayed newest first within each day.
+- `j` / `k` and `ArrowDown` / `ArrowUp`: move the selected Work Log entry when the Log section is active.
+- `e`: edit the selected Work Log entry when the Log section is active.
+- Activating the Log section focuses the Work Log list and selects the latest log when there is no valid current selection.
+- When a new Work Log is added, selection moves to it only if the latest log was selected; older selected logs stay selected.
 - `Enter` continues `-`, `*`, `+`, numbered lists, and checkbox list markers.
 - Checked checkbox markers continue as unchecked markers.
 - Empty list marker lines exit the list and keep only indentation.
@@ -441,9 +445,9 @@ Keyboard Workflow decisions:
 Work Log post-release decisions:
 
 - Editing work logs should stay lightweight.
-- A likely amend flow is: bring the latest log back into the input, edit it, then submit to update it.
-- `e`: edit the latest Work Log entry when the Log section is active.
-- Editing the latest Work Log keeps the original creation timestamp and updates only the body.
+- A likely amend flow is: select a log, bring it back into the input, edit it, then submit to update it.
+- `e`: edit the selected Work Log entry when the Log section is active.
+- Editing a Work Log keeps the original creation timestamp and updates only the body.
 - During Work Log edit, the shared Todo / Log input stays in Log mode; `Cmd+Enter` updates the existing log and `Esc` cancels the edit.
 - The global hotkey is a post-initial-release feature and should show a dedicated Quick Entry window, not just bring the main application window to the front.
 - First, prototype the Quick Entry window with Tauri's standard multi-window APIs and verify whether the interaction feels right.

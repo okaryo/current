@@ -219,8 +219,14 @@ describe("todoCommandFromKeydown", () => {
 });
 
 describe("workLogCommandFromKeydown", () => {
-  it("maps plain e to editing the latest log", () => {
-    expect(workLogCommandFromKeydown(key({ key: "e" }))).toBe("editLatest");
+  it.each([
+    [key({ key: "j" }), "moveDown"],
+    [key({ key: "ArrowDown" }), "moveDown"],
+    [key({ key: "k" }), "moveUp"],
+    [key({ key: "ArrowUp" }), "moveUp"],
+    [key({ key: "e" }), "editSelected"],
+  ] as const)("maps work log keys to commands", (event, command) => {
+    expect(workLogCommandFromKeydown(event)).toBe(command);
   });
 
   it("ignores e with modifiers", () => {
