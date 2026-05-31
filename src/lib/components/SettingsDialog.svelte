@@ -11,13 +11,15 @@
     MIN_POMODORO_FOCUS_DURATION_MINUTES,
     type PomodoroSoundSettings,
     type PomodoroTimerSettings,
+    type TodoSoundSettings,
   } from "$lib/api/settings";
 
   type SettingId =
     | "quick-entry"
     | "focus-duration"
     | "focus-volume"
-    | "completion-volume";
+    | "completion-volume"
+    | "todo-completion-volume";
   type ShortcutHint = {
     keys: string[];
     label: string;
@@ -29,6 +31,7 @@
     pomodoroFocusDurationMinutes: number;
     pomodoroFocusVolume: number;
     pomodoroCompletionVolume: number;
+    todoCompletionVolume: number;
     onClose: () => void;
     onStartQuickEntryShortcutRecording: () => Promise<void>;
     onCancelQuickEntryShortcutRecording: () => Promise<void>;
@@ -39,6 +42,7 @@
     onUpdatePomodoroSoundSettings: (
       settings: PomodoroSoundSettings,
     ) => Promise<void>;
+    onUpdateTodoSoundSettings: (settings: TodoSoundSettings) => Promise<void>;
   };
 
   let {
@@ -47,18 +51,21 @@
     pomodoroFocusDurationMinutes,
     pomodoroFocusVolume,
     pomodoroCompletionVolume,
+    todoCompletionVolume,
     onClose,
     onStartQuickEntryShortcutRecording,
     onCancelQuickEntryShortcutRecording,
     onUpdateQuickEntryShortcut,
     onUpdatePomodoroTimerSettings,
     onUpdatePomodoroSoundSettings,
+    onUpdateTodoSoundSettings,
   }: Props = $props();
 
   let hotkeyButton = $state<HTMLButtonElement>();
   let focusDurationInput = $state<HTMLInputElement>();
   let focusVolumeInput = $state<HTMLInputElement>();
   let completionVolumeInput = $state<HTMLInputElement>();
+  let todoCompletionVolumeInput = $state<HTMLInputElement>();
   let closeButton = $state<HTMLButtonElement>();
   let previousFocusedElement: HTMLElement | null = null;
   let wasOpen = false;
@@ -75,6 +82,7 @@
     "focus-duration",
     "focus-volume",
     "completion-volume",
+    "todo-completion-volume",
   ];
 
   $effect(() => {
@@ -254,6 +262,9 @@
       case "completion-volume":
         completionVolumeInput?.focus();
         break;
+      case "todo-completion-volume":
+        todoCompletionVolumeInput?.focus();
+        break;
     }
   }
 
@@ -274,6 +285,10 @@
       return "completion-volume";
     }
 
+    if (element === todoCompletionVolumeInput) {
+      return "todo-completion-volume";
+    }
+
     return null;
   }
 
@@ -283,6 +298,7 @@
       focusDurationInput,
       focusVolumeInput,
       completionVolumeInput,
+      todoCompletionVolumeInput,
       closeButton,
     ].filter((element): element is HTMLButtonElement | HTMLInputElement =>
       Boolean(element),
@@ -361,6 +377,10 @@
     void updatePomodoroVolume(pomodoroFocusVolume, volumeFromEvent(event));
   }
 
+  function handleTodoCompletionVolumeInput(event: Event) {
+    void updateTodoVolume(volumeFromEvent(event));
+  }
+
   async function updatePomodoroVolume(
     focusVolume: number,
     completionVolume: number,
@@ -370,6 +390,18 @@
     try {
       await onUpdatePomodoroSoundSettings({
         focusVolume,
+        completionVolume,
+      });
+    } catch (error) {
+      message = errorMessage(error);
+    }
+  }
+
+  async function updateTodoVolume(completionVolume: number) {
+    message = null;
+
+    try {
+      await onUpdateTodoSoundSettings({
         completionVolume,
       });
     } catch (error) {
@@ -425,6 +457,7 @@
         ];
       case "focus-volume":
       case "completion-volume":
+      case "todo-completion-volume":
         return [
           { keys: ["←", "→"], label: "Adjust" },
           { keys: ["j", "k"], label: "Move" },
@@ -619,6 +652,37 @@
               oninput={handleCompletionVolumeInput}
             />
             <span class="volume-value">{pomodoroCompletionVolume}%</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby="todo-settings-title">
+        <h3 id="todo-settings-title">Todo</h3>
+
+        <div
+          class="setting-row"
+          class:is-active={activeSetting === "todo-completion-volume"}
+          aria-labelledby="todo-completion-volume-title"
+        >
+          <div class="setting-copy">
+            <h4 id="todo-completion-volume-title">Completion sound</h4>
+          </div>
+          <div class="volume-control">
+            <input
+              bind:this={todoCompletionVolumeInput}
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={todoCompletionVolume}
+              aria-label="Todo completion sound volume"
+              aria-valuetext={`${todoCompletionVolume}%`}
+              onfocus={() => {
+                activeSetting = "todo-completion-volume";
+              }}
+              oninput={handleTodoCompletionVolumeInput}
+            />
+            <span class="volume-value">{todoCompletionVolume}%</span>
           </div>
         </div>
       </section>

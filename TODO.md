@@ -419,6 +419,16 @@ Pomodoro sound decisions:
 - Sound volume sliders are keyboard-operable with native arrow-key range behavior.
 - Settings dialog row movement continues to use `j` / `k`.
 
+### Todo Sound
+
+- [x] Configure Todo completion volume
+- [x] Persist Todo completion volume locally
+
+Todo sound decisions:
+
+- Todo completion volume lives in Settings under `Todo`.
+- Todo completion volume uses a 0-100 slider.
+
 Pomodoro timer decisions:
 
 - Focus duration settings live in Settings under `Pomodoro` as `Timer duration`.

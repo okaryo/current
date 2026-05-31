@@ -7,6 +7,7 @@
     DEFAULT_POMODORO_FOCUS_DURATION_MINUTES,
     DEFAULT_POMODORO_SOUND_VOLUME,
     DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
+    DEFAULT_TODO_SOUND_VOLUME,
     getSettings,
     pauseQuickEntryGlobalShortcut,
     resumeQuickEntryGlobalShortcut,
@@ -14,8 +15,10 @@
     updatePomodoroSoundSettings,
     updatePomodoroTimerSettings,
     updateQuickEntryGlobalShortcut,
+    updateTodoSoundSettings,
     type PomodoroSoundSettings,
     type PomodoroTimerSettings,
+    type TodoSoundSettings,
   } from "$lib/api/settings";
   import type { WorkLog } from "$lib/api/workLogs";
   import AppFooter from "$lib/components/AppFooter.svelte";
@@ -97,8 +100,10 @@
   );
   let pomodoroFocusVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
   let pomodoroCompletionVolume = $state(DEFAULT_POMODORO_SOUND_VOLUME);
+  let todoCompletionVolume = $state(DEFAULT_TODO_SOUND_VOLUME);
   let pomodoroTimerSaveRequestId = 0;
   let pomodoroSoundSaveRequestId = 0;
+  let todoSoundSaveRequestId = 0;
   let settingsLoaded = $state(false);
   let notificationPermissionLoaded = $state(false);
   let notificationPermissionGranted = $state(false);
@@ -420,6 +425,7 @@
         settings.pomodoroTimer.focusDurationMinutes;
       pomodoroFocusVolume = settings.pomodoroSound.focusVolume;
       pomodoroCompletionVolume = settings.pomodoroSound.completionVolume;
+      todoCompletionVolume = settings.todoSound.completionVolume;
       notificationPermissionPromptSeen =
         settings.notification.permissionPromptSeen;
     } catch (error) {
@@ -482,6 +488,24 @@
 
     pomodoroFocusVolume = savedSettings.pomodoroSound.focusVolume;
     pomodoroCompletionVolume = savedSettings.pomodoroSound.completionVolume;
+  }
+
+  async function saveTodoSoundSettings(settings: TodoSoundSettings) {
+    const requestId = ++todoSoundSaveRequestId;
+
+    todoCompletionVolume = settings.completionVolume;
+
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    const savedSettings = await updateTodoSoundSettings(settings);
+
+    if (requestId !== todoSoundSaveRequestId) {
+      return;
+    }
+
+    todoCompletionVolume = savedSettings.todoSound.completionVolume;
   }
 
   async function requestNotificationPermission() {
@@ -549,6 +573,7 @@
         active={activeSection === "todo"}
         title={sections[1].title}
         shortcut={sections[1].shortcut}
+        completionVolume={todoCompletionVolume}
         commandRequest={todoCommandRequest}
         onSetNow={startPomodoroFocus}
         onActivate={() => setActiveSection("todo", { preserveFocus: true })}
@@ -590,12 +615,14 @@
     {pomodoroFocusDurationMinutes}
     {pomodoroFocusVolume}
     {pomodoroCompletionVolume}
+    {todoCompletionVolume}
     onClose={closeSettingsDialog}
     onStartQuickEntryShortcutRecording={pauseQuickEntryShortcutRecording}
     onCancelQuickEntryShortcutRecording={resumeQuickEntryShortcutRecording}
     onUpdateQuickEntryShortcut={saveQuickEntryGlobalShortcut}
     onUpdatePomodoroTimerSettings={savePomodoroTimerSettings}
     onUpdatePomodoroSoundSettings={savePomodoroSoundSettings}
+    onUpdateTodoSoundSettings={saveTodoSoundSettings}
   />
 </main>
 

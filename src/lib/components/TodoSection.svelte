@@ -44,13 +44,21 @@
     active: boolean;
     title: string;
     shortcut: string;
+    completionVolume: number;
     commandRequest: TodoCommandRequest;
     onSetNow: () => void;
     onActivate: () => void;
   };
 
-  let { active, title, shortcut, commandRequest, onSetNow, onActivate }: Props =
-    $props();
+  let {
+    active,
+    title,
+    shortcut,
+    completionVolume,
+    commandRequest,
+    onSetNow,
+    onActivate,
+  }: Props = $props();
 
   let todos = $state<Todo[]>([]);
   let todoError = $state<string | null>(null);
@@ -109,6 +117,10 @@
   onDestroy(() => {
     unlistenTodoCreated?.();
     todoCompletionAudio.dispose();
+  });
+
+  $effect(() => {
+    todoCompletionAudio.setVolume(volumePercentToAudioVolume(completionVolume));
   });
 
   $effect(() => {
@@ -174,6 +186,10 @@
     );
 
     return Math.max(nextLocalDay.getTime() - now.getTime(), 1000);
+  }
+
+  function volumePercentToAudioVolume(volume: number) {
+    return Math.min(100, Math.max(0, volume)) / 100;
   }
 
   async function toggleTodoCompletion(id: number) {

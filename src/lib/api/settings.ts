@@ -6,6 +6,7 @@ export type AppSettings = {
   };
   pomodoroTimer: PomodoroTimerSettings;
   pomodoroSound: PomodoroSoundSettings;
+  todoSound: TodoSoundSettings;
   notification: NotificationSettings;
 };
 
@@ -14,6 +15,7 @@ export const DEFAULT_POMODORO_FOCUS_DURATION_MINUTES = 25;
 export const MIN_POMODORO_FOCUS_DURATION_MINUTES = 1;
 export const MAX_POMODORO_FOCUS_DURATION_MINUTES = 60;
 export const DEFAULT_POMODORO_SOUND_VOLUME = 100;
+export const DEFAULT_TODO_SOUND_VOLUME = 100;
 
 export type PomodoroTimerSettings = {
   focusDurationMinutes: number;
@@ -21,6 +23,10 @@ export type PomodoroTimerSettings = {
 
 export type PomodoroSoundSettings = {
   focusVolume: number;
+  completionVolume: number;
+};
+
+export type TodoSoundSettings = {
   completionVolume: number;
 };
 
@@ -52,6 +58,14 @@ export function updatePomodoroSoundSettings({
 }: PomodoroSoundSettings) {
   return invoke<AppSettings>("update_pomodoro_sound_settings", {
     focusVolume,
+    completionVolume,
+  });
+}
+
+export function updateTodoSoundSettings({
+  completionVolume,
+}: TodoSoundSettings) {
+  return invoke<AppSettings>("update_todo_sound_settings", {
     completionVolume,
   });
 }

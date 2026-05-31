@@ -1,6 +1,6 @@
 use super::model::{
-    AppSettings, PomodoroSoundSettings, PomodoroTimerSettings, MAX_POMODORO_FOCUS_DURATION_MINUTES,
-    MIN_POMODORO_FOCUS_DURATION_MINUTES,
+    AppSettings, PomodoroSoundSettings, PomodoroTimerSettings, TodoSoundSettings,
+    MAX_POMODORO_FOCUS_DURATION_MINUTES, MIN_POMODORO_FOCUS_DURATION_MINUTES,
 };
 use super::service;
 use crate::quick_entry;
@@ -124,6 +124,21 @@ pub fn update_pomodoro_timer_settings(
             MIN_POMODORO_FOCUS_DURATION_MINUTES,
             MAX_POMODORO_FOCUS_DURATION_MINUTES,
         ),
+    };
+    service::save(&app, &settings)?;
+
+    Ok(settings)
+}
+
+#[tauri::command]
+pub fn update_todo_sound_settings(
+    completion_volume: u8,
+    app: AppHandle,
+) -> Result<AppSettings, String> {
+    let mut settings = service::load(&app)?;
+
+    settings.todo_sound = TodoSoundSettings {
+        completion_volume: completion_volume.min(100),
     };
     service::save(&app, &settings)?;
 
