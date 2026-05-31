@@ -5,6 +5,7 @@ pub const DEFAULT_POMODORO_FOCUS_DURATION_MINUTES: u8 = 25;
 pub const MIN_POMODORO_FOCUS_DURATION_MINUTES: u8 = 1;
 pub const MAX_POMODORO_FOCUS_DURATION_MINUTES: u8 = 60;
 pub const DEFAULT_POMODORO_SOUND_VOLUME: u8 = 100;
+pub const DEFAULT_TODO_SOUND_VOLUME: u8 = 100;
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,6 +16,8 @@ pub struct AppSettings {
     pub pomodoro_timer: PomodoroTimerSettings,
     #[serde(default)]
     pub pomodoro_sound: PomodoroSoundSettings,
+    #[serde(default)]
+    pub todo_sound: TodoSoundSettings,
     #[serde(default)]
     pub notification: NotificationSettings,
 }
@@ -77,6 +80,25 @@ impl Default for PomodoroSoundSettings {
 
 fn default_pomodoro_sound_volume() -> u8 {
     DEFAULT_POMODORO_SOUND_VOLUME
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TodoSoundSettings {
+    #[serde(default = "default_todo_sound_volume")]
+    pub completion_volume: u8,
+}
+
+impl Default for TodoSoundSettings {
+    fn default() -> Self {
+        Self {
+            completion_volume: DEFAULT_TODO_SOUND_VOLUME,
+        }
+    }
+}
+
+fn default_todo_sound_volume() -> u8 {
+    DEFAULT_TODO_SOUND_VOLUME
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

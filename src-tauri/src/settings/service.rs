@@ -54,7 +54,7 @@ mod tests {
     use super::*;
     use crate::settings::model::{
         DEFAULT_POMODORO_FOCUS_DURATION_MINUTES, DEFAULT_POMODORO_SOUND_VOLUME,
-        DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT,
+        DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT, DEFAULT_TODO_SOUND_VOLUME,
     };
 
     #[test]
@@ -82,6 +82,10 @@ mod tests {
             settings.pomodoro_sound.completion_volume,
             DEFAULT_POMODORO_SOUND_VOLUME
         );
+        assert_eq!(
+            settings.todo_sound.completion_volume,
+            DEFAULT_TODO_SOUND_VOLUME
+        );
         assert!(!settings.notification.permission_prompt_seen);
     }
 
@@ -104,6 +108,10 @@ mod tests {
         assert_eq!(
             settings.pomodoro_sound.completion_volume,
             DEFAULT_POMODORO_SOUND_VOLUME
+        );
+        assert_eq!(
+            settings.todo_sound.completion_volume,
+            DEFAULT_TODO_SOUND_VOLUME
         );
         assert!(!settings.notification.permission_prompt_seen);
     }

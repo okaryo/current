@@ -40,6 +40,7 @@ pub fn run() {
             settings::commands::update_quick_entry_global_shortcut,
             settings::commands::update_pomodoro_timer_settings,
             settings::commands::update_pomodoro_sound_settings,
+            settings::commands::update_todo_sound_settings,
             settings::commands::update_notification_permission_prompt_seen,
             settings::commands::pause_quick_entry_global_shortcut,
             settings::commands::resume_quick_entry_global_shortcut,
