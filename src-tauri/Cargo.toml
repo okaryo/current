@@ -1,6 +1,6 @@
 [package]
 name = "current"
-version = "0.5.0"
+version = "0.6.0"
 description = "Current is a simple desktop app designed to help you stay focused on the task at hand"
 authors = ["okaryo"]
 edition = "2021"
