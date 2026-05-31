@@ -140,7 +140,8 @@ Now behavior:
 - Now is session-local UI state and is not persisted to SQLite.
 - Reopening the app should start with no Now task selected.
 - When Now is active, the Now TODO title is emphasized and other incomplete TODO titles are dimmed.
-- Setting Now resets the Pomodoro timer to `25:00` and starts focus.
+- Setting Now resets the Pomodoro timer to the configured focus duration and starts focus when the timer is idle or paused.
+- Setting Now while the Pomodoro timer is already running only updates Now and does not reset the remaining time.
 - Unsetting Now does not stop the Pomodoro timer.
 - Completing the Now task clears Now but does not stop the Pomodoro timer.
 
