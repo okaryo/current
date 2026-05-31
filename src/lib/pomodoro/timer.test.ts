@@ -9,6 +9,7 @@ import {
   resetPomodoro,
   setPomodoroDuration,
   startFocusPomodoro,
+  startFocusPomodoroUnlessRunning,
   tickPomodoro,
   togglePomodoro,
 } from "$lib/pomodoro/timer";
@@ -32,6 +33,30 @@ describe("pomodoro timer state", () => {
 
   it("starts focus from the full duration", () => {
     expect(startFocusPomodoro()).toEqual({
+      remainingSeconds: FOCUS_DURATION_SECONDS,
+      durationSeconds: FOCUS_DURATION_SECONDS,
+      running: true,
+    });
+  });
+
+  it("does not restart focus when the timer is already running", () => {
+    const state = {
+      remainingSeconds: 10 * 60,
+      durationSeconds: FOCUS_DURATION_SECONDS,
+      running: true,
+    };
+
+    expect(startFocusPomodoroUnlessRunning(state)).toBe(state);
+  });
+
+  it("starts focus from the full duration when the timer is not running", () => {
+    expect(
+      startFocusPomodoroUnlessRunning({
+        remainingSeconds: 10 * 60,
+        durationSeconds: FOCUS_DURATION_SECONDS,
+        running: false,
+      }),
+    ).toEqual({
       remainingSeconds: FOCUS_DURATION_SECONDS,
       durationSeconds: FOCUS_DURATION_SECONDS,
       running: true,

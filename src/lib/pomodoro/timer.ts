@@ -59,6 +59,17 @@ export function startFocusPomodoro(
   };
 }
 
+export function startFocusPomodoroUnlessRunning(
+  state: PomodoroState,
+  durationSeconds = FOCUS_DURATION_SECONDS,
+): PomodoroState {
+  if (state.running) {
+    return state;
+  }
+
+  return startFocusPomodoro(durationSeconds);
+}
+
 export function setPomodoroDuration(
   state: PomodoroState,
   durationSeconds: number,

@@ -18,7 +18,7 @@
     pomodoroStatus,
     resetPomodoro,
     setPomodoroDuration,
-    startFocusPomodoro,
+    startFocusPomodoroUnlessRunning,
     tickPomodoro,
     togglePomodoro,
     type PomodoroState,
@@ -147,7 +147,16 @@
   }
 
   function startFocusTimer() {
-    pomodoroState = startFocusPomodoro(focusDurationSeconds);
+    const nextState = startFocusPomodoroUnlessRunning(
+      pomodoroState,
+      focusDurationSeconds,
+    );
+
+    if (nextState === pomodoroState) {
+      return;
+    }
+
+    pomodoroState = nextState;
     syncInterval();
   }
 
