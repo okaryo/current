@@ -8,17 +8,6 @@
   "dependencyDashboard": false,
   "packageRules": [
     {
-      "matchManagers": ["npm", "cargo"],
-      "matchPackageNames": [
-        "@tauri-apps/**",
-        "tauri",
-        "tauri-build",
-        "tauri-plugin-**"
-      ],
-      "groupName": "Tauri packages",
-      "minimumReleaseAge": "14 days"
-    },
-    {
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "groupName": "npm devDependencies",
@@ -33,6 +22,17 @@
     {
       "matchManagers": ["cargo"],
       "groupName": "Cargo dependencies",
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "matchManagers": ["npm", "cargo"],
+      "matchPackageNames": [
+        "@tauri-apps/**",
+        "tauri",
+        "tauri-build",
+        "tauri-plugin-**"
+      ],
+      "groupName": "Tauri packages",
       "minimumReleaseAge": "14 days"
     }
   ]
