@@ -180,8 +180,9 @@ Work Log decisions:
 - Work logs are persisted to SQLite with creation timestamps.
 - Work logs display the latest seven local calendar days, grouped by day.
 - Work logs are displayed newest first within each day.
-- `j` / `k` and `ArrowDown` / `ArrowUp`: move the selected Work Log entry when the Log section is active.
-- `gg` / `G`: move the selected Work Log entry to the first or last visible log when the Log section is active.
+- `j` / `k` and `ArrowDown` / `ArrowUp`: move the selected Work Log row when the Log section is active.
+- `gg` / `G`: move the selected Work Log row to the first or last visible row when the Log section is active.
+- Empty `No log` day rows are selectable navigation targets, but cannot be edited with `e`.
 - `e`: edit the selected Work Log entry when the Log section is active.
 - Activating the Log section focuses the Work Log list and selects the latest log when there is no valid current selection.
 - When a new Work Log is added, selection moves to it only if the latest log was selected; older selected logs stay selected.
