@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { WorkLog } from "$lib/api/workLogs";
-import { moveWorkLogSelection } from "$lib/work-log/ui";
+import {
+  buildRecentWorkLogGroups,
+  moveWorkLogSelection,
+} from "$lib/work-log/ui";
 
 function workLog(overrides: Partial<WorkLog> & Pick<WorkLog, "id">): WorkLog {
   return {
@@ -9,6 +12,65 @@ function workLog(overrides: Partial<WorkLog> & Pick<WorkLog, "id">): WorkLog {
     ...overrides,
   };
 }
+
+describe("buildRecentWorkLogGroups", () => {
+  it("builds one group for each of the latest seven local calendar days", () => {
+    const today = new Date(2026, 4, 22, 12).getTime();
+    const logs = [
+      workLog({
+        id: 1,
+        body: "today",
+        createdAtMs: new Date(2026, 4, 22, 9).getTime(),
+      }),
+      workLog({
+        id: 2,
+        body: "four days ago",
+        createdAtMs: new Date(2026, 4, 18, 18).getTime(),
+      }),
+    ];
+
+    const groups = buildRecentWorkLogGroups(logs, today, 7);
+
+    expect(groups.map((group) => group.label)).toEqual([
+      "Today",
+      "Yesterday",
+      "May 20",
+      "May 19",
+      "May 18",
+      "May 17",
+      "May 16",
+    ]);
+    expect(groups.map((group) => group.logs.map((log) => log.id))).toEqual([
+      [1],
+      [],
+      [],
+      [],
+      [2],
+      [],
+      [],
+    ]);
+  });
+
+  it("does not include logs outside the recent calendar window", () => {
+    const today = new Date(2026, 4, 22, 12).getTime();
+    const logs = [
+      workLog({
+        id: 1,
+        createdAtMs: new Date(2026, 4, 16, 9).getTime(),
+      }),
+      workLog({
+        id: 2,
+        createdAtMs: new Date(2026, 3, 22, 9).getTime(),
+      }),
+    ];
+
+    const groups = buildRecentWorkLogGroups(logs, today, 7);
+
+    expect(groups.flatMap((group) => group.logs.map((log) => log.id))).toEqual([
+      1,
+    ]);
+  });
+});
 
 describe("moveWorkLogSelection", () => {
   const logs = [workLog({ id: 1 }), workLog({ id: 2 }), workLog({ id: 3 })];

@@ -6,12 +6,14 @@
   import KeyboardKey from "$lib/components/KeyboardKey.svelte";
   import {
     addLocalDays,
-    formatWorkLogDateLabel,
     formatWorkLogTime,
     startOfLocalDay,
   } from "$lib/dateFormat";
   import { linkifyWorkLogBody } from "$lib/work-log/linkify";
-  import { moveWorkLogSelection } from "$lib/work-log/ui";
+  import {
+    buildRecentWorkLogGroups,
+    moveWorkLogSelection,
+  } from "$lib/work-log/ui";
 
   type WorkLogCommand =
     | "focusPreferred"
@@ -31,12 +33,6 @@
     commandRequest: WorkLogCommandRequest;
     onActivate: () => void;
     onEditWorkLog: (workLog: WorkLog) => void;
-  };
-
-  type WorkLogGroup = {
-    dateKey: string;
-    label: string;
-    logs: WorkLog[];
   };
 
   type LastLogTone = "neutral" | "soon" | "late" | "stale";
@@ -65,7 +61,13 @@
   let unlistenWorkLogCreated: UnlistenFn | undefined;
   let unlistenWorkLogUpdated: UnlistenFn | undefined;
   let relativeTimeInterval: ReturnType<typeof setInterval> | undefined;
-  const visibleWorkLogGroups = $derived(groupVisibleWorkLogs(workLogs));
+  const visibleWorkLogGroups = $derived(
+    buildRecentWorkLogGroups(
+      workLogs,
+      relativeTimeNowMs,
+      RECENT_WORK_LOG_DAY_COUNT,
+    ),
+  );
   const lastWorkLog = $derived(workLogs[0] ?? null);
   const lastLogLabel = $derived(
     formatLastLogLabel(lastWorkLog, relativeTimeNowMs),
@@ -260,46 +262,11 @@
     });
   }
 
-  function groupVisibleWorkLogs(logs: WorkLog[]): WorkLogGroup[] {
-    const todayStartMs = startOfLocalDay(Date.now());
-    const groups: WorkLogGroup[] = [];
-    const groupByDateKey: Record<string, WorkLogGroup> = {};
-
-    for (const log of logs) {
-      const date = new Date(log.createdAtMs);
-      const dateKey = localDateKey(date);
-      const group = groupByDateKey[dateKey];
-
-      if (group) {
-        group.logs.push(log);
-        continue;
-      }
-
-      const nextGroup = {
-        dateKey,
-        label: formatWorkLogDateLabel(date, todayStartMs),
-        logs: [log],
-      };
-
-      groupByDateKey[dateKey] = nextGroup;
-      groups.push(nextGroup);
-    }
-
-    return groups;
-  }
-
   function oldestVisibleDayStartMs() {
     return addLocalDays(
       startOfLocalDay(Date.now()),
       -(RECENT_WORK_LOG_DAY_COUNT - 1),
     );
-  }
-
-  function localDateKey(date: Date) {
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${date.getFullYear()}-${month}-${day}`;
   }
 
   function formatLastLogLabel(workLog: WorkLog | null, nowMs: number) {
@@ -410,49 +377,51 @@
     >
       {#if isLoadingWorkLogs}
         <li class="log-empty">Loading logs...</li>
-      {:else if workLogs.length === 0 || visibleWorkLogGroups.length === 0}
-        <li class="log-empty">No recent logs.</li>
       {:else}
         {#each visibleWorkLogGroups as group (group.dateKey)}
           <li class="log-date-group">
             <h3>{group.label}</h3>
-            <ol class="log-day-list" aria-label={`${group.label} logs`}>
-              {#each group.logs as log (log.id)}
-                <li
-                  data-work-log-id={log.id}
-                  class="log-item"
-                  class:log-selected={active && selectedWorkLogId === log.id}
-                >
-                  <button
-                    class="log-row-button"
-                    type="button"
-                    aria-label={`Select log from ${formatWorkLogTime(log.createdAtMs)}`}
-                    onclick={() => selectWorkLog(log.id)}
-                  ></button>
-                  <time>{formatWorkLogTime(log.createdAtMs)}</time>
-                  <span>
-                    {#each linkifyWorkLogBody(log.body) as part, partIndex (`${part.kind}-${partIndex}`)}
-                      {#if part.kind === "url"}
-                        <!-- External log URLs are opened through Tauri opener, not SvelteKit navigation. -->
-                        <!-- eslint-disable svelte/no-navigation-without-resolve -->
-                        <a
-                          href={part.value}
-                          target="_blank"
-                          rel="noreferrer"
-                          onclick={(event) =>
-                            openExternalUrl(event, part.value)}
-                        >
+            {#if group.logs.length === 0}
+              <p class="log-empty-day">No log</p>
+            {:else}
+              <ol class="log-day-list" aria-label={`${group.label} logs`}>
+                {#each group.logs as log (log.id)}
+                  <li
+                    data-work-log-id={log.id}
+                    class="log-item"
+                    class:log-selected={active && selectedWorkLogId === log.id}
+                  >
+                    <button
+                      class="log-row-button"
+                      type="button"
+                      aria-label={`Select log from ${formatWorkLogTime(log.createdAtMs)}`}
+                      onclick={() => selectWorkLog(log.id)}
+                    ></button>
+                    <time>{formatWorkLogTime(log.createdAtMs)}</time>
+                    <span>
+                      {#each linkifyWorkLogBody(log.body) as part, partIndex (`${part.kind}-${partIndex}`)}
+                        {#if part.kind === "url"}
+                          <!-- External log URLs are opened through Tauri opener, not SvelteKit navigation. -->
+                          <!-- eslint-disable svelte/no-navigation-without-resolve -->
+                          <a
+                            href={part.value}
+                            target="_blank"
+                            rel="noreferrer"
+                            onclick={(event) =>
+                              openExternalUrl(event, part.value)}
+                          >
+                            {part.value}
+                          </a>
+                          <!-- eslint-enable svelte/no-navigation-without-resolve -->
+                        {:else}
                           {part.value}
-                        </a>
-                        <!-- eslint-enable svelte/no-navigation-without-resolve -->
-                      {:else}
-                        {part.value}
-                      {/if}
-                    {/each}
-                  </span>
-                </li>
-              {/each}
-            </ol>
+                        {/if}
+                      {/each}
+                    </span>
+                  </li>
+                {/each}
+              </ol>
+            {/if}
           </li>
         {/each}
       {/if}
@@ -708,6 +677,12 @@
   .log-list .log-empty {
     grid-template-columns: 1fr;
     color: #858d9a;
+  }
+
+  .log-empty-day {
+    margin: 0;
+    color: #6f7784;
+    font-size: 0.86rem;
   }
 
   .log-item time {
