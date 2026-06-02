@@ -9,6 +9,7 @@ import {
   todoCommandFromKeydown,
   updateShortcutRequested,
   workLogCommandFromKeydown,
+  workLogKeydownAction,
   type KeyboardShortcutEvent,
 } from "$lib/keyboard";
 
@@ -224,6 +225,7 @@ describe("workLogCommandFromKeydown", () => {
     [key({ key: "ArrowDown" }), "moveDown"],
     [key({ key: "k" }), "moveUp"],
     [key({ key: "ArrowUp" }), "moveUp"],
+    [key({ key: "G", shiftKey: true }), "moveLast"],
     [key({ key: "e" }), "editSelected"],
   ] as const)("maps work log keys to commands", (event, command) => {
     expect(workLogCommandFromKeydown(event)).toBe(command);
@@ -236,5 +238,26 @@ describe("workLogCommandFromKeydown", () => {
     expect(workLogCommandFromKeydown(key({ key: "E", shiftKey: true }))).toBe(
       null,
     );
+  });
+
+  it("maps gg as a key sequence for moving to the first log", () => {
+    expect(workLogKeydownAction(key({ key: "g" }), null)).toEqual({
+      command: null,
+      handled: true,
+      nextSequence: "goToFirst",
+    });
+    expect(workLogKeydownAction(key({ key: "g" }), "goToFirst")).toEqual({
+      command: "moveFirst",
+      handled: true,
+      nextSequence: null,
+    });
+  });
+
+  it("resets the gg sequence when another key is pressed", () => {
+    expect(workLogKeydownAction(key({ key: "x" }), "goToFirst")).toEqual({
+      command: null,
+      handled: false,
+      nextSequence: null,
+    });
   });
 });

@@ -19,7 +19,16 @@ export type WorkLogCommand =
   | "focusPreferred"
   | "moveDown"
   | "moveUp"
+  | "moveFirst"
+  | "moveLast"
   | "editSelected";
+export type WorkLogKeySequence = "goToFirst";
+
+export type WorkLogKeydownAction = {
+  command: WorkLogCommand | null;
+  handled: boolean;
+  nextSequence: WorkLogKeySequence | null;
+};
 
 export type KeyboardShortcutEvent = {
   key: string;
@@ -124,6 +133,8 @@ export function workLogCommandFromKeydown(
   event: KeyboardShortcutEvent,
 ): WorkLogCommand | null {
   switch (event.key) {
+    case "G":
+      return isShiftOnlyKey(event) ? "moveLast" : null;
     case "j":
     case "ArrowDown":
       return "moveDown";
@@ -135,6 +146,27 @@ export function workLogCommandFromKeydown(
     default:
       return null;
   }
+}
+
+export function workLogKeydownAction(
+  event: KeyboardShortcutEvent,
+  pendingSequence: WorkLogKeySequence | null,
+): WorkLogKeydownAction {
+  if (event.key === "g" && isPlainKey(event)) {
+    return {
+      command: pendingSequence === "goToFirst" ? "moveFirst" : null,
+      handled: true,
+      nextSequence: pendingSequence === "goToFirst" ? null : "goToFirst",
+    };
+  }
+
+  const command = workLogCommandFromKeydown(event);
+
+  return {
+    command,
+    handled: command !== null,
+    nextSequence: null,
+  };
 }
 
 export function todoCommandFromKeydown(
@@ -172,4 +204,8 @@ export function todoCommandFromKeydown(
 
 function isPlainKey(event: KeyboardShortcutEvent) {
   return !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+}
+
+function isShiftOnlyKey(event: KeyboardShortcutEvent) {
+  return !event.metaKey && !event.ctrlKey && !event.altKey && event.shiftKey;
 }

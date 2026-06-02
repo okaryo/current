@@ -11,6 +11,10 @@ export type WorkLogGroup = {
   logs: WorkLog[];
 };
 
+export type WorkLogSelection =
+  | { kind: "log"; id: number }
+  | { kind: "emptyDay"; dateKey: string };
+
 export function buildRecentWorkLogGroups(
   logs: WorkLog[],
   todayTimestampMs: number,
@@ -40,24 +44,81 @@ export function buildRecentWorkLogGroups(
   return groups;
 }
 
+export function buildWorkLogSelectableItems(
+  groups: WorkLogGroup[],
+): WorkLogSelection[] {
+  return groups.flatMap((group): WorkLogSelection[] => {
+    if (group.logs.length === 0) {
+      return [{ kind: "emptyDay", dateKey: group.dateKey }];
+    }
+
+    return group.logs.map((log) => ({ kind: "log", id: log.id }));
+  });
+}
+
 export function moveWorkLogSelection(
-  logs: WorkLog[],
-  selectedWorkLogId: number | null,
+  items: WorkLogSelection[],
+  selectedItem: WorkLogSelection | null,
   direction: 1 | -1,
-) {
-  if (logs.length === 0) {
+): WorkLogSelection | null {
+  if (items.length === 0) {
     return null;
   }
 
-  const currentIndex = logs.findIndex((log) => log.id === selectedWorkLogId);
+  const currentIndex = items.findIndex((item) =>
+    workLogSelectionsEqual(item, selectedItem),
+  );
   const nextIndex =
     currentIndex === -1
       ? direction === 1
         ? 0
-        : logs.length - 1
-      : Math.min(Math.max(currentIndex + direction, 0), logs.length - 1);
+        : items.length - 1
+      : Math.min(Math.max(currentIndex + direction, 0), items.length - 1);
 
-  return logs[nextIndex]?.id ?? null;
+  return items[nextIndex] ?? null;
+}
+
+export function selectWorkLogBoundary(
+  items: WorkLogSelection[],
+  boundary: "first" | "last",
+): WorkLogSelection | null {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return boundary === "first" ? (items[0] ?? null) : (items.at(-1) ?? null);
+}
+
+export function workLogSelectionsEqual(
+  a: WorkLogSelection | null,
+  b: WorkLogSelection | null,
+) {
+  if (!a || !b || a.kind !== b.kind) {
+    return false;
+  }
+
+  if (a.kind === "log" && b.kind === "log") {
+    return a.id === b.id;
+  }
+
+  if (a.kind === "emptyDay" && b.kind === "emptyDay") {
+    return a.dateKey === b.dateKey;
+  }
+
+  return false;
+}
+
+export function workLogSelectionKey(selection: WorkLogSelection) {
+  return selection.kind === "log"
+    ? `log:${selection.id}`
+    : `empty-day:${selection.dateKey}`;
+}
+
+export function workLogSelectionForDate(timestampMs: number): WorkLogSelection {
+  return {
+    kind: "emptyDay",
+    dateKey: localDateKey(new Date(timestampMs)),
+  };
 }
 
 function localDateKey(date: Date) {

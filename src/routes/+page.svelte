@@ -36,11 +36,12 @@
     settingsShortcutRequested,
     todoCommandFromKeydown,
     updateShortcutRequested,
-    workLogCommandFromKeydown,
+    workLogKeydownAction,
     type PomodoroCommand,
     type SectionId,
     type TodoCommand,
     type WorkLogCommand,
+    type WorkLogKeySequence,
   } from "$lib/keyboard";
   import {
     isCurrentNotificationPermissionGranted,
@@ -66,6 +67,7 @@
     { id: "log", title: "Log", shortcut: "⌘3" },
   ];
   const UPDATE_CHECK_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+  const WORK_LOG_KEY_SEQUENCE_TIMEOUT_MS = 700;
   let activeSection = $state<SectionId>("log");
   let pomodoroCommandRequest = $state<{
     id: number;
@@ -94,6 +96,8 @@
   let lastUpdateCheckAttemptAt = 0;
   let settingsDialogOpen = $state(false);
   let keyboardShortcutsDialogOpen = $state(false);
+  let workLogKeySequence = $state<WorkLogKeySequence | null>(null);
+  let workLogKeySequenceTimeout: number | null = null;
   let quickEntryGlobalShortcut = $state(DEFAULT_QUICK_ENTRY_GLOBAL_SHORTCUT);
   let pomodoroFocusDurationMinutes = $state(
     DEFAULT_POMODORO_FOCUS_DURATION_MINUTES,
@@ -153,6 +157,7 @@
       disposed = true;
       window.clearInterval(dateInterval);
       window.clearInterval(updateInterval);
+      clearWorkLogKeySequenceTimeout();
       unlistenFocusChange?.();
     };
   });
@@ -240,11 +245,16 @@
   }
 
   function handleWorkLogSectionKeydown(event: KeyboardEvent) {
-    const command = workLogCommandFromKeydown(event);
+    const action = workLogKeydownAction(event, workLogKeySequence);
 
-    if (command) {
+    setWorkLogKeySequence(action.nextSequence);
+
+    if (action.handled) {
       event.preventDefault();
-      requestWorkLogCommand(command);
+    }
+
+    if (action.command) {
+      requestWorkLogCommand(action.command);
     }
   }
 
@@ -322,6 +332,27 @@
       id: ++workLogCommandRequestId,
       command,
     };
+  }
+
+  function setWorkLogKeySequence(sequence: WorkLogKeySequence | null) {
+    workLogKeySequence = sequence;
+    clearWorkLogKeySequenceTimeout();
+
+    if (sequence) {
+      workLogKeySequenceTimeout = window.setTimeout(() => {
+        workLogKeySequence = null;
+        workLogKeySequenceTimeout = null;
+      }, WORK_LOG_KEY_SEQUENCE_TIMEOUT_MS);
+    }
+  }
+
+  function clearWorkLogKeySequenceTimeout() {
+    if (workLogKeySequenceTimeout === null) {
+      return;
+    }
+
+    window.clearTimeout(workLogKeySequenceTimeout);
+    workLogKeySequenceTimeout = null;
   }
 
   function requestWorkLogEdit(workLog: WorkLog) {

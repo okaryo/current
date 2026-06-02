@@ -12,13 +12,21 @@
   import { linkifyWorkLogBody } from "$lib/work-log/linkify";
   import {
     buildRecentWorkLogGroups,
+    buildWorkLogSelectableItems,
     moveWorkLogSelection,
+    selectWorkLogBoundary,
+    workLogSelectionForDate,
+    workLogSelectionKey,
+    workLogSelectionsEqual,
+    type WorkLogSelection,
   } from "$lib/work-log/ui";
 
   type WorkLogCommand =
     | "focusPreferred"
     | "moveDown"
     | "moveUp"
+    | "moveFirst"
+    | "moveLast"
     | "editSelected";
 
   type WorkLogCommandRequest = {
@@ -54,19 +62,26 @@
   let workLogs = $state<WorkLog[]>([]);
   let workLogError = $state<string | null>(null);
   let isLoadingWorkLogs = $state(true);
-  let selectedWorkLogId = $state<number | null>(null);
+  let selectedWorkLogItem = $state<WorkLogSelection | null>(null);
   let workLogListElement = $state<HTMLOListElement>();
   let relativeTimeNowMs = $state(Date.now());
   let lastCommandRequestId = 0;
   let unlistenWorkLogCreated: UnlistenFn | undefined;
   let unlistenWorkLogUpdated: UnlistenFn | undefined;
   let relativeTimeInterval: ReturnType<typeof setInterval> | undefined;
+  let keepSelectedDateHeaderVisible = false;
   const visibleWorkLogGroups = $derived(
     buildRecentWorkLogGroups(
       workLogs,
       relativeTimeNowMs,
       RECENT_WORK_LOG_DAY_COUNT,
     ),
+  );
+  const visibleWorkLogItems = $derived(
+    buildWorkLogSelectableItems(visibleWorkLogGroups),
+  );
+  const selectedWorkLogKey = $derived(
+    selectedWorkLogItem ? workLogSelectionKey(selectedWorkLogItem) : null,
   );
   const lastWorkLog = $derived(workLogs[0] ?? null);
   const lastLogLabel = $derived(
@@ -125,6 +140,12 @@
       case "moveUp":
         moveSelection(-1);
         break;
+      case "moveFirst":
+        moveSelectionToBoundary("first");
+        break;
+      case "moveLast":
+        moveSelectionToBoundary("last");
+        break;
       case "editSelected":
         editSelectedWorkLog();
         break;
@@ -132,7 +153,7 @@
   });
 
   $effect(() => {
-    if (!active || selectedWorkLogId === null) {
+    if (!active || !selectedWorkLogItem) {
       return;
     }
 
@@ -147,7 +168,7 @@
       workLogs = (await listWorkLogs(oldestVisibleDayStartMs())).sort(
         compareWorkLogs,
       );
-      ensureSelectedWorkLog();
+      ensureSelectedWorkLogItem();
     } catch (error) {
       workLogError = errorMessage(error);
     } finally {
@@ -157,7 +178,7 @@
 
   async function focusList() {
     onActivate();
-    ensureSelectedWorkLog();
+    ensureSelectedWorkLogItem();
     await tick();
     workLogListElement?.focus({ preventScroll: true });
     await scrollSelectedWorkLogIntoView();
@@ -185,13 +206,19 @@
     }
 
     const shouldSelectCreatedWorkLog =
-      selectedWorkLogId === null || selectedWorkLogId === lastWorkLog?.id;
+      selectedWorkLogItem === null ||
+      (selectedWorkLogItem.kind === "log" &&
+        selectedWorkLogItem.id === lastWorkLog?.id) ||
+      workLogSelectionsEqual(
+        selectedWorkLogItem,
+        workLogSelectionForDate(workLog.createdAtMs),
+      );
     workLogs = [...workLogs, workLog].sort(compareWorkLogs);
 
     if (shouldSelectCreatedWorkLog) {
-      selectedWorkLogId = workLog.id;
+      selectedWorkLogItem = { kind: "log", id: workLog.id };
     } else {
-      ensureSelectedWorkLog();
+      ensureSelectedWorkLogItem();
     }
 
     relativeTimeNowMs = Date.now();
@@ -207,24 +234,42 @@
         existingWorkLog.id === workLog.id ? workLog : existingWorkLog,
       )
       .sort(compareWorkLogs);
-    ensureSelectedWorkLog();
+    ensureSelectedWorkLogItem();
     relativeTimeNowMs = Date.now();
   }
 
   function selectWorkLog(id: number) {
     onActivate();
-    selectedWorkLogId = id;
+    keepSelectedDateHeaderVisible = false;
+    selectedWorkLogItem = { kind: "log", id };
+  }
+
+  function selectEmptyDay(dateKey: string) {
+    onActivate();
+    keepSelectedDateHeaderVisible = false;
+    selectedWorkLogItem = { kind: "emptyDay", dateKey };
   }
 
   function moveSelection(direction: 1 | -1) {
-    selectedWorkLogId = moveWorkLogSelection(
-      workLogs,
-      selectedWorkLogId,
+    keepSelectedDateHeaderVisible = direction === -1;
+    selectedWorkLogItem = moveWorkLogSelection(
+      visibleWorkLogItems,
+      selectedWorkLogItem,
       direction,
     );
   }
 
+  function moveSelectionToBoundary(boundary: "first" | "last") {
+    keepSelectedDateHeaderVisible = boundary === "first";
+    selectedWorkLogItem = selectWorkLogBoundary(visibleWorkLogItems, boundary);
+  }
+
   function editSelectedWorkLog() {
+    if (!selectedWorkLogItem || selectedWorkLogItem.kind !== "log") {
+      return;
+    }
+
+    const selectedWorkLogId = selectedWorkLogItem.id;
     const selectedWorkLog = workLogs.find(
       (workLog) => workLog.id === selectedWorkLogId,
     );
@@ -237,14 +282,18 @@
     onEditWorkLog(selectedWorkLog);
   }
 
-  function ensureSelectedWorkLog() {
-    if (workLogs.length === 0) {
-      selectedWorkLogId = null;
+  function ensureSelectedWorkLogItem() {
+    if (visibleWorkLogItems.length === 0) {
+      selectedWorkLogItem = null;
       return;
     }
 
-    if (!workLogs.some((workLog) => workLog.id === selectedWorkLogId)) {
-      selectedWorkLogId = workLogs[0]?.id ?? null;
+    if (
+      !visibleWorkLogItems.some((item) =>
+        workLogSelectionsEqual(item, selectedWorkLogItem),
+      )
+    ) {
+      selectedWorkLogItem = visibleWorkLogItems[0] ?? null;
     }
   }
 
@@ -253,13 +302,48 @@
 
     const selectedWorkLogElement =
       workLogListElement?.querySelector<HTMLElement>(
-        `[data-work-log-id="${selectedWorkLogId}"]`,
+        `[data-work-log-selection="${selectedWorkLogKey}"]`,
       );
+    const selectedDateGroupElement =
+      selectedWorkLogElement?.closest<HTMLElement>(
+        "[data-work-log-date-group]",
+      );
+    const firstGroupSelectionElement =
+      selectedDateGroupElement?.querySelector<HTMLElement>(
+        "[data-work-log-selection]",
+      );
+    const scrollTarget =
+      keepSelectedDateHeaderVisible &&
+      selectedWorkLogElement === firstGroupSelectionElement
+        ? selectedDateGroupElement
+        : selectedWorkLogElement;
 
-    selectedWorkLogElement?.scrollIntoView({
+    scrollTarget?.scrollIntoView({
       block: "nearest",
       inline: "nearest",
     });
+    scrollLogListToBoundary();
+    keepSelectedDateHeaderVisible = false;
+  }
+
+  function scrollLogListToBoundary() {
+    if (!workLogListElement || !selectedWorkLogItem) {
+      return;
+    }
+
+    if (workLogSelectionsEqual(selectedWorkLogItem, visibleWorkLogItems[0])) {
+      workLogListElement.scrollTop = 0;
+      return;
+    }
+
+    if (
+      workLogSelectionsEqual(
+        selectedWorkLogItem,
+        visibleWorkLogItems.at(-1) ?? null,
+      )
+    ) {
+      workLogListElement.scrollTop = workLogListElement.scrollHeight;
+    }
   }
 
   function oldestVisibleDayStartMs() {
@@ -342,6 +426,21 @@
   function isTauriRuntime() {
     return "__TAURI_INTERNALS__" in window;
   }
+
+  function emptyDaySelectionKey(dateKey: string) {
+    return workLogSelectionKey({ kind: "emptyDay", dateKey });
+  }
+
+  function isEmptyDaySelected(dateKey: string) {
+    return (
+      selectedWorkLogItem?.kind === "emptyDay" &&
+      selectedWorkLogItem.dateKey === dateKey
+    );
+  }
+
+  function isWorkLogSelected(id: number) {
+    return selectedWorkLogItem?.kind === "log" && selectedWorkLogItem.id === id;
+  }
 </script>
 
 <section
@@ -379,17 +478,32 @@
         <li class="log-empty">Loading logs...</li>
       {:else}
         {#each visibleWorkLogGroups as group (group.dateKey)}
-          <li class="log-date-group">
+          <li class="log-date-group" data-work-log-date-group={group.dateKey}>
             <h3>{group.label}</h3>
             {#if group.logs.length === 0}
-              <p class="log-empty-day">No log</p>
+              <p
+                data-work-log-selection={emptyDaySelectionKey(group.dateKey)}
+                class="log-empty-day"
+                class:log-selected={active && isEmptyDaySelected(group.dateKey)}
+              >
+                <button
+                  class="log-row-button"
+                  type="button"
+                  aria-label={`Select empty log day for ${group.label}`}
+                  onclick={() => selectEmptyDay(group.dateKey)}
+                ></button>
+                <span>No log</span>
+              </p>
             {:else}
               <ol class="log-day-list" aria-label={`${group.label} logs`}>
                 {#each group.logs as log (log.id)}
                   <li
-                    data-work-log-id={log.id}
+                    data-work-log-selection={workLogSelectionKey({
+                      kind: "log",
+                      id: log.id,
+                    })}
                     class="log-item"
-                    class:log-selected={active && selectedWorkLogId === log.id}
+                    class:log-selected={active && isWorkLogSelected(log.id)}
                   >
                     <button
                       class="log-row-button"
@@ -680,9 +794,18 @@
   }
 
   .log-empty-day {
+    isolation: isolate;
+    position: relative;
     margin: 0;
+    border-radius: 6px;
     color: #6f7784;
     font-size: 0.86rem;
+  }
+
+  .log-empty-day span {
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
   }
 
   .log-item time {

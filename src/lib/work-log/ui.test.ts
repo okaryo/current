@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { WorkLog } from "$lib/api/workLogs";
 import {
   buildRecentWorkLogGroups,
+  buildWorkLogSelectableItems,
   moveWorkLogSelection,
+  selectWorkLogBoundary,
+  workLogSelectionForDate,
 } from "$lib/work-log/ui";
 
 function workLog(overrides: Partial<WorkLog> & Pick<WorkLog, "id">): WorkLog {
@@ -72,21 +75,71 @@ describe("buildRecentWorkLogGroups", () => {
   });
 });
 
-describe("moveWorkLogSelection", () => {
-  const logs = [workLog({ id: 1 }), workLog({ id: 2 }), workLog({ id: 3 })];
+describe("buildWorkLogSelectableItems", () => {
+  it("includes both log rows and empty-day rows in display order", () => {
+    const groups = [
+      { dateKey: "2026-05-22", label: "Today", logs: [workLog({ id: 1 })] },
+      { dateKey: "2026-05-21", label: "Yesterday", logs: [] },
+      { dateKey: "2026-05-20", label: "May 20", logs: [workLog({ id: 2 })] },
+    ];
 
-  it("selects the first or last log when nothing is selected", () => {
-    expect(moveWorkLogSelection(logs, null, 1)).toBe(1);
-    expect(moveWorkLogSelection(logs, null, -1)).toBe(3);
+    expect(buildWorkLogSelectableItems(groups)).toEqual([
+      { kind: "log", id: 1 },
+      { kind: "emptyDay", dateKey: "2026-05-21" },
+      { kind: "log", id: 2 },
+    ]);
+  });
+});
+
+describe("moveWorkLogSelection", () => {
+  const items = [
+    { kind: "log", id: 1 },
+    { kind: "emptyDay", dateKey: "2026-05-21" },
+    { kind: "log", id: 2 },
+  ] as const;
+
+  it("selects the first or last item when nothing is selected", () => {
+    expect(moveWorkLogSelection([...items], null, 1)).toEqual(items[0]);
+    expect(moveWorkLogSelection([...items], null, -1)).toEqual(items[2]);
   });
 
-  it("moves within bounds", () => {
-    expect(moveWorkLogSelection(logs, 1, 1)).toBe(2);
-    expect(moveWorkLogSelection(logs, 3, 1)).toBe(3);
-    expect(moveWorkLogSelection(logs, 1, -1)).toBe(1);
+  it("moves through log and empty-day items within bounds", () => {
+    expect(moveWorkLogSelection([...items], items[0], 1)).toEqual(items[1]);
+    expect(moveWorkLogSelection([...items], items[1], 1)).toEqual(items[2]);
+    expect(moveWorkLogSelection([...items], items[2], 1)).toEqual(items[2]);
+    expect(moveWorkLogSelection([...items], items[0], -1)).toEqual(items[0]);
   });
 
   it("clears selection for an empty list", () => {
-    expect(moveWorkLogSelection([], 1, 1)).toBeNull();
+    expect(moveWorkLogSelection([], items[0], 1)).toBeNull();
+  });
+});
+
+describe("selectWorkLogBoundary", () => {
+  const items = [
+    { kind: "log", id: 1 },
+    { kind: "emptyDay", dateKey: "2026-05-21" },
+    { kind: "log", id: 2 },
+  ] as const;
+
+  it("selects the first or last item", () => {
+    expect(selectWorkLogBoundary([...items], "first")).toEqual(items[0]);
+    expect(selectWorkLogBoundary([...items], "last")).toEqual(items[2]);
+  });
+
+  it("clears selection for an empty list", () => {
+    expect(selectWorkLogBoundary([], "first")).toBeNull();
+    expect(selectWorkLogBoundary([], "last")).toBeNull();
+  });
+});
+
+describe("workLogSelectionForDate", () => {
+  it("builds an empty-day selection key from a local timestamp", () => {
+    expect(workLogSelectionForDate(new Date(2026, 4, 22, 9).getTime())).toEqual(
+      {
+        kind: "emptyDay",
+        dateKey: "2026-05-22",
+      },
+    );
   });
 });
