@@ -69,6 +69,7 @@
   let unlistenWorkLogCreated: UnlistenFn | undefined;
   let unlistenWorkLogUpdated: UnlistenFn | undefined;
   let relativeTimeInterval: ReturnType<typeof setInterval> | undefined;
+  let keepSelectedDateHeaderVisible = false;
   const visibleWorkLogGroups = $derived(
     buildRecentWorkLogGroups(
       workLogs,
@@ -239,15 +240,18 @@
 
   function selectWorkLog(id: number) {
     onActivate();
+    keepSelectedDateHeaderVisible = false;
     selectedWorkLogItem = { kind: "log", id };
   }
 
   function selectEmptyDay(dateKey: string) {
     onActivate();
+    keepSelectedDateHeaderVisible = false;
     selectedWorkLogItem = { kind: "emptyDay", dateKey };
   }
 
   function moveSelection(direction: 1 | -1) {
+    keepSelectedDateHeaderVisible = direction === -1;
     selectedWorkLogItem = moveWorkLogSelection(
       visibleWorkLogItems,
       selectedWorkLogItem,
@@ -256,6 +260,7 @@
   }
 
   function moveSelectionToBoundary(boundary: "first" | "last") {
+    keepSelectedDateHeaderVisible = boundary === "first";
     selectedWorkLogItem = selectWorkLogBoundary(visibleWorkLogItems, boundary);
   }
 
@@ -299,11 +304,46 @@
       workLogListElement?.querySelector<HTMLElement>(
         `[data-work-log-selection="${selectedWorkLogKey}"]`,
       );
+    const selectedDateGroupElement =
+      selectedWorkLogElement?.closest<HTMLElement>(
+        "[data-work-log-date-group]",
+      );
+    const firstGroupSelectionElement =
+      selectedDateGroupElement?.querySelector<HTMLElement>(
+        "[data-work-log-selection]",
+      );
+    const scrollTarget =
+      keepSelectedDateHeaderVisible &&
+      selectedWorkLogElement === firstGroupSelectionElement
+        ? selectedDateGroupElement
+        : selectedWorkLogElement;
 
-    selectedWorkLogElement?.scrollIntoView({
+    scrollTarget?.scrollIntoView({
       block: "nearest",
       inline: "nearest",
     });
+    scrollLogListToBoundary();
+    keepSelectedDateHeaderVisible = false;
+  }
+
+  function scrollLogListToBoundary() {
+    if (!workLogListElement || !selectedWorkLogItem) {
+      return;
+    }
+
+    if (workLogSelectionsEqual(selectedWorkLogItem, visibleWorkLogItems[0])) {
+      workLogListElement.scrollTop = 0;
+      return;
+    }
+
+    if (
+      workLogSelectionsEqual(
+        selectedWorkLogItem,
+        visibleWorkLogItems.at(-1) ?? null,
+      )
+    ) {
+      workLogListElement.scrollTop = workLogListElement.scrollHeight;
+    }
   }
 
   function oldestVisibleDayStartMs() {
@@ -438,7 +478,7 @@
         <li class="log-empty">Loading logs...</li>
       {:else}
         {#each visibleWorkLogGroups as group (group.dateKey)}
-          <li class="log-date-group">
+          <li class="log-date-group" data-work-log-date-group={group.dateKey}>
             <h3>{group.label}</h3>
             {#if group.logs.length === 0}
               <p

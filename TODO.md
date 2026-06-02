@@ -183,6 +183,8 @@ Work Log decisions:
 - `j` / `k` and `ArrowDown` / `ArrowUp`: move the selected Work Log row when the Log section is active.
 - `gg` / `G`: move the selected Work Log row to the first or last visible row when the Log section is active.
 - Empty `No log` day rows are selectable navigation targets, but cannot be edited with `e`.
+- When navigating upward to the first row in a Work Log day group, scrolling keeps that day header visible.
+- When the first or last visible Work Log row is selected, the Log list scrolls fully to the top or bottom.
 - `e`: edit the selected Work Log entry when the Log section is active.
 - Activating the Log section focuses the Work Log list and selects the latest log when there is no valid current selection.
 - When a new Work Log is added, selection moves to it only if the latest log was selected; older selected logs stay selected.
