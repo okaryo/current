@@ -116,6 +116,11 @@
           ],
           separator: "or",
         },
+        {
+          action: "Move to First or Last Log",
+          keys: [{ value: "gg" }, { value: "G" }],
+          separator: "or",
+        },
       ],
     },
   ];
@@ -140,6 +145,14 @@
     if (event.target === dialog) {
       onClose();
     }
+  }
+
+  function separatorAfterIndex(shortcut: ShortcutItem) {
+    if (!shortcut.separator) {
+      return -1;
+    }
+
+    return Math.ceil(shortcut.keys.length / 2) - 1;
   }
 </script>
 
@@ -188,31 +201,18 @@
                   {/if}
                 </span>
                 <span class="shortcut-keys">
-                  {#if shortcut.separator}
-                    {#each shortcut.keys.slice(0, 2) as key (key.value)}
-                      <KeyboardKey
-                        value={key.value}
-                        label={key.label}
-                        size="compact"
-                      />
-                    {/each}
-                    <span class="shortcut-separator">{shortcut.separator}</span>
-                    {#each shortcut.keys.slice(2) as key (key.value)}
-                      <KeyboardKey
-                        value={key.value}
-                        label={key.label}
-                        size="compact"
-                      />
-                    {/each}
-                  {:else}
-                    {#each shortcut.keys as key (key.value)}
-                      <KeyboardKey
-                        value={key.value}
-                        label={key.label}
-                        size="compact"
-                      />
-                    {/each}
-                  {/if}
+                  {#each shortcut.keys as key, keyIndex (key.value)}
+                    <KeyboardKey
+                      value={key.value}
+                      label={key.label}
+                      size="compact"
+                    />
+                    {#if shortcut.separator && keyIndex === separatorAfterIndex(shortcut)}
+                      <span class="shortcut-separator">
+                        {shortcut.separator}
+                      </span>
+                    {/if}
+                  {/each}
                 </span>
               </div>
             {/each}

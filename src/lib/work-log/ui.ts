@@ -60,6 +60,19 @@ export function moveWorkLogSelection(
   return logs[nextIndex]?.id ?? null;
 }
 
+export function selectWorkLogBoundary(
+  logs: WorkLog[],
+  boundary: "first" | "last",
+): number | null {
+  if (logs.length === 0) {
+    return null;
+  }
+
+  return boundary === "first"
+    ? (logs[0]?.id ?? null)
+    : (logs.at(-1)?.id ?? null);
+}
+
 function localDateKey(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");

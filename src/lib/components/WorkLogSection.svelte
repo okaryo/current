@@ -13,12 +13,15 @@
   import {
     buildRecentWorkLogGroups,
     moveWorkLogSelection,
+    selectWorkLogBoundary,
   } from "$lib/work-log/ui";
 
   type WorkLogCommand =
     | "focusPreferred"
     | "moveDown"
     | "moveUp"
+    | "moveFirst"
+    | "moveLast"
     | "editSelected";
 
   type WorkLogCommandRequest = {
@@ -125,6 +128,12 @@
       case "moveUp":
         moveSelection(-1);
         break;
+      case "moveFirst":
+        moveSelectionToBoundary("first");
+        break;
+      case "moveLast":
+        moveSelectionToBoundary("last");
+        break;
       case "editSelected":
         editSelectedWorkLog();
         break;
@@ -222,6 +231,10 @@
       selectedWorkLogId,
       direction,
     );
+  }
+
+  function moveSelectionToBoundary(boundary: "first" | "last") {
+    selectedWorkLogId = selectWorkLogBoundary(workLogs, boundary);
   }
 
   function editSelectedWorkLog() {

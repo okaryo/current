@@ -3,6 +3,7 @@ import type { WorkLog } from "$lib/api/workLogs";
 import {
   buildRecentWorkLogGroups,
   moveWorkLogSelection,
+  selectWorkLogBoundary,
 } from "$lib/work-log/ui";
 
 function workLog(overrides: Partial<WorkLog> & Pick<WorkLog, "id">): WorkLog {
@@ -88,5 +89,19 @@ describe("moveWorkLogSelection", () => {
 
   it("clears selection for an empty list", () => {
     expect(moveWorkLogSelection([], 1, 1)).toBeNull();
+  });
+});
+
+describe("selectWorkLogBoundary", () => {
+  const logs = [workLog({ id: 1 }), workLog({ id: 2 }), workLog({ id: 3 })];
+
+  it("selects the first or last log", () => {
+    expect(selectWorkLogBoundary(logs, "first")).toBe(1);
+    expect(selectWorkLogBoundary(logs, "last")).toBe(3);
+  });
+
+  it("clears selection for an empty list", () => {
+    expect(selectWorkLogBoundary([], "first")).toBeNull();
+    expect(selectWorkLogBoundary([], "last")).toBeNull();
   });
 });
