@@ -34,6 +34,16 @@ Current focuses on the present, not optimization.
 
 Current is distributed for macOS, Windows, and Linux.
 
+### Homebrew
+
+On macOS, Current can be installed with Homebrew:
+
+```sh
+brew install --cask okaryo/tap/current
+```
+
+### Manual Installation
+
 1. Open the [latest release on GitHub](https://github.com/okaryo/current/releases/latest).
 2. Download the installer for your OS:
    - macOS Apple Silicon: the file ending in `_aarch64.dmg`

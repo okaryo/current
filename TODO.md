@@ -391,7 +391,7 @@ Initial release testing decisions:
 ### Distribution
 
 - [x] Add Linux and Windows release builds
-- [ ] Add Homebrew installation support
+- [x] Add Homebrew installation support
 
 Distribution decisions:
 
